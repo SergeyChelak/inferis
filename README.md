@@ -16,3 +16,6 @@ Arch
 ```
 sudo pacman -S sdl2 sdl2_image
 ```
+
+### Resources
+Video [Using Rust For Game Development by Catherine West](https://www.youtube.com/watch?v=aKLntZcp27M), slides [here](https://kyren.github.io/rustconf_2018_slides/index.html)
