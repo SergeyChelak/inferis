@@ -7,17 +7,12 @@ use std::any::Any;
 use common::{EcsResult, EntityID};
 use state::StateManager;
 
+#[derive(Default)]
 pub struct Ecs {
     state: StateManager,
 }
 
 impl Ecs {
-    pub fn new() -> Self {
-        Self {
-            state: StateManager::default(),
-        }
-    }
-
     /// System must be registered at initialization step
     pub fn register_system<T: Any>(&mut self, system: T) {
         todo!()

@@ -8,7 +8,7 @@ mod vec2;
 
 fn main() -> EcsResult<()> {
     println!("Inferis Project");
-    let mut world = Ecs::new();
+    let mut world = Ecs::default();
 
     world
         .state()
@@ -41,5 +41,6 @@ fn main() -> EcsResult<()> {
     println!("Player id {player}");
     println!("NPC id {npc}");
     println!("Unknown hero id {hero}");
+
     Ok(())
 }
