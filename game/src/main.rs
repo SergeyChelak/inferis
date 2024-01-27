@@ -7,12 +7,12 @@ mod types;
 mod vec2;
 
 fn main() -> EcsResult<()> {
-    let mut world = Ecs {};
-    world.register_component::<Position>();
-    world.register_component::<Angle>();
-    world.register_component::<HitPoints>();
-    world.register_component::<MovementSpeed>();
-    world.register_component::<RotationSpeed>();
+    let mut world = Ecs::new();
+    world.register_component::<Position>()?;
+    world.register_component::<Angle>()?;
+    world.register_component::<HitPoints>()?;
+    world.register_component::<MovementSpeed>()?;
+    world.register_component::<RotationSpeed>()?;
 
     {
         let player = world.create_entity()?;

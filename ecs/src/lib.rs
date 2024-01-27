@@ -1,11 +1,19 @@
 mod packed_array;
 
-use std::any::Any;
+use std::{
+    any::{Any, TypeId},
+    cell::RefCell,
+    collections::HashMap,
+    rc::Rc,
+};
 
 use packed_array::{PackedArray, ValueID};
 
 #[derive(Debug)]
 pub enum EcsError {
+    FailedAddEntity,
+    ComponentNotFound(TypeId),
+    AccessComponentFailure(Entity),
     TooManyComponents,
     TooManyEntities,
 }
@@ -14,40 +22,45 @@ pub type EcsResult<T> = Result<T, EcsError>;
 
 /// Entity is just an identifier that used to group required components
 pub type Entity = ValueID;
+type AnyComponent = Rc<RefCell<dyn Any>>;
+type ComponentRow = PackedArray<Option<AnyComponent>>;
 
 pub struct Ecs {
-    // TODO: add fields
+    components: HashMap<TypeId, ComponentRow>,
 }
 
 impl Ecs {
+    pub fn new() -> Self {
+        Self {
+            components: HashMap::new(),
+        }
+    }
     /// This ECS designed to register all component before entities and systems will be introduced
-    /// May return error if max components amount exceeded
-    pub fn register_component<T: Any>(&mut self) {
-        todo!()
+    /// TODO: May return error if max components amount was exceeded
+    pub fn register_component<T: Any>(&mut self) -> EcsResult<()> {
+        let key = TypeId::of::<T>();
+        self.components.insert(key, ComponentRow::new());
+        Ok(())
     }
 
     /// System must be registered at initialization step
-    /// By default, any system isn't permitted to read or write components
-    /// Corresponding methods in API are should be called to declare which
-    /// component could be accessed for reading and which ones for writing
     pub fn register_system<T: Any>(&mut self, system: T) {
-        todo!()
-    }
-
-    /// Enables read component permission for the system
-    pub fn system_permit_read<S: Any, C: Any>(&mut self, system: S, component: C) {
-        todo!()
-    }
-
-    /// Enables write component permission for the system
-    pub fn system_permit_write<S: Any, C: Any>(&mut self, system: S, component: C) {
         todo!()
     }
 
     /// Creates new entity and return its identifier
     /// May return error if max entities amount exceeded
     pub fn create_entity(&mut self) -> EcsResult<Entity> {
-        todo!()
+        let id = self
+            .components
+            .iter_mut()
+            .map(|(_, row)| row.add(None))
+            //.take(1)
+            .collect::<Vec<Entity>>();
+        let Some(val) = id.first() else {
+            return Err(EcsError::FailedAddEntity);
+        };
+        Ok(*val)
     }
 
     /// Removes specified entity
@@ -57,7 +70,16 @@ impl Ecs {
 
     /// Sets given component to the specified entity
     pub fn entity_add_component<T: Any>(&mut self, entity: Entity, component: T) -> EcsResult<()> {
-        todo!()
+        let key = TypeId::of::<T>();
+        let Some(row) = self.components.get_mut(&key) else {
+            return Err(EcsError::ComponentNotFound(key));
+        };
+        // println!("row len {}", row.len());
+        let Some(item) = row.get_mut(entity) else {
+            return Err(EcsError::AccessComponentFailure(entity));
+        };
+        *item = Some(Rc::new(RefCell::new(component)));
+        Ok(())
     }
 }
 

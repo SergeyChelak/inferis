@@ -22,7 +22,7 @@ impl<T> Default for PackedArray<T> {
 }
 
 impl<T> PackedArray<T> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 
@@ -53,8 +53,16 @@ impl<T> PackedArray<T> {
         self.data.get_mut(idx)
     }
 
-    pub fn all_ids(&self) -> &[ValueID] {
+    pub fn ids(&self) -> &[ValueID] {
         &self.index_to_id[..self.length]
+    }
+
+    pub fn values(&self) -> &[T] {
+        &self.data
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&ValueID, &T)> {
+        self.index_to_id.iter().zip(self.data.iter())
     }
 
     pub fn len(&self) -> usize {
@@ -215,19 +223,19 @@ mod test {
     #[test]
     fn pa_test_get_ids() {
         let mut array: PackedArray<i32> = PackedArray::default();
-        array.add(1); // 0
-        array.add(2); // 1
-        array.add(3); // 2
-        let id_1 = array.add(4); // 3
-        let id_2 = array.add(5); // 4
-        array.add(6); // 5
-        array.add(7); // 6
-        array.remove(id_1); // -3
-        array.remove(id_2); // -4
-        array.add(8); // +3
+        array.add(1);
+        array.add(2);
+        array.add(3);
+        let id_1 = array.add(4);
+        let id_2 = array.add(5);
+        array.add(6);
+        array.add(7);
+        array.remove(id_1);
+        array.remove(id_2);
+        array.add(8);
 
         // order of ids isn't determined, sort it before assertion
-        let mut ids = array.all_ids().to_vec();
+        let mut ids = array.ids().to_vec();
         ids.sort();
         assert_eq!(ids, &[0, 1, 2, 3, 5, 6]);
     }
