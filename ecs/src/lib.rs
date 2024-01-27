@@ -56,12 +56,16 @@ impl Ecs {
             .components
             .iter_mut()
             .map(|(_, row)| row.add(None))
-            //.take(1)
             .collect::<Vec<Entity>>();
         let Some(val) = id.first() else {
             return Err(EcsError::FailedAddEntity);
         };
-        Ok(*val)
+        // check consistency
+        if id.iter().all(|x| *x == *val) {
+            Ok(*val)
+        } else {
+            return Err(EcsError::FailedAddEntity);
+        }
     }
 
     /// Removes specified entity
