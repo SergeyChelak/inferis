@@ -92,7 +92,7 @@ impl<T> PackedArray<T> {
             self.data[self.length] = val;
         }
         self.length += 1;
-        return next_id;
+        next_id
     }
 
     // removes an object with id, returns true if object was presented otherwise false

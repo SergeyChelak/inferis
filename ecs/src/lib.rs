@@ -14,6 +14,7 @@ pub enum EcsError {
     FailedAddEntity,
     ComponentNotFound(TypeId),
     AccessComponentFailure(Entity),
+    EntityNotFound(Entity),
     TooManyComponents,
     TooManyEntities,
 }
@@ -64,8 +65,17 @@ impl Ecs {
     }
 
     /// Removes specified entity
-    pub fn delete_entity(&mut self, entity: Entity) {
-        todo!()
+    pub fn delete_entity(&mut self, entity: Entity) -> EcsResult<()> {
+        let result = self
+            .components
+            .iter_mut()
+            .map(|(_, row)| row.remove(entity))
+            .all(|r| r);
+        if result {
+            Ok(())
+        } else {
+            Err(EcsError::EntityNotFound(entity))
+        }
     }
 
     /// Sets given component to the specified entity
