@@ -1,4 +1,8 @@
+mod packed_array;
+
 use std::any::Any;
+
+use packed_array::{PackedArray, ValueID};
 
 #[derive(Debug)]
 pub enum EcsError {
@@ -9,7 +13,7 @@ pub enum EcsError {
 pub type EcsResult<T> = Result<T, EcsError>;
 
 /// Entity is just an identifier that used to group required components
-pub type Entity = usize;
+pub type Entity = ValueID;
 
 pub struct Ecs {
     // TODO: add fields
