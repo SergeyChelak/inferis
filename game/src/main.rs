@@ -1,8 +1,4 @@
-use ecs::{
-    self,
-    common::{EcsResult, EntityProvider},
-    Ecs,
-};
+use ecs::{self, common::EcsResult, Ecs};
 
 use crate::{
     components::{Angle, HitPoints, MovementSpeed, Position, RotationSpeed},

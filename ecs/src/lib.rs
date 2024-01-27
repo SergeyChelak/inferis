@@ -1,25 +1,25 @@
 pub mod common;
 mod packed_array;
+mod resource;
 mod state;
 
-use std::any::Any;
-
-use common::EntityProvider;
+use resource::AssetManager;
 use state::StateManager;
 
 #[derive(Default)]
 pub struct Ecs {
-    state: StateManager,
+    state_manager: StateManager,
+    asset_manager: AssetManager,
 }
 
 impl Ecs {
     /// System must be registered at initialization step
-    pub fn register_system<T: Any>(&mut self, system: T) {
-        todo!()
-    }
+    // pub fn register_system<T: Any>(&mut self, system: T) {
+    //     todo!()
+    // }
 
-    pub fn entities(&mut self) -> &mut impl EntityProvider {
-        &mut self.state
+    pub fn entities(&mut self) -> &mut StateManager {
+        &mut self.state_manager
     }
 }
 

@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    common::{EcsError, EcsResult, EntityID, EntityProvider},
+    common::{EcsError, EcsResult, EntityID},
     packed_array::PackedArray,
 };
 
@@ -22,10 +22,22 @@ pub struct StateManager {
 impl StateManager {
     /// This ECS designed to register all component before entities and systems will be introduced
     /// TODO: May return error if max components amount was exceeded
-    fn component_register<T: Any>(&mut self) -> EcsResult<()> {
+    pub fn register_component<T: Any>(&mut self) -> EcsResult<&mut Self> {
         let key = TypeId::of::<T>();
         self.components.insert(key, ComponentRow::default());
-        Ok(())
+        Ok(self)
+    }
+
+    pub fn new_entity(&mut self) -> EcsResult<Entity> {
+        let id = self.create_entity()?;
+        self.entity(id)
+    }
+
+    pub fn entity(&mut self, id: EntityID) -> EcsResult<Entity> {
+        if !self.is_valid_id(id) {
+            return Err(EcsError::EntityNotFound(id));
+        }
+        Ok(Entity { id, state: self })
     }
 
     /// Creates new entity and return its identifier
@@ -90,25 +102,6 @@ impl StateManager {
 
     fn is_valid_id(&self, entity: EntityID) -> bool {
         self.entity_ids.contains(&entity)
-    }
-}
-
-impl EntityProvider for StateManager {
-    fn new_entity(&mut self) -> EcsResult<Entity> {
-        let id = self.create_entity()?;
-        self.entity(id)
-    }
-
-    fn entity(&mut self, id: EntityID) -> EcsResult<Entity> {
-        if !self.is_valid_id(id) {
-            return Err(EcsError::EntityNotFound(id));
-        }
-        Ok(Entity { id, state: self })
-    }
-
-    fn register_component<T: Any>(&mut self) -> EcsResult<&mut Self> {
-        self.component_register::<T>()?;
-        Ok(self)
     }
 }
 
