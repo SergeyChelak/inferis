@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    common::{EcsError, EcsResult, EntityID},
+    common::{EcsError, EcsResult, EntityID, EntityProvider},
     packed_array::PackedArray,
 };
 
@@ -22,15 +22,15 @@ pub struct StateManager {
 impl StateManager {
     /// This ECS designed to register all component before entities and systems will be introduced
     /// TODO: May return error if max components amount was exceeded
-    pub fn register_component<T: Any>(&mut self) -> EcsResult<&mut Self> {
+    fn component_register<T: Any>(&mut self) -> EcsResult<()> {
         let key = TypeId::of::<T>();
         self.components.insert(key, ComponentRow::new());
-        Ok(self)
+        Ok(())
     }
 
     /// Creates new entity and return its identifier
     /// May return error if max entities amount exceeded
-    pub fn create_entity(&mut self) -> EcsResult<EntityID> {
+    fn create_entity(&mut self) -> EcsResult<EntityID> {
         let id = self
             .components
             .iter_mut()
@@ -49,7 +49,7 @@ impl StateManager {
     }
 
     /// Removes specified entity
-    pub fn delete_entity(&mut self, entity: EntityID) -> EcsResult<()> {
+    fn delete_entity(&mut self, entity: EntityID) -> EcsResult<()> {
         let result = self
             .components
             .iter_mut()
@@ -64,11 +64,7 @@ impl StateManager {
     }
 
     /// Sets given component to the specified entity
-    pub fn entity_add_component<T: Any>(
-        &mut self,
-        entity: EntityID,
-        component: T,
-    ) -> EcsResult<()> {
+    fn entity_add_component<T: Any>(&mut self, entity: EntityID, component: T) -> EcsResult<()> {
         let key = TypeId::of::<T>();
         let Some(row) = self.components.get_mut(&key) else {
             return Err(EcsError::ComponentNotFound(key));
@@ -80,7 +76,7 @@ impl StateManager {
         Ok(())
     }
 
-    pub fn entity_remove_component<T: Any>(&mut self, entity: EntityID) -> EcsResult<()> {
+    fn entity_remove_component<T: Any>(&mut self, entity: EntityID) -> EcsResult<()> {
         let key = TypeId::of::<T>();
         let Some(row) = self.components.get_mut(&key) else {
             return Err(EcsError::ComponentNotFound(key));
@@ -92,7 +88,51 @@ impl StateManager {
         Ok(())
     }
 
-    pub fn is_valid_id(&self, entity: EntityID) -> bool {
+    fn is_valid_id(&self, entity: EntityID) -> bool {
         self.entity_ids.contains(&entity)
+    }
+}
+
+impl EntityProvider for StateManager {
+    fn new_entity(&mut self) -> EcsResult<Entity> {
+        let id = self.create_entity()?;
+        self.entity(id)
+    }
+
+    fn entity(&mut self, id: EntityID) -> EcsResult<Entity> {
+        if !self.is_valid_id(id) {
+            return Err(EcsError::EntityNotFound(id));
+        }
+        Ok(Entity { id, state: self })
+    }
+
+    fn register_component<T: Any>(&mut self) -> EcsResult<&mut Self> {
+        self.component_register::<T>()?;
+        Ok(self)
+    }
+}
+
+pub struct Entity<'a> {
+    id: EntityID,
+    state: &'a mut StateManager,
+}
+
+impl<'a> Entity<'a> {
+    pub fn add_component<T: Any>(&mut self, component: T) -> EcsResult<&mut Self> {
+        self.state.entity_add_component(self.id, component)?;
+        Ok(self)
+    }
+
+    pub fn remove_component<T: Any>(&mut self) -> EcsResult<&mut Self> {
+        self.state.entity_remove_component::<T>(self.id)?;
+        Ok(self)
+    }
+
+    pub fn dispose(self) -> EcsResult<()> {
+        self.state.delete_entity(self.id)
+    }
+
+    pub fn as_id(&self) -> EntityID {
+        self.id
     }
 }

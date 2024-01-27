@@ -1,4 +1,8 @@
-use ecs::{self, common::EcsResult, Ecs};
+use ecs::{
+    self,
+    common::{EcsResult, EntityProvider},
+    Ecs,
+};
 
 use crate::{
     components::{Angle, HitPoints, MovementSpeed, Position, RotationSpeed},
@@ -12,15 +16,15 @@ mod vec2;
 fn main() -> EcsResult<()> {
     println!("Inferis Project");
     let mut world = Ecs::default();
-    world
-        .state()
+    let provider = world.entities();
+    provider
         .register_component::<Position>()?
         .register_component::<Angle>()?
         .register_component::<HitPoints>()?
         .register_component::<MovementSpeed>()?
         .register_component::<RotationSpeed>()?;
 
-    let player = world
+    let player = provider
         .new_entity()?
         .add_component(Position(Vec2f::new(1.0, 1.0)))?
         .add_component(Angle(0.1))?
@@ -28,14 +32,14 @@ fn main() -> EcsResult<()> {
         .add_component(HitPoints(100))?
         .as_id();
 
-    let npc = world
+    let npc = provider
         .new_entity()?
         .add_component(Position(Vec2f::new(3.0, 3.0)))?
         .add_component(MovementSpeed)?
         .add_component(HitPoints(100))?
         .as_id();
 
-    let hero = world
+    let hero = provider
         .new_entity()?
         .add_component(HitPoints(200))?
         .add_component(Position(Vec2f::new(2.0, 2.0)))?
