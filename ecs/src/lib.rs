@@ -1,47 +1,21 @@
+pub mod common;
 mod packed_array;
+mod state;
 
-use std::{
-    any::{Any, TypeId},
-    cell::RefCell,
-    collections::HashMap,
-    rc::Rc,
-};
+use std::any::Any;
 
-use packed_array::{PackedArray, ValueID};
-
-#[derive(Debug)]
-pub enum EcsError {
-    FailedAddEntity,
-    ComponentNotFound(TypeId),
-    AccessComponentFailure(Entity),
-    EntityNotFound(Entity),
-    TooManyComponents,
-    TooManyEntities,
-}
-
-pub type EcsResult<T> = Result<T, EcsError>;
-
-/// Entity is just an identifier that used to group required components
-pub type Entity = ValueID;
-type AnyComponent = Rc<RefCell<dyn Any>>;
-type ComponentRow = PackedArray<Option<AnyComponent>>;
+use common::{EcsResult, EntityID};
+use state::StateManager;
 
 pub struct Ecs {
-    components: HashMap<TypeId, ComponentRow>,
+    state: StateManager,
 }
 
 impl Ecs {
     pub fn new() -> Self {
         Self {
-            components: HashMap::new(),
+            state: StateManager::default(),
         }
-    }
-    /// This ECS designed to register all component before entities and systems will be introduced
-    /// TODO: May return error if max components amount was exceeded
-    pub fn register_component<T: Any>(&mut self) -> EcsResult<()> {
-        let key = TypeId::of::<T>();
-        self.components.insert(key, ComponentRow::new());
-        Ok(())
     }
 
     /// System must be registered at initialization step
@@ -49,51 +23,32 @@ impl Ecs {
         todo!()
     }
 
-    /// Creates new entity and return its identifier
-    /// May return error if max entities amount exceeded
-    pub fn create_entity(&mut self) -> EcsResult<Entity> {
-        let id = self
-            .components
-            .iter_mut()
-            .map(|(_, row)| row.add(None))
-            .collect::<Vec<Entity>>();
-        let Some(val) = id.first() else {
-            return Err(EcsError::FailedAddEntity);
-        };
-        // check consistency
-        if id.iter().all(|x| *x == *val) {
-            Ok(*val)
-        } else {
-            return Err(EcsError::FailedAddEntity);
-        }
+    pub fn entity(&mut self) -> EcsResult<Entity> {
+        let id = self.state.create_entity()?;
+        Ok(Entity {
+            id,
+            state: &mut self.state,
+        })
     }
 
-    /// Removes specified entity
-    pub fn delete_entity(&mut self, entity: Entity) -> EcsResult<()> {
-        let result = self
-            .components
-            .iter_mut()
-            .map(|(_, row)| row.remove(entity))
-            .all(|r| r);
-        if result {
-            Ok(())
-        } else {
-            Err(EcsError::EntityNotFound(entity))
-        }
+    pub fn state(&mut self) -> &mut StateManager {
+        &mut self.state
+    }
+}
+
+pub struct Entity<'a> {
+    id: EntityID,
+    state: &'a mut StateManager,
+}
+
+impl<'a> Entity<'a> {
+    pub fn add_component<T: Any>(&mut self, component: T) -> EcsResult<&mut Self> {
+        self.state.entity_add_component(self.id, component)?;
+        Ok(self)
     }
 
-    /// Sets given component to the specified entity
-    pub fn entity_add_component<T: Any>(&mut self, entity: Entity, component: T) -> EcsResult<()> {
-        let key = TypeId::of::<T>();
-        let Some(row) = self.components.get_mut(&key) else {
-            return Err(EcsError::ComponentNotFound(key));
-        };
-        // println!("row len {}", row.len());
-        let Some(item) = row.get_mut(entity) else {
-            return Err(EcsError::AccessComponentFailure(entity));
-        };
-        *item = Some(Rc::new(RefCell::new(component)));
-        Ok(())
+    pub fn as_id(&self) -> EntityID {
+        self.id
     }
 }
 
