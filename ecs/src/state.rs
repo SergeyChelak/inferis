@@ -24,7 +24,7 @@ impl StateManager {
     /// TODO: May return error if max components amount was exceeded
     fn component_register<T: Any>(&mut self) -> EcsResult<()> {
         let key = TypeId::of::<T>();
-        self.components.insert(key, ComponentRow::new());
+        self.components.insert(key, ComponentRow::default());
         Ok(())
     }
 

@@ -22,10 +22,6 @@ impl<T> Default for PackedArray<T> {
 }
 
 impl<T> PackedArray<T> {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     fn with_capacity(capacity: usize) -> Self {
         Self {
             data: Vec::with_capacity(capacity),
