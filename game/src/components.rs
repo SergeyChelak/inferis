@@ -1,6 +1,6 @@
-use crate::types::Float;
+use crate::types::{Float, Vec2f};
 
-pub struct Position;
+pub struct Position(pub Vec2f);
 
 pub struct Angle(pub Float);
 

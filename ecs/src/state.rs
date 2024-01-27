@@ -1,7 +1,7 @@
 use std::{
     any::{Any, TypeId},
     cell::RefCell,
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     rc::Rc,
 };
 
@@ -13,16 +13,10 @@ use crate::{
 type AnyComponent = Rc<RefCell<dyn Any>>;
 type ComponentRow = PackedArray<Option<AnyComponent>>;
 
+#[derive(Default)]
 pub struct StateManager {
+    entity_ids: HashSet<EntityID>,
     components: HashMap<TypeId, ComponentRow>,
-}
-
-impl Default for StateManager {
-    fn default() -> Self {
-        Self {
-            components: Default::default(),
-        }
-    }
 }
 
 impl StateManager {
@@ -47,6 +41,7 @@ impl StateManager {
         };
         // check consistency
         if id.iter().all(|x| *x == *val) {
+            self.entity_ids.insert(*val);
             Ok(*val)
         } else {
             return Err(EcsError::FailedAddEntity);
@@ -61,6 +56,7 @@ impl StateManager {
             .map(|(_, row)| row.remove(entity))
             .all(|r| r);
         if result {
+            self.entity_ids.remove(&entity);
             Ok(())
         } else {
             Err(EcsError::EntityNotFound(entity))
@@ -94,5 +90,9 @@ impl StateManager {
         };
         *item = None;
         Ok(())
+    }
+
+    pub fn is_valid_id(&self, entity: EntityID) -> bool {
+        self.entity_ids.contains(&entity)
     }
 }

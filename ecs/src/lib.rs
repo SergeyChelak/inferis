@@ -18,8 +18,15 @@ impl Ecs {
         todo!()
     }
 
-    pub fn entity(&mut self) -> EcsResult<Entity> {
+    pub fn new_entity(&mut self) -> EcsResult<Entity> {
         let id = self.state.create_entity()?;
+        self.entity(id)
+    }
+
+    pub fn entity(&mut self, id: EntityID) -> EcsResult<Entity> {
+        if !self.state.is_valid_id(id) {
+            return Err(common::EcsError::EntityNotFound(id));
+        }
         Ok(Entity {
             id,
             state: &mut self.state,
