@@ -77,11 +77,22 @@ impl StateManager {
         let Some(row) = self.components.get_mut(&key) else {
             return Err(EcsError::ComponentNotFound(key));
         };
-        // println!("row len {}", row.len());
         let Some(item) = row.get_mut(entity) else {
             return Err(EcsError::AccessComponentFailure(entity));
         };
         *item = Some(Rc::new(RefCell::new(component)));
+        Ok(())
+    }
+
+    pub fn entity_remove_component<T: Any>(&mut self, entity: EntityID) -> EcsResult<()> {
+        let key = TypeId::of::<T>();
+        let Some(row) = self.components.get_mut(&key) else {
+            return Err(EcsError::ComponentNotFound(key));
+        };
+        let Some(item) = row.get_mut(entity) else {
+            return Err(EcsError::AccessComponentFailure(entity));
+        };
+        *item = None;
         Ok(())
     }
 }

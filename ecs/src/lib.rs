@@ -47,6 +47,15 @@ impl<'a> Entity<'a> {
         Ok(self)
     }
 
+    pub fn remove_component<T: Any>(&mut self) -> EcsResult<&mut Self> {
+        self.state.entity_remove_component::<T>(self.id)?;
+        Ok(self)
+    }
+
+    pub fn dispose(self) -> EcsResult<()> {
+        self.state.delete_entity(self.id)
+    }
+
     pub fn as_id(&self) -> EntityID {
         self.id
     }
