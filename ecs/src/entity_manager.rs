@@ -14,12 +14,12 @@ type AnyComponent = Rc<RefCell<dyn Any>>;
 type ComponentRow = PackedArray<Option<AnyComponent>>;
 
 #[derive(Default)]
-pub struct StateManager {
+pub struct EntityManager {
     entity_ids: HashSet<EntityID>,
     components: HashMap<TypeId, ComponentRow>,
 }
 
-impl StateManager {
+impl EntityManager {
     /// This ECS designed to register all component before entities and systems will be introduced
     /// TODO: May return error if max components amount was exceeded
     pub fn register_component<T: Any>(&mut self) -> EcsResult<&mut Self> {
@@ -107,7 +107,7 @@ impl StateManager {
 
 pub struct Entity<'a> {
     id: EntityID,
-    state: &'a mut StateManager,
+    state: &'a mut EntityManager,
 }
 
 impl<'a> Entity<'a> {
