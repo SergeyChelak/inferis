@@ -10,6 +10,7 @@ pub enum EcsError {
     EntityNotFound(EntityID),
     TooManyComponents,
     TooManyEntities,
+    GameLoopAlreadyRunning,
 }
 
 pub type EcsResult<T> = Result<T, EcsError>;

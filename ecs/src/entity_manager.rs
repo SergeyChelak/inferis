@@ -17,9 +17,19 @@ type ComponentRow = PackedArray<Option<AnyComponent>>;
 pub struct EntityManager {
     entity_ids: HashSet<EntityID>,
     components: HashMap<TypeId, ComponentRow>,
+    entity_delete_pool: HashSet<EntityID>,
 }
 
 impl EntityManager {
+    pub fn update(&mut self) -> EcsResult<()> {
+        let pool = self.entity_delete_pool.to_owned();
+        self.entity_delete_pool.clear();
+        for id in pool {
+            self.delete_entity(id)?;
+        }
+        Ok(())
+    }
+
     /// This ECS designed to register all component before entities and systems will be introduced
     /// TODO: May return error if max components amount was exceeded
     pub fn register_component<T: Any>(&mut self) -> EcsResult<&mut Self> {
@@ -103,6 +113,10 @@ impl EntityManager {
     fn is_valid_id(&self, entity: EntityID) -> bool {
         self.entity_ids.contains(&entity)
     }
+
+    fn push_to_delete_pool(&mut self, entity: EntityID) {
+        self.entity_delete_pool.insert(entity);
+    }
 }
 
 pub struct Entity<'a> {
@@ -121,8 +135,9 @@ impl<'a> Entity<'a> {
         Ok(self)
     }
 
-    pub fn dispose(self) -> EcsResult<()> {
-        self.state.delete_entity(self.id)
+    pub fn as_removed(&mut self) -> EcsResult<&mut Self> {
+        self.state.push_to_delete_pool(self.id);
+        Ok(self)
     }
 
     pub fn as_id(&self) -> EntityID {
