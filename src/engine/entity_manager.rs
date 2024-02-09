@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use super::{packed_array::PackedArray, EngineError, EngineResult, EntityID};
+use super::{archetype::Archetype, packed_array::PackedArray, EngineError, EngineResult, EntityID};
 
 type AnyComponent = Rc<RefCell<dyn Any>>;
 type ComponentRow = PackedArray<Option<AnyComponent>>;
@@ -13,6 +13,8 @@ type ComponentRow = PackedArray<Option<AnyComponent>>;
 #[derive(Default)]
 pub struct EntityManager {
     container: HashMap<TypeId, ComponentRow>,
+    component_archetype: HashMap<TypeId, Archetype>,
+    entity_archetype: PackedArray<Archetype>,
     insert_pool: Vec<EntityBuilder>,
     remove_pool: HashSet<EntityID>,
 }
@@ -22,9 +24,17 @@ impl EntityManager {
         Self::default()
     }
 
-    pub fn register_component<T: Any>(&mut self) {
+    pub fn register_component<T: Any>(&mut self) -> EngineResult<&mut Self> {
+        let max = Archetype::max_items();
+        let position = self.component_archetype.len();
+        if position == max {
+            return Err(EngineError::ComponentLimitExceeded(max));
+        }
         let key = TypeId::of::<T>();
         self.container.insert(key, PackedArray::default());
+        let arch = Archetype::with_position(position);
+        self.component_archetype.insert(key, arch);
+        Ok(self)
     }
 
     pub fn add(&mut self) -> &mut EntityBuilder {
@@ -57,7 +67,10 @@ impl EntityManager {
     fn process_remove_pool(&mut self) -> Result<(), EngineError> {
         let all_keys = self.all_keys();
         // remove all entities that're stored in remove pool
-        'outer: for id in &self.remove_pool {
+        for id in &self.remove_pool {
+            if !self.entity_archetype.remove(*id) {
+                continue;
+            }
             for key in &all_keys {
                 let Some(row) = self.container.get_mut(key) else {
                     self.remove_pool.clear();
@@ -65,10 +78,7 @@ impl EntityManager {
                         "Search row in remove pool".to_string(),
                     ));
                 };
-                if !row.remove(*id) {
-                    // expecting that entity not present, so there is no reason to process a rest of the rows
-                    continue 'outer;
-                }
+                assert!(row.remove(*id))
             }
         }
         self.remove_pool.clear();
@@ -82,6 +92,7 @@ impl EntityManager {
             if entity.is_invalidated {
                 continue;
             }
+            let mut archetype = Archetype::default();
             for key in &all_keys {
                 let Some(row) = self.container.get_mut(key) else {
                     self.insert_pool.clear();
@@ -91,10 +102,16 @@ impl EntityManager {
                 };
                 if let Some(val) = entity.container.get(key) {
                     row.add(Some(val.clone()));
+                    let comp_arch = self
+                        .component_archetype
+                        .get(key)
+                        .expect("Archetype should be present");
+                    archetype.add(comp_arch);
                 } else {
                     row.add(None);
                 }
             }
+            self.entity_archetype.add(archetype);
         }
         self.insert_pool.clear();
         Ok(())
@@ -113,11 +130,7 @@ impl EntityManager {
     }
 
     pub fn all_ids(&self) -> &[EntityID] {
-        let mut iter = self.container.iter();
-        let Some(row) = iter.next() else {
-            return &[];
-        };
-        row.1.ids()
+        self.entity_archetype.ids()
     }
 }
 

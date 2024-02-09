@@ -14,6 +14,7 @@ pub enum EngineError {
     SDLError(String),
     ComponentNotRegistered,
     IntegrityFailed(String),
+    ComponentLimitExceeded(usize),
 }
 
 pub type EngineResult<T> = Result<T, EngineError>;

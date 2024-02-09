@@ -49,7 +49,7 @@ impl World {
             let Some(scene) = self.current_scene() else {
                 panic!("No scenes");
             };
-            scene.update();
+            scene.update()?;
             self.handle_events();
         }
         Ok(())

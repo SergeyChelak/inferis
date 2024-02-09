@@ -8,6 +8,12 @@ pub struct Archetype {
 }
 
 impl Archetype {
+    pub fn with_position(position: usize) -> Self {
+        let mut val = Self::default();
+        val.set(position, true);
+        val
+    }
+
     pub fn set(&mut self, position: usize, enabled: bool) {
         let val = 1 << position;
         if enabled {
@@ -18,7 +24,7 @@ impl Archetype {
     }
 
     pub fn get(&self, position: usize) -> bool {
-        self.data & 1 << position > 0
+        self.data & (1 << position) > 0
     }
 
     pub fn flip(&mut self, position: usize) {
