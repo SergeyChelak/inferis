@@ -57,7 +57,7 @@ impl EntityManager {
     fn process_remove_pool(&mut self) -> Result<(), EngineError> {
         let all_keys = self.all_keys();
         // remove all entities that're stored in remove pool
-        for id in &self.remove_pool {
+        'outer: for id in &self.remove_pool {
             for key in &all_keys {
                 let Some(row) = self.container.get_mut(key) else {
                     self.remove_pool.clear();
@@ -66,9 +66,8 @@ impl EntityManager {
                     ));
                 };
                 if !row.remove(*id) {
-                    return Err(EngineError::IntegrityFailed(
-                        "Entity not found in remove pool".to_string(),
-                    ));
+                    // expecting that entity not present, so there is no reason to process a rest of the rows
+                    continue 'outer;
                 }
             }
         }
@@ -149,6 +148,20 @@ impl EntityBuilder {
     pub fn invalidate(&mut self) -> EngineResult<&mut Self> {
         self.is_invalidated = true;
         Ok(self)
+    }
+}
+
+pub struct QueryBuilder {
+    //
+}
+
+impl QueryBuilder {
+    pub fn with_component<T: Any>(&mut self) -> &mut Self {
+        self
+    }
+
+    pub fn exec(&self) {
+        todo!()
     }
 }
 
