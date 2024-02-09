@@ -4,7 +4,6 @@ use super::{config::Config, scene::Scene, EngineError, EngineResult};
 
 pub struct World {
     scenes: Vec<Scene>,
-    // current_scene: Option<&Scene,
     config: Config,
     event_pump: EventPump,
     video_subsystem: VideoSubsystem,
@@ -13,7 +12,7 @@ pub struct World {
 }
 
 impl World {
-    pub fn new(config: Config) -> EngineResult<Self> {
+    pub fn new(config: Config, scenes: Vec<Scene>) -> EngineResult<Self> {
         let sdl_context = sdl2::init().map_err(|err| EngineError::SDLError(err))?;
         let video_subsystem = sdl_context
             .video()
@@ -24,11 +23,8 @@ impl World {
         let event_pump = sdl_context
             .event_pump()
             .map_err(|err| EngineError::SDLError(err))?;
-
-        // TODO: it's invalid constructor, world should contain at least 1 scene
         Ok(Self {
-            scenes: Vec::new(),
-            // current_scene: 0,
+            scenes,
             config,
             event_pump,
             video_subsystem,
@@ -50,6 +46,10 @@ impl World {
 
         self.is_running = true;
         while self.is_running {
+            let Some(scene) = self.current_scene() else {
+                panic!("No scenes");
+            };
+            scene.update();
             self.handle_events();
         }
         Ok(())
@@ -66,5 +66,9 @@ impl World {
                 _ => {}
             }
         }
+    }
+
+    fn current_scene(&mut self) -> Option<&mut Scene> {
+        self.scenes.get_mut(0)
     }
 }

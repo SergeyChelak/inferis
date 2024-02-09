@@ -1,5 +1,6 @@
 use engine::{
     config::{Config, Resolution},
+    scene::Scene,
     EngineResult,
 };
 
@@ -17,9 +18,14 @@ fn make_config() -> Config {
     }
 }
 
+fn make_scenes() -> Vec<Scene> {
+    let scene = Scene::new();
+    vec![scene]
+}
+
 fn main() -> EngineResult<()> {
     let config = make_config();
-    let mut world = World::new(config)?;
+    let mut world = World::new(config, make_scenes())?;
     world.run()?;
     Ok(())
 }
