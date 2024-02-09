@@ -1,17 +1,17 @@
 use super::{entity_manager::EntityManager, EngineResult};
 
 pub struct Scene {
-    entities: EntityManager,
+    entity_manager: EntityManager,
 }
 
 impl Scene {
     pub fn new() -> Self {
         Self {
-            entities: EntityManager::default(),
+            entity_manager: EntityManager::new(),
         }
     }
 
     pub fn update(&mut self) -> EngineResult<()> {
-        self.entities.apply()
+        self.entity_manager.apply()
     }
 }
