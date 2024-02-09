@@ -1,5 +1,6 @@
 use self::packed_array::ValueID;
 
+mod archetype;
 pub mod config;
 pub mod entity_manager;
 mod packed_array;
