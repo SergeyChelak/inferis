@@ -10,14 +10,22 @@ use super::{archetype::Archetype, packed_array::PackedArray, EngineError, Engine
 type AnyComponent = Rc<RefCell<dyn Any>>;
 type ComponentRow = PackedArray<Option<AnyComponent>>;
 
-type QueryOutputComponents = HashMap<TypeId, Vec<Rc<RefCell<dyn Any>>>>;
+type QueryOutputComponentRow<T> = Vec<Rc<RefCell<T>>>;
+type QueryOutputComponentMap = HashMap<TypeId, QueryOutputComponentRow<dyn Any>>;
 type QueryOutputEntities = Vec<EntityID>;
 type QueryInputTypes = HashSet<TypeId>;
 
 #[derive(Default)]
 pub struct QueryOutput {
     pub entities: QueryOutputEntities,
-    pub components: QueryOutputComponents,
+    pub components: QueryOutputComponentMap,
+}
+
+impl QueryOutput {
+    fn get<T: Any>(&self) -> Option<&QueryOutputComponentRow<dyn Any>> {
+        let key = TypeId::of::<T>();
+        self.components.get(&key)
+    }
 }
 
 #[derive(Default)]
@@ -256,8 +264,7 @@ mod test {
         Ok(())
     }
 
-    #[test]
-    fn em_add_entity() -> EngineResult<()> {
+    fn create_em() -> EngineResult<EntityManager> {
         let mut em = EntityManager::new();
         em.register_component::<Position>()?
             .register_component::<Health>()?
@@ -273,6 +280,12 @@ mod test {
 
         assert_eq!(0, em.entities_count());
         em.apply()?;
+        Ok(em)
+    }
+
+    #[test]
+    fn em_add_entity() -> EngineResult<()> {
+        let mut em = create_em()?;
         assert_eq!(2, em.entities_count());
         em.apply()?;
         assert_eq!(2, em.entities_count());
@@ -281,22 +294,7 @@ mod test {
 
     #[test]
     fn em_remove_entity() -> EngineResult<()> {
-        let mut em = EntityManager::new();
-        em.register_component::<Position>()?
-            .register_component::<Health>()?
-            .register_component::<PlayerMarker>()?;
-
-        em.add()
-            .set(Position { x: 1.2, y: 3.4 })?
-            .set(Health(100))?
-            .set(PlayerMarker)?;
-        em.add()
-            .set(Position { x: 5.6, y: 7.8 })?
-            .set(Health(100))?;
-
-        assert_eq!(0, em.entities_count());
-        em.apply()?;
-
+        let mut em = create_em()?;
         let ids = em.all_ids();
         em.remove(ids[0]);
         em.apply()?;
@@ -305,6 +303,22 @@ mod test {
         em.apply()?;
 
         assert_eq!(1, em.entities_count());
+        Ok(())
+    }
+
+    #[test]
+    fn em_fetch() -> EngineResult<()> {
+        let em = create_em()?;
+        let result = em
+            .query()
+            .with_component::<PlayerMarker>()
+            .with_component::<Health>()
+            .exec();
+        assert_eq!(result.entities.len(), 1);
+        let health = result.get::<Health>().expect("Not empty");
+        let val = health.first().expect("Should be present");
+        let val = val.borrow().downcast_ref::<Health>().unwrap().0;
+        assert_eq!(val, 100);
         Ok(())
     }
 }
