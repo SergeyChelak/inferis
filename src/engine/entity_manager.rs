@@ -55,8 +55,27 @@ impl EntityManager {
         self.remove_pool.insert(id);
     }
 
-    pub fn query(&self) {
+    pub fn query(&self) -> QueryBuilder<impl Fn(&HashSet<TypeId>) -> () + '_> {
         // create the query builder
+        QueryBuilder::with_callback(|types: &HashSet<TypeId>| {
+            self.exec_query(types);
+        })
+    }
+
+    fn exec_query(&self, types: &HashSet<TypeId>) {
+        let mut query_archetype = Archetype::default();
+        types
+            .iter()
+            .filter_map(|key| self.component_archetype.get(key))
+            .for_each(|arch| {
+                query_archetype.add(arch);
+            });
+        for (id, val) in self.entity_archetype.iter() {
+            if !query_archetype.matches(val) {
+                continue;
+            }
+            todo!()
+        }
     }
 
     pub fn apply(&mut self) -> Result<(), EngineError> {
@@ -164,17 +183,30 @@ impl EntityBuilder {
     }
 }
 
-pub struct QueryBuilder {
-    //
+pub struct QueryBuilder<T> {
+    callback: T,
+    types: HashSet<TypeId>,
 }
 
-impl QueryBuilder {
-    pub fn with_component<T: Any>(&mut self) -> &mut Self {
+impl<T> QueryBuilder<T>
+where
+    T: Fn(&HashSet<TypeId>) -> (),
+{
+    fn with_callback(callback: T) -> Self {
+        Self {
+            types: HashSet::default(),
+            callback,
+        }
+    }
+
+    pub fn with_component<C: Any>(&mut self) -> &mut Self {
+        let val = TypeId::of::<C>();
+        self.types.insert(val);
         self
     }
 
     pub fn exec(&self) {
-        todo!()
+        (self.callback)(&self.types);
     }
 }
 
@@ -193,19 +225,20 @@ mod test {
     struct PlayerMarker;
 
     #[test]
-    fn em_comp_register() {
+    fn em_comp_register() -> EngineResult<()> {
         let mut em = EntityManager::new();
-        em.register_component::<Position>();
-        em.register_component::<Health>();
-        assert_eq!(em.container.len(), 2, "Failed to register components")
+        em.register_component::<Position>()?
+            .register_component::<Health>()?;
+        assert_eq!(em.container.len(), 2, "Failed to register components");
+        Ok(())
     }
 
     #[test]
     fn em_add_entity() -> EngineResult<()> {
         let mut em = EntityManager::new();
-        em.register_component::<Position>();
-        em.register_component::<Health>();
-        em.register_component::<PlayerMarker>();
+        em.register_component::<Position>()?
+            .register_component::<Health>()?
+            .register_component::<PlayerMarker>()?;
 
         em.add()
             .set(Position { x: 1.2, y: 3.4 })?
@@ -226,9 +259,9 @@ mod test {
     #[test]
     fn em_remove_entity() -> EngineResult<()> {
         let mut em = EntityManager::new();
-        em.register_component::<Position>();
-        em.register_component::<Health>();
-        em.register_component::<PlayerMarker>();
+        em.register_component::<Position>()?
+            .register_component::<Health>()?
+            .register_component::<PlayerMarker>()?;
 
         em.add()
             .set(Position { x: 1.2, y: 3.4 })?
