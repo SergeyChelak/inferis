@@ -345,10 +345,6 @@ mod test {
             .with_component::<Health>()
             .exec();
         assert_eq!(result.entities.len(), 1);
-        let health = result.get::<Health>().expect("Not empty");
-        let val = health.first().expect("Should be present");
-        let val = val.borrow().downcast_ref::<Health>().unwrap().0;
-        assert_eq!(val, 100);
         {
             let health_arr = result.get_ref::<Health>();
             assert_eq!(health_arr.len(), 1);
@@ -359,7 +355,6 @@ mod test {
             assert_eq!(health_arr_mut.len(), 1);
             health_arr_mut[0].0 = 50;
         }
-
         {
             let health_arr = result.get_ref::<Health>();
             assert_eq!(health_arr.len(), 1);
