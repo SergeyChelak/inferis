@@ -105,14 +105,10 @@ impl EntityManager {
         self.remove_pool.insert(id);
     }
 
-    pub fn query(&self) -> QueryBuilder<impl Fn(&QueryInputTypes) -> QueryOutput + '_> {
-        // create the query builder
-        QueryBuilder::with_callback(|types| self.fetch(types))
-    }
-
-    fn fetch(&self, types: &QueryInputTypes) -> QueryOutput {
+    fn fetch(&self, query: &Query) -> QueryOutput {
         let mut query_archetype = Archetype::default();
-        types
+        query
+            .types
             .iter()
             .filter_map(|key| self.component_archetype.get(key))
             .for_each(|arch| {
@@ -244,30 +240,16 @@ impl EntityBuilder {
     }
 }
 
-pub struct QueryBuilder<T> {
-    callback: T,
+#[derive(Default)]
+pub struct Query {
     types: QueryInputTypes,
 }
 
-impl<T> QueryBuilder<T>
-where
-    T: Fn(&QueryInputTypes) -> QueryOutput,
-{
-    fn with_callback(callback: T) -> Self {
-        Self {
-            types: HashSet::default(),
-            callback,
-        }
-    }
-
-    pub fn with_component<C: Any>(&mut self) -> &mut Self {
+impl Query {
+    pub fn with_component<C: Any>(mut self) -> Self {
         let val = TypeId::of::<C>();
         self.types.insert(val);
         self
-    }
-
-    pub fn exec(&self) -> QueryOutput {
-        (self.callback)(&self.types)
     }
 }
 
@@ -339,11 +321,10 @@ mod test {
     #[test]
     fn em_fetch() -> EngineResult<()> {
         let em = create_em()?;
-        let result = em
-            .query()
+        let query = Query::default()
             .with_component::<PlayerMarker>()
-            .with_component::<Health>()
-            .exec();
+            .with_component::<Health>();
+        let result = em.fetch(&query);
         assert_eq!(result.entities.len(), 1);
         {
             let health_arr = result.get_ref::<Health>();
@@ -356,6 +337,7 @@ mod test {
             health_arr_mut[0].0 = 50;
         }
         {
+            let result = em.fetch(&query);
             let health_arr = result.get_ref::<Health>();
             assert_eq!(health_arr.len(), 1);
             assert_eq!(health_arr[0].0, 50);
