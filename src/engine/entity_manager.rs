@@ -1,6 +1,6 @@
 use std::{
     any::{Any, TypeId},
-    cell::RefCell,
+    cell::{Ref, RefCell, RefMut},
     collections::{HashMap, HashSet},
     rc::Rc,
 };
@@ -25,6 +25,36 @@ impl QueryOutput {
     fn get<T: Any>(&self) -> Option<&QueryOutputComponentRow<dyn Any>> {
         let key = TypeId::of::<T>();
         self.components.get(&key)
+    }
+
+    fn get_ref<T: Any>(&self) -> Vec<Ref<T>> {
+        let mut result = Vec::new();
+        let Some(array) = self.get::<T>() else {
+            panic!("component not found");
+        };
+        for elem in array {
+            let Ok(val) = elem.try_borrow() else {
+                panic!("Failed to borrow");
+            };
+            let val = Ref::map(val, |x| x.downcast_ref::<T>().expect("Failed to downcast"));
+            result.push(val);
+        }
+        result
+    }
+
+    fn get_mut<T: Any>(&self) -> Vec<RefMut<T>> {
+        let mut result = Vec::new();
+        let Some(array) = self.get::<T>() else {
+            panic!("component not found");
+        };
+        for elem in array {
+            let Ok(val) = elem.try_borrow_mut() else {
+                panic!("Failed to borrow");
+            };
+            let val = RefMut::map(val, |x| x.downcast_mut::<T>().expect("Failed to downcast"));
+            result.push(val);
+        }
+        result
     }
 }
 
@@ -319,6 +349,22 @@ mod test {
         let val = health.first().expect("Should be present");
         let val = val.borrow().downcast_ref::<Health>().unwrap().0;
         assert_eq!(val, 100);
+        {
+            let health_arr = result.get_ref::<Health>();
+            assert_eq!(health_arr.len(), 1);
+            assert_eq!(health_arr[0].0, 100);
+        }
+        {
+            let mut health_arr_mut = result.get_mut::<Health>();
+            assert_eq!(health_arr_mut.len(), 1);
+            health_arr_mut[0].0 = 50;
+        }
+
+        {
+            let health_arr = result.get_ref::<Health>();
+            assert_eq!(health_arr.len(), 1);
+            assert_eq!(health_arr[0].0, 50);
+        }
         Ok(())
     }
 }
