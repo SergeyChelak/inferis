@@ -7,34 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'ecs'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--lib",
-                    "--package=ecs"
-                ],
-                "filter": {
-                    "name": "ecs",
-                    "kind": "lib"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug executable 'game'",
+            "name": "Debug executable 'inferis'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=game",
-                    "--package=game"
+                    "--bin=inferis",
+                    "--package=inferis"
                 ],
                 "filter": {
-                    "name": "game",
+                    "name": "inferis",
                     "kind": "bin"
                 }
             },
@@ -44,16 +25,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'game'",
+            "name": "Debug unit tests in executable 'inferis'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=game",
-                    "--package=game"
+                    "--bin=inferis",
+                    "--package=inferis"
                 ],
                 "filter": {
-                    "name": "game",
+                    "name": "inferis",
                     "kind": "bin"
                 }
             },
