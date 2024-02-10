@@ -22,39 +22,52 @@ pub struct QueryOutput {
 }
 
 impl QueryOutput {
-    fn get<T: Any>(&self) -> Option<&QueryOutputComponentRow<dyn Any>> {
+    fn get<T: Any>(&self) -> EngineResult<&QueryOutputComponentRow<dyn Any>> {
         let key = TypeId::of::<T>();
-        self.components.get(&key)
+        let Some(arr) = self.components.get(&key) else {
+            return Err(EngineError::ComponentNotRegistered);
+        };
+        Ok(arr)
     }
 
-    fn get_ref<T: Any>(&self) -> Vec<Ref<T>> {
+    pub fn get_ref<T: Any>(&self) -> EngineResult<Vec<Ref<T>>> {
         let mut result = Vec::new();
-        let Some(array) = self.get::<T>() else {
-            panic!("component not found");
-        };
+        let array = self.get::<T>()?;
         for elem in array {
             let Ok(val) = elem.try_borrow() else {
-                panic!("Failed to borrow");
+                return Err(EngineError::ComponentBorrowFailed);
             };
-            let val = Ref::map(val, |x| x.downcast_ref::<T>().expect("Failed to downcast"));
-            result.push(val);
+            if (*val).type_id() == TypeId::of::<T>() {
+                let val = Ref::map(val, |x| {
+                    x.downcast_ref::<T>()
+                        .expect("Unreachable: Failed to downcast_ref")
+                });
+                result.push(val);
+            } else {
+                return Err(EngineError::ComponentCastFailed);
+            }
         }
-        result
+        Ok(result)
     }
 
-    fn get_mut<T: Any>(&self) -> Vec<RefMut<T>> {
+    pub fn get_mut<T: Any>(&self) -> EngineResult<Vec<RefMut<T>>> {
         let mut result = Vec::new();
-        let Some(array) = self.get::<T>() else {
-            panic!("component not found");
-        };
+        let array = self.get::<T>()?;
         for elem in array {
             let Ok(val) = elem.try_borrow_mut() else {
-                panic!("Failed to borrow");
+                return Err(EngineError::ComponentBorrowFailed);
             };
-            let val = RefMut::map(val, |x| x.downcast_mut::<T>().expect("Failed to downcast"));
-            result.push(val);
+            if (*val).type_id() == TypeId::of::<T>() {
+                let val = RefMut::map(val, |x| {
+                    x.downcast_mut::<T>()
+                        .expect("Unreachable: Failed to downcast_mut")
+                });
+                result.push(val);
+            } else {
+                return Err(EngineError::ComponentCastFailed);
+            }
         }
-        result
+        Ok(result)
     }
 }
 
@@ -327,18 +340,18 @@ mod test {
         let result = em.fetch(&query);
         assert_eq!(result.entities.len(), 1);
         {
-            let health_arr = result.get_ref::<Health>();
+            let health_arr = result.get_ref::<Health>()?;
             assert_eq!(health_arr.len(), 1);
             assert_eq!(health_arr[0].0, 100);
         }
         {
-            let mut health_arr_mut = result.get_mut::<Health>();
+            let mut health_arr_mut = result.get_mut::<Health>()?;
             assert_eq!(health_arr_mut.len(), 1);
             health_arr_mut[0].0 = 50;
         }
         {
             let result = em.fetch(&query);
-            let health_arr = result.get_ref::<Health>();
+            let health_arr = result.get_ref::<Health>()?;
             assert_eq!(health_arr.len(), 1);
             assert_eq!(health_arr[0].0, 50);
         }

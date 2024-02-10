@@ -13,8 +13,10 @@ pub type EntityID = ValueID;
 pub enum EngineError {
     SDLError(String),
     ComponentNotRegistered,
-    IntegrityFailed(String),
     ComponentLimitExceeded(usize),
+    ComponentBorrowFailed,
+    ComponentCastFailed,
+    IntegrityFailed(String),
 }
 
 pub type EngineResult<T> = Result<T, EngineError>;
