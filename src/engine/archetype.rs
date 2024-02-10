@@ -10,17 +10,26 @@ pub struct Archetype {
 impl Archetype {
     pub fn with_position(position: usize) -> Self {
         let mut val = Self::default();
-        val.set(position, true);
+        val.enable(position);
         val
     }
 
     pub fn set(&mut self, position: usize, enabled: bool) {
-        let val = 1 << position;
         if enabled {
-            self.data |= val;
+            self.enable(position)
         } else {
-            self.data &= !val;
+            self.disable(position)
         }
+    }
+
+    pub fn disable(&mut self, position: usize) {
+        let val = 1 << position;
+        self.data &= !val;
+    }
+
+    pub fn enable(&mut self, position: usize) {
+        let val = 1 << position;
+        self.data |= val;
     }
 
     pub fn get(&self, position: usize) -> bool {
@@ -44,6 +53,17 @@ impl Archetype {
         self.data & other.data == self.data
     }
 
+    pub fn all_enabled(&self) -> Vec<usize> {
+        let size = Self::max_items();
+        let mut result = Vec::with_capacity(size);
+        for pos in 0..size {
+            if (self.data >> pos) & 1 == 1 {
+                result.push(pos);
+            }
+        }
+        result
+    }
+
     pub fn max_items() -> usize {
         8 * size_of::<Representation>()
     }
@@ -65,5 +85,16 @@ mod test {
             val.flip(pos);
             assert!(val.get(pos));
         }
+    }
+
+    #[test]
+    fn archetype_all_enabled() {
+        let mut arch = Archetype::default();
+        let arr = [1_usize, 5, 10, 15];
+        for val in arr {
+            arch.enable(val);
+        }
+        let all_enabled = arch.all_enabled();
+        assert_eq!(all_enabled, arr);
     }
 }

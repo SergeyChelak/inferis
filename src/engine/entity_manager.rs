@@ -10,10 +10,21 @@ use super::{archetype::Archetype, packed_array::PackedArray, EngineError, Engine
 type AnyComponent = Rc<RefCell<dyn Any>>;
 type ComponentRow = PackedArray<Option<AnyComponent>>;
 
+type QueryOutputComponents = HashMap<TypeId, Vec<Rc<RefCell<dyn Any>>>>;
+type QueryOutputEntities = Vec<EntityID>;
+type QueryInputTypes = HashSet<TypeId>;
+
+#[derive(Default)]
+pub struct QueryOutput {
+    pub entities: QueryOutputEntities,
+    pub components: QueryOutputComponents,
+}
+
 #[derive(Default)]
 pub struct EntityManager {
     container: HashMap<TypeId, ComponentRow>,
     component_archetype: HashMap<TypeId, Archetype>,
+    component_type: Vec<TypeId>,
     entity_archetype: PackedArray<Archetype>,
     insert_pool: Vec<EntityBuilder>,
     remove_pool: HashSet<EntityID>,
@@ -34,6 +45,7 @@ impl EntityManager {
         self.container.insert(key, PackedArray::default());
         let arch = Archetype::with_position(position);
         self.component_archetype.insert(key, arch);
+        self.component_type.push(key);
         Ok(self)
     }
 
@@ -55,14 +67,12 @@ impl EntityManager {
         self.remove_pool.insert(id);
     }
 
-    pub fn query(&self) -> QueryBuilder<impl Fn(&HashSet<TypeId>) -> () + '_> {
+    pub fn query(&self) -> QueryBuilder<impl Fn(&QueryInputTypes) -> QueryOutput + '_> {
         // create the query builder
-        QueryBuilder::with_callback(|types: &HashSet<TypeId>| {
-            self.exec_query(types);
-        })
+        QueryBuilder::with_callback(|types| self.fetch(types))
     }
 
-    fn exec_query(&self, types: &HashSet<TypeId>) {
+    fn fetch(&self, types: &QueryInputTypes) -> QueryOutput {
         let mut query_archetype = Archetype::default();
         types
             .iter()
@@ -70,12 +80,25 @@ impl EntityManager {
             .for_each(|arch| {
                 query_archetype.add(arch);
             });
+        let mut output = QueryOutput::default();
         for (id, val) in self.entity_archetype.iter() {
             if !query_archetype.matches(val) {
                 continue;
             }
-            todo!()
+            output.entities.push(*id);
+            query_archetype.all_enabled().iter().for_each(|pos| {
+                let key = self.component_type[*pos];
+                let comp = self
+                    .container
+                    .get(&key)
+                    .and_then(|arr| arr.get(*id))
+                    .and_then(|val| val.clone())
+                    .expect("Component is missing");
+                let entry = output.components.entry(key).or_default();
+                entry.push(comp)
+            });
         }
+        output
     }
 
     pub fn apply(&mut self) -> Result<(), EngineError> {
@@ -185,12 +208,12 @@ impl EntityBuilder {
 
 pub struct QueryBuilder<T> {
     callback: T,
-    types: HashSet<TypeId>,
+    types: QueryInputTypes,
 }
 
 impl<T> QueryBuilder<T>
 where
-    T: Fn(&HashSet<TypeId>) -> (),
+    T: Fn(&QueryInputTypes) -> QueryOutput,
 {
     fn with_callback(callback: T) -> Self {
         Self {
@@ -205,8 +228,8 @@ where
         self
     }
 
-    pub fn exec(&self) {
-        (self.callback)(&self.types);
+    pub fn exec(&self) -> QueryOutput {
+        (self.callback)(&self.types)
     }
 }
 
