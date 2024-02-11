@@ -2,7 +2,7 @@ use sdl2::{event::Event, keyboard::Keycode, AudioSubsystem, EventPump, VideoSubs
 
 use super::{config::Config, scene::Scene, EngineError, EngineResult};
 
-pub struct World {
+pub struct GameEngine {
     scenes: Vec<Scene>,
     config: Config,
     event_pump: EventPump,
@@ -11,7 +11,7 @@ pub struct World {
     is_running: bool,
 }
 
-impl World {
+impl GameEngine {
     pub fn new(config: Config, scenes: Vec<Scene>) -> EngineResult<Self> {
         let sdl_context = sdl2::init().map_err(|err| EngineError::SDLError(err))?;
         let video_subsystem = sdl_context

@@ -4,7 +4,7 @@ use engine::{
     EngineResult,
 };
 
-use crate::engine::world::World;
+use crate::engine::game_engine::GameEngine;
 
 mod engine;
 
@@ -25,7 +25,7 @@ fn make_scenes() -> Vec<Scene> {
 
 fn main() -> EngineResult<()> {
     let config = make_config();
-    let mut world = World::new(config, make_scenes())?;
-    world.run()?;
+    let mut engine = GameEngine::new(config, make_scenes())?;
+    engine.run()?;
     Ok(())
 }
