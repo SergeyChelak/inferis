@@ -1,9 +1,9 @@
 use sdl2::{event::Event, keyboard::Keycode, AudioSubsystem, EventPump, VideoSubsystem};
 
-use super::{config::Config, scene::Scene, EngineError, EngineResult};
+use super::{config::Config, EngineError, EngineResult, GameEngineContext, Scene};
 
 pub struct GameEngine {
-    scenes: Vec<Scene>,
+    // scenes: Vec<Rc<RefCell<dyn Scene>>>,
     config: Config,
     event_pump: EventPump,
     video_subsystem: VideoSubsystem,
@@ -12,7 +12,7 @@ pub struct GameEngine {
 }
 
 impl GameEngine {
-    pub fn new(config: Config, scenes: Vec<Scene>) -> EngineResult<Self> {
+    pub fn new(config: Config) -> EngineResult<Self> {
         let sdl_context = sdl2::init().map_err(|err| EngineError::SDLError(err))?;
         let video_subsystem = sdl_context
             .video()
@@ -24,7 +24,7 @@ impl GameEngine {
             .event_pump()
             .map_err(|err| EngineError::SDLError(err))?;
         Ok(Self {
-            scenes,
+            // scenes,
             config,
             event_pump,
             video_subsystem,
@@ -46,10 +46,12 @@ impl GameEngine {
 
         self.is_running = true;
         while self.is_running {
-            let Some(scene) = self.current_scene() else {
-                panic!("No scenes");
-            };
-            scene.update()?;
+            // TODO:
+            // 1. get current scene
+            // 2. update
+            // 3. deliver events/user input
+            // 4. run systems
+            // 5. render
             self.handle_events();
         }
         Ok(())
@@ -67,8 +69,14 @@ impl GameEngine {
             }
         }
     }
+}
 
-    fn current_scene(&mut self) -> Option<&mut Scene> {
-        self.scenes.get_mut(0)
+impl GameEngineContext for GameEngine {
+    fn terminate(&mut self) {
+        self.is_running = false;
+    }
+
+    fn screen_size(&self) -> crate::common::U32Size {
+        self.config.resolution
     }
 }

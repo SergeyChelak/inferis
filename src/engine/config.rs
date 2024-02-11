@@ -1,9 +1,6 @@
+use crate::common::U32Size;
+
 pub struct Config {
     pub window_title: String,
-    pub resolution: Resolution,
-}
-
-pub struct Resolution {
-    pub height: u32,
-    pub width: u32,
+    pub resolution: U32Size,
 }
