@@ -1,9 +1,11 @@
+use std::io;
+
 use crate::common::U32Size;
 
 use self::packed_array::ValueID;
 
 mod archetype;
-mod asset_manager;
+pub mod asset_manager;
 pub mod config;
 pub mod entity_manager;
 pub mod game_engine;
@@ -11,7 +13,7 @@ mod packed_array;
 
 pub type EntityID = ValueID;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EngineError {
     SDLError(String),
     ComponentNotRegistered,
@@ -19,6 +21,8 @@ pub enum EngineError {
     ComponentBorrowFailed,
     ComponentCastFailed,
     IntegrityFailed(String),
+    AssetFileReadFailed,
+    AssetFileIncorrectRecord(String),
 }
 
 pub type EngineResult<T> = Result<T, EngineError>;
