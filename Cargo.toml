@@ -1,12 +1,8 @@
-[package]
-name = "inferis"
-version = "0.1.0"
-edition = "2021"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+resolver = "2"
 
-[dependencies]
-
-[dependencies.sdl2]
-version = "0.35.*"
-features = ["image"]
+members = [ "ecs",
+    "ecs",
+    "inferis"
+]
