@@ -1,4 +1,5 @@
 /// ECS, part of Inferis Project
+mod type_map;
 
 // TODO: replace
 type GenerationalIndex = ();
