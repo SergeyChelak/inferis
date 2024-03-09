@@ -1,4 +1,3 @@
-pub mod entity_bundle;
 pub mod entity_manager;
 pub mod type_map;
 
