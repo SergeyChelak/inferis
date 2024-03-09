@@ -1,5 +1,6 @@
+use engine::prelude::*;
+
 /// Inferis Project
-use ecs::*;
 
 fn main() -> EcsResult<()> {
     Ok(())

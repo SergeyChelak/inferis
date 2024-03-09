@@ -9,11 +9,11 @@ pub struct TypeMap {
 }
 
 impl TypeMap {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
 
-    fn get<T: Any>(&self) -> Option<&T> {
+    pub fn get<T: Any>(&self) -> Option<&T> {
         let key = TypeId::of::<T>();
         let Some(val) = self.raw.get(&key) else {
             return None;
@@ -21,7 +21,7 @@ impl TypeMap {
         val.downcast_ref::<T>()
     }
 
-    fn get_mut<T: Any>(&mut self) -> Option<&mut T> {
+    pub fn get_mut<T: Any>(&mut self) -> Option<&mut T> {
         let key = TypeId::of::<T>();
         let Some(val) = self.raw.get_mut(&key) else {
             return None;
@@ -29,17 +29,17 @@ impl TypeMap {
         val.downcast_mut::<T>()
     }
 
-    fn insert<T: Any>(&mut self, val: T) {
+    pub fn insert<T: Any>(&mut self, val: T) {
         let key = TypeId::of::<T>();
         self.raw.insert(key, Box::new(val));
     }
 
-    fn remove<T: Any>(&mut self) {
+    pub fn remove<T: Any>(&mut self) {
         let key = TypeId::of::<T>();
         self.raw.remove(&key);
     }
 
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.raw.len()
     }
 }
