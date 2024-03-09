@@ -28,6 +28,16 @@
             "",
         ]
     },
+    "Test function": {
+        "prefix": "qqfntest",
+        "description": "Generate a simple test function stub",
+        "body": [
+            "#[test]",
+            "fn ${1:name}() {",
+            "\t//",
+            "}",
+        ]
+    },
     "Disable format": {
         "prefix": "qwnoformat",
         "description": "Insert directive to skip formatting",
