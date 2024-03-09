@@ -1,6 +1,5 @@
 pub mod entity_bundle;
 pub mod entity_manager;
-/// ECS, part of Inferis Project
 pub mod type_map;
 
 // type GenerationalIndex = ();

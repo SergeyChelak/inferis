@@ -1,8 +1,8 @@
-pub struct EntityManager {
+pub struct AssetManager {
     //
 }
 
-impl EntityManager {
+impl AssetManager {
     pub fn new() -> Self {
         Self {}
     }

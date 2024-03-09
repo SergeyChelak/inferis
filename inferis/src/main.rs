@@ -1,7 +1,7 @@
 use engine::prelude::*;
 
-/// Inferis Project
-
 fn main() -> EcsResult<()> {
+    let mut world = GameWorld::new();
+    world.run();
     Ok(())
 }
