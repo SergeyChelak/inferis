@@ -1,15 +1,41 @@
 {
     "Structure and implementation stubs": {
-        "prefix": "strimpl",
+        "prefix": "qqstrimpl",
         "description": "Decreases boilerplate code with generating struct { ... } and impl { ... } code blocks",
         "body": [
-            "struct $0 {",
+            "struct ${1:Name} {",
             "\t//",
             "}",
             "",
-            "impl $0 {",
+            "impl $1 {",
             "\t//",
             "}",
         ]
+    },
+    "Test module": {
+        "prefix": "qqmodtest",
+        "description": "Generate test module for corresponding configuration, includes super usage",
+        "body": [
+            "#[cfg(test)]",
+            "mod test {",
+            "\tuse super::*;",
+            "",
+            "\t#[test]",
+            "\tfn do_test() {",
+            "\t\t//",
+            "\t}",
+            "}",
+            "",
+        ]
+    },
+    "Disable format": {
+        "prefix": "qwnoformat",
+        "description": "Insert directive to skip formatting",
+        "body": "#[rustfmt::skip]"
+    },
+    "Allow dead code": {
+        "prefix": "qwdeadcode",
+        "description": "Insert linted directive to allow dead code",
+        "body": "#[allow(dead_code)]"
     }
 }
