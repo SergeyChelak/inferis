@@ -7,3 +7,10 @@ pub mod type_map;
 
 pub type Entity = usize;
 // pub type EntityMap<T> = GenerationalIndexArray<T>;
+
+#[derive(Debug)]
+pub enum EcsError {
+    //
+}
+
+pub type EcsResult<T> = Result<T, EcsError>;
