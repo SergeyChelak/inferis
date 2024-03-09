@@ -1,14 +1,21 @@
 use sdl2::{event::Event, keyboard::Keycode, AudioSubsystem, EventPump, VideoSubsystem};
-use std::collections::HashMap;
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    rc::Rc,
+    time::{Duration, Instant},
+};
 
 use crate::assets::AssetManager;
 
-use super::{Engine, Scene, SceneID};
+use super::{scene, Engine, Scene, SceneID};
+
+const TARGET_FPS: u128 = 60;
 
 pub struct GameWorld {
     assets: AssetManager,
     is_running: bool,
-    scenes: HashMap<SceneID, Box<dyn Scene>>,
+    scenes: HashMap<SceneID, Rc<RefCell<dyn Scene>>>,
     current_scene: SceneID,
 
     frame_counter: u64,
@@ -43,21 +50,48 @@ impl GameWorld {
             audio_subsystem,
         }
     }
-    /// main game loop
+
+    pub fn register_scene<T: Scene + 'static>(&mut self, scene_id: SceneID, scene: T) {
+        self.scenes.insert(scene_id, Rc::new(RefCell::new(scene)));
+    }
+
     pub fn run(&mut self) {
         self.is_running = true;
+        let mut time = Instant::now();
+        let target_duration = 1000 / TARGET_FPS;
         while self.is_running {
-            todo!()
+            let frame_start = Instant::now();
+            let Some(scene_ref) = self.current_scene_ref() else {
+                println!("Can't get current scene");
+                break;
+            };
+            let mut scene = scene_ref.borrow_mut();
+            scene.update(self);
+
+            // delay the rest of the time if needed
+            let elapsed = time.elapsed();
+            if elapsed.as_millis() > 1000 {
+                time = Instant::now();
+            }
+            let suspend_ms = target_duration.saturating_sub(frame_start.elapsed().as_millis());
+            if suspend_ms > 0 {
+                let duration = Duration::from_millis(suspend_ms as u64);
+                ::std::thread::sleep(duration);
+            }
         }
+    }
+
+    fn current_scene_ref(&self) -> Option<Rc<RefCell<dyn Scene>>> {
+        self.scenes.get(&self.current_scene).map(|x| x.clone())
     }
 }
 
 impl Engine for GameWorld {
-    fn change_scene(&mut self, scene_id: SceneID) {
-        self.current_scene = scene_id;
-    }
-
     fn terminate(&mut self) {
         self.is_running = false;
+    }
+
+    fn change_scene(&mut self, scene_id: SceneID) {
+        self.current_scene = scene_id;
     }
 }

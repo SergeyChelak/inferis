@@ -7,7 +7,11 @@ pub struct GameScene {
 }
 
 impl GameScene {
-    //
+    pub fn new() -> Self {
+        Self {
+            entities: EntityManager::new(),
+        }
+    }
 }
 
 impl Scene for GameScene {
