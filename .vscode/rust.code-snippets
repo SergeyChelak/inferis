@@ -1,0 +1,15 @@
+{
+    "Structure and implementation stubs": {
+        "prefix": "strimpl",
+        "description": "Decreases boilerplate code with generating struct { ... } and impl { ... } code blocks",
+        "body": [
+            "struct $0 {",
+            "\t//",
+            "}",
+            "",
+            "impl $0 {",
+            "\t//",
+            "}",
+        ]
+    }
+}
