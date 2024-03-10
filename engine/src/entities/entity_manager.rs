@@ -35,7 +35,7 @@ impl EntityManager {
         // TODO: Ok(...)
     }
 
-    pub fn create_entity<'a>(&'a mut self) -> EntityBuilder {
+    pub fn create_entity(&mut self) -> EntityBuilder {
         EntityBuilder::new(self)
     }
 
