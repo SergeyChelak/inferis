@@ -16,6 +16,7 @@ impl GameScene {
 
 impl Scene for GameScene {
     fn update(&mut self, engine: &mut dyn super::Engine) {
+        self.entities.update();
         todo!()
     }
 

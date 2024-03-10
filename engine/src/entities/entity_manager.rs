@@ -34,10 +34,13 @@ impl EntityManager {
         // TODO: Ok(...)
     }
 
-    pub fn create_entity(&mut self) -> RefMut<EntityBuilder> {
-        let builder_ref = Rc::new(RefCell::new(EntityBuilder::default()));
-        self.insert_pool.push(builder_ref);
-        self.insert_pool.last().unwrap().borrow_mut()
+    pub fn create_entity(&mut self) -> EntityBuilder {
+        // let builder = EntityBuilder::default();
+        // let builder_ref = Rc::new(RefCell::new(builder));
+        // self.insert_pool.push(builder_ref);
+        // self.insert_pool.last().unwrap().borrow_mut()
+        // builder
+        todo!()
     }
 
     pub fn entity(&self) {
@@ -109,7 +112,29 @@ impl EntityBuilder {
         self
     }
 
-    pub fn build(&mut self) {
+    pub fn store(mut self) {
         self.is_dirty = false;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    struct C1(i32);
+    impl Component for C1 {}
+    struct C2 {
+        x: f32,
+        y: f32,
+    }
+    impl Component for C2 {}
+
+    #[test]
+    fn em_create() {
+        let mut em = EntityManager::new();
+        em.create_entity()
+            .with_component(C1(123))
+            .with_component(C2 { x: 1.0, y: 2.0 })
+            .store();
     }
 }
