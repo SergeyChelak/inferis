@@ -1,6 +1,6 @@
 use std::{
     any::{Any, TypeId},
-    cell::{RefCell, RefMut},
+    cell::RefCell,
     collections::{HashMap, HashSet},
     rc::Rc,
 };
@@ -9,10 +9,11 @@ pub trait Component: Any {}
 
 type ComponentEntry = Rc<RefCell<dyn Component>>;
 type Storage = HashMap<TypeId, Vec<Option<ComponentEntry>>>;
+type EntityBundle = HashMap<TypeId, ComponentEntry>;
 
 pub struct EntityManager {
     storage: Storage,
-    insert_pool: Vec<Rc<RefCell<EntityBuilder>>>,
+    insert_pool: Vec<EntityBundle>,
 }
 
 impl EntityManager {
@@ -34,13 +35,12 @@ impl EntityManager {
         // TODO: Ok(...)
     }
 
-    pub fn create_entity(&mut self) -> EntityBuilder {
-        // let builder = EntityBuilder::default();
-        // let builder_ref = Rc::new(RefCell::new(builder));
-        // self.insert_pool.push(builder_ref);
-        // self.insert_pool.last().unwrap().borrow_mut()
-        // builder
-        todo!()
+    pub fn create_entity<'a>(&'a mut self) -> EntityBuilder {
+        EntityBuilder::new(self)
+    }
+
+    fn add_entity(&mut self, bundle: EntityBundle) {
+        self.insert_pool.push(bundle);
     }
 
     pub fn entity(&self) {
@@ -59,28 +59,22 @@ impl EntityManager {
     }
 
     fn process_remove_pool(&mut self) {
-        todo!()
+        //todo!()
     }
 
     fn process_insert_pool(&mut self) {
         let all_keys = self.component_types();
         for entry in &self.insert_pool {
-            let Ok(builder) = entry.try_borrow() else {
-                continue;
-            };
-            if builder.is_dirty {
-                continue;
+            for key in all_keys.iter() {
+                let Some(row) = self.storage.get_mut(&key) else {
+                    panic!("Component not found");
+                };
+                if let Some(value) = entry.get(&key) {
+                    row.push(Some(value.clone()));
+                } else {
+                    row.push(None);
+                }
             }
-            builder
-                .components
-                .iter()
-                .filter(|(key, _)| all_keys.contains(key))
-                .for_each(|(key, value)| {
-                    self.storage.get_mut(key).and_then(|arr| {
-                        arr.push(Some(value.clone()));
-                        Some(())
-                    });
-                });
         }
         self.insert_pool.clear();
     }
@@ -90,21 +84,19 @@ impl EntityManager {
     }
 }
 
-pub struct EntityBuilder {
-    is_dirty: bool,
-    components: HashMap<TypeId, ComponentEntry>,
+pub struct EntityBuilder<'a> {
+    components: EntityBundle,
+    entity_manager: &'a mut EntityManager,
 }
 
-impl Default for EntityBuilder {
-    fn default() -> Self {
+impl<'a> EntityBuilder<'a> {
+    pub fn new(entity_manager: &'a mut EntityManager) -> Self {
         Self {
-            is_dirty: true,
-            components: HashMap::default(),
+            components: EntityBundle::default(),
+            entity_manager,
         }
     }
-}
 
-impl EntityBuilder {
     pub fn with_component<C: Component>(mut self, value: C) -> Self {
         let key = TypeId::of::<C>();
         let elem = Rc::new(RefCell::new(value));
@@ -112,8 +104,8 @@ impl EntityBuilder {
         self
     }
 
-    pub fn store(mut self) {
-        self.is_dirty = false;
+    pub fn build(self) {
+        self.entity_manager.add_entity(self.components);
     }
 }
 
@@ -132,9 +124,19 @@ mod test {
     #[test]
     fn em_create() {
         let mut em = EntityManager::new();
+        em.register_component::<C1>();
+        em.register_component::<C2>();
         em.create_entity()
             .with_component(C1(123))
             .with_component(C2 { x: 1.0, y: 2.0 })
-            .store();
+            .build();
+        em.create_entity()
+            .with_component(C1(234))
+            .with_component(C2 { x: 2.3, y: 4.5 })
+            .build();
+        em.update();
+        for (_, row) in em.storage.iter() {
+            assert_eq!(row.len(), 2);
+        }
     }
 }
