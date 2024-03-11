@@ -1,6 +1,5 @@
 pub mod entity_manager;
-
-pub type EntityID = usize;
+mod storage;
 
 #[derive(Debug)]
 pub enum EcsError {
