@@ -51,6 +51,10 @@ mod allocator {
                 .and_then(|x| Some(x.is_alive && x.generation == index.generation))
                 .unwrap_or_default()
         }
+
+        pub fn len(&self) -> usize {
+            self.count
+        }
     }
 
     #[derive(Default)]
@@ -97,7 +101,7 @@ impl ComponentStorage {
         }
     }
 
-    pub fn add(&mut self) -> EntityID {
+    pub fn add_entity(&mut self) -> EntityID {
         let entity_id = self.allocator.allocate();
         self.raw.iter_mut().for_each(|(_, v)| {
             if entity_id.index() < v.len() {
@@ -109,7 +113,7 @@ impl ComponentStorage {
         entity_id
     }
 
-    pub fn remove(&mut self, entity_id: EntityID) -> bool {
+    pub fn remove_entity(&mut self, entity_id: EntityID) -> bool {
         if !self.allocator.is_alive(entity_id) {
             return false;
         }
@@ -118,5 +122,38 @@ impl ComponentStorage {
         });
         self.allocator.deallocate(entity_id);
         true
+    }
+
+    pub fn len(&self) -> usize {
+        self.allocator.len()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    struct C1(i32);
+    impl Component for C1 {}
+    struct C2 {
+        a: f32,
+        b: char,
+    }
+    impl Component for C2 {}
+
+    #[test]
+    fn cs_add_remove() {
+        let mut storage = ComponentStorage::new();
+        storage.register_component::<C1>();
+        storage.register_component::<C2>();
+        let entity_a = storage.add_entity();
+        assert_eq!(1, storage.len());
+        let entity_b = storage.add_entity();
+        assert_eq!(2, storage.len());
+        storage.remove_entity(entity_a);
+        assert!(!storage.remove_entity(entity_a));
+        assert_eq!(1, storage.len());
+        storage.remove_entity(entity_b);
+        assert_eq!(0, storage.len());
     }
 }
