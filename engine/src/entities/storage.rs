@@ -75,6 +75,8 @@ mod allocator {
 type ComponentEntry = Rc<RefCell<dyn Component>>;
 pub type EntityID = allocator::Index;
 
+const STORAGE_CAPACITY: usize = 1000;
+
 pub struct ComponentStorage {
     raw: HashMap<TypeId, Vec<Option<ComponentEntry>>>,
     allocator: allocator::Allocator,
@@ -88,16 +90,33 @@ impl ComponentStorage {
         }
     }
 
+    pub fn register_component<T: Component>(&mut self) {
+        let key = TypeId::of::<T>();
+        if self.raw.get(&key).is_none() {
+            self.raw.insert(key, Vec::with_capacity(STORAGE_CAPACITY));
+        }
+    }
+
     pub fn add(&mut self) -> EntityID {
-        let id = self.allocator.allocate();
+        let entity_id = self.allocator.allocate();
         self.raw.iter_mut().for_each(|(_, v)| {
-            let size = v.len();
-            // if id.index() <
+            if entity_id.index() < v.len() {
+                v[entity_id.index()] = None;
+            } else {
+                v.push(None);
+            }
         });
-        todo!()
+        entity_id
     }
 
     pub fn remove(&mut self, entity_id: EntityID) -> bool {
-        todo!()
+        if !self.allocator.is_alive(entity_id) {
+            return false;
+        }
+        self.raw.iter_mut().for_each(|(_, v)| {
+            v[entity_id.index()] = None;
+        });
+        self.allocator.deallocate(entity_id);
+        true
     }
 }
