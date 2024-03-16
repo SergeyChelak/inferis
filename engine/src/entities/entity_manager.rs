@@ -54,9 +54,13 @@ impl<'a> EntityHandler<'a> {
     }
 
     // FIX: ignored result!
-    fn set<T: Any>(self, value: T) -> Self {
-        self.storage.set_value(self.id, Some(value));
+    fn with_component<T: Any>(mut self, value: T) -> Self {
+        self.add::<T>(value);
         self
+    }
+
+    fn add<T: Any>(&mut self, value: T) {
+        self.storage.set_value(self.id, Some(value));
     }
 
     fn remove<T: Any>(&mut self) {
@@ -83,7 +87,10 @@ mod test {
     #[test]
     fn em_alive() {
         let mut em = EntityManager::new();
-        let id_1 = em.create_entity().set(0i32).set(0.0f64);
+        let id_1 = em
+            .create_entity()
+            .with_component(0i32)
+            .with_component(0.0f64);
         assert!(id_1.is_alive());
         let mut id_2 = em.create_entity();
         id_2.destroy();
@@ -101,7 +108,10 @@ mod test {
         em.register_component::<C1>();
         em.register_component::<C2>();
 
-        let mut entity = em.create_entity().set(C1(1)).set(C2(2.3));
+        let mut entity = em
+            .create_entity()
+            .with_component(C1(1))
+            .with_component(C2(2.3));
 
         assert_eq!(*entity.get::<C1>().unwrap(), C1(1));
         assert_eq!(*entity.get::<C2>().unwrap(), C2(2.3));
