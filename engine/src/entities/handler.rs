@@ -15,6 +15,13 @@ impl<'a> EntityHandler<'a> {
         Self { id, storage }
     }
 
+    fn with(storage: &'a mut ComponentStorage) -> Self {
+        Self {
+            id: storage.add_entity(),
+            storage,
+        }
+    }
+
     fn get<T: Any>(&self) -> Option<Ref<T>> {
         self.storage.get(self.id)
     }
@@ -53,17 +60,15 @@ impl<'a> EntityHandler<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
-    type EntityManager = ComponentStorage;
 
     #[test]
     fn em_alive() {
-        let mut em = EntityManager::new();
-        let id_1 = em
-            .create_entity()
+        let mut cs = ComponentStorage::new();
+        let id_1 = EntityHandler::with(&mut cs)
             .with_component(0i32)
             .with_component(0.0f64);
         assert!(id_1.is_alive());
-        let mut id_2 = em.create_entity();
+        let mut id_2 = EntityHandler::with(&mut cs);
         id_2.destroy();
         assert!(!id_2.is_alive());
     }
@@ -75,12 +80,11 @@ mod test {
 
     #[test]
     fn em_component_modify() {
-        let mut em = EntityManager::new();
-        em.register_component::<C1>();
-        em.register_component::<C2>();
+        let mut cs = ComponentStorage::new();
+        cs.register_component::<C1>();
+        cs.register_component::<C2>();
 
-        let mut entity = em
-            .create_entity()
+        let mut entity = EntityHandler::with(&mut cs)
             .with_component(C1(1))
             .with_component(C2(2.3));
 
@@ -96,13 +100,13 @@ mod test {
 
     #[test]
     fn em_multiple_entities() {
-        let mut em = EntityManager::new();
-        em.register_component::<C1>();
-        em.register_component::<C2>();
+        let mut cs = ComponentStorage::new();
+        cs.register_component::<C1>();
+        cs.register_component::<C2>();
 
-        let _ = em.create_entity().with_component(C1(1));
-        let _ = em.create_entity().with_component(C2(2.0));
+        let _ = EntityHandler::with(&mut cs).with_component(C1(1));
+        let _ = EntityHandler::with(&mut cs).with_component(C2(2.0));
 
-        assert_eq!(em.len(), 2);
+        assert_eq!(cs.len(), 2);
     }
 }

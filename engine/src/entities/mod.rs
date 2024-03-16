@@ -1,5 +1,5 @@
 pub mod handler;
-mod storage;
+pub mod storage;
 
 #[derive(Debug)]
 pub enum EcsError {

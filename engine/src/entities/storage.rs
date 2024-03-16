@@ -5,8 +5,6 @@ use std::{
     rc::Rc,
 };
 
-use super::handler::EntityHandler;
-
 mod allocator {
     #[derive(Default)]
     pub struct Allocator {
@@ -193,14 +191,5 @@ impl ComponentStorage {
 
     pub fn len(&self) -> usize {
         self.allocator.len()
-    }
-
-    pub fn create_entity(&mut self) -> EntityHandler {
-        let id = self.add_entity();
-        self.entity(id)
-    }
-
-    pub fn entity(&mut self, entity_id: EntityID) -> EntityHandler {
-        EntityHandler::new(entity_id, self)
     }
 }
