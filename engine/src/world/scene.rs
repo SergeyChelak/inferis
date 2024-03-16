@@ -1,3 +1,5 @@
+use sdl2::pixels::Color;
+
 use crate::entities::storage::*;
 use crate::prelude::handler::EntityHandler;
 
@@ -29,7 +31,8 @@ impl Scene for GameScene {
         // todo!()
     }
 
-    fn render(&self, engine: &dyn super::Engine) {
-        // todo!()
+    fn render(&self, engine: &mut dyn super::Engine) {
+        let canvas = engine.canvas();
+        canvas.set_draw_color(Color::RED)
     }
 }

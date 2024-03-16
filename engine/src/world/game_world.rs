@@ -1,7 +1,4 @@
-use sdl2::{
-    event::Event, keyboard::Keycode, render::WindowCanvas, AudioSubsystem, EventPump, Sdl,
-    VideoSubsystem,
-};
+use sdl2::{event::Event, keyboard::Keycode, render::WindowCanvas, AudioSubsystem, EventPump, Sdl};
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -127,5 +124,9 @@ impl Engine for GameWorld {
 
     fn change_scene(&mut self, scene_id: SceneID) {
         self.current_scene = scene_id;
+    }
+
+    fn canvas(&mut self) -> &mut WindowCanvas {
+        &mut self.canvas
     }
 }
