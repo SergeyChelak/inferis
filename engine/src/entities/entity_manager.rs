@@ -1,111 +1,80 @@
 use std::{
-    any::{Any, TypeId},
-    cell::RefCell,
-    collections::{HashMap, HashSet},
-    rc::Rc,
+    any::Any,
+    cell::{Ref, RefMut},
 };
 
-pub trait Component: Any {}
-
-type ComponentEntry = Rc<RefCell<dyn Component>>;
-type Storage = HashMap<TypeId, Vec<Option<ComponentEntry>>>;
-type EntityBundle = HashMap<TypeId, ComponentEntry>;
+use super::storage::{ComponentStorage, EntityID};
 
 pub struct EntityManager {
-    storage: Storage,
-    insert_pool: Vec<EntityBundle>,
+    storage: ComponentStorage,
 }
 
 impl EntityManager {
     pub fn new() -> Self {
         Self {
-            storage: Storage::default(),
-            insert_pool: Vec::new(),
+            storage: ComponentStorage::new(),
         }
     }
 
-    pub fn register_component<C: Component>(&mut self) {
-        let id = TypeId::of::<C>();
-        // TODO: convert to result
-        assert!(
-            self.storage.get(&id).is_none(),
-            "Component already registered"
-        );
-        self.storage.insert(id, Vec::new());
+    pub fn register_component<T: Any>(&mut self) {
+        self.storage.register_component::<T>();
         // TODO: Ok(...)
     }
 
-    pub fn create_entity(&mut self) -> EntityBuilder {
-        EntityBuilder::new(self)
+    pub fn create_entity(&mut self) -> EntityHandler {
+        let id = self.storage.add_entity();
+        self.entity(id)
     }
 
-    fn add_entity(&mut self, bundle: EntityBundle) {
-        self.insert_pool.push(bundle);
-    }
-
-    pub fn entity(&self) {
-        // unknown return type yet
-        todo!()
-    }
-
-    pub fn remove_entity(&mut self) {
-        // not clear what is expected argument and result
-        todo!()
-    }
-
-    pub fn update(&mut self) {
-        self.process_remove_pool();
-        self.process_insert_pool();
-    }
-
-    fn process_remove_pool(&mut self) {
-        //todo!()
-    }
-
-    fn process_insert_pool(&mut self) {
-        let all_keys = self.component_types();
-        for entry in &self.insert_pool {
-            for key in all_keys.iter() {
-                let Some(row) = self.storage.get_mut(&key) else {
-                    panic!("Component not found");
-                };
-                if let Some(value) = entry.get(&key) {
-                    row.push(Some(value.clone()));
-                } else {
-                    row.push(None);
-                }
-            }
-        }
-        self.insert_pool.clear();
-    }
-
-    fn component_types(&self) -> HashSet<TypeId> {
-        self.storage.keys().copied().collect::<HashSet<TypeId>>()
-    }
-}
-
-pub struct EntityBuilder<'a> {
-    components: EntityBundle,
-    entity_manager: &'a mut EntityManager,
-}
-
-impl<'a> EntityBuilder<'a> {
-    pub fn new(entity_manager: &'a mut EntityManager) -> Self {
-        Self {
-            components: EntityBundle::default(),
-            entity_manager,
+    pub fn entity(&mut self, entity_id: EntityID) -> EntityHandler {
+        EntityHandler {
+            id: entity_id,
+            storage: &mut self.storage,
         }
     }
 
-    pub fn with_component<C: Component>(mut self, value: C) -> Self {
-        let key = TypeId::of::<C>();
-        let elem = Rc::new(RefCell::new(value));
-        self.components.insert(key, elem);
+    pub fn remove_entity(&mut self, entity_id: EntityID) {
+        self.storage.remove_entity(entity_id);
+        todo!()
+    }
+
+    pub fn update(&mut self) {}
+}
+
+struct EntityHandler<'a> {
+    id: EntityID,
+    storage: &'a mut ComponentStorage,
+}
+
+impl<'a> EntityHandler<'a> {
+    fn get<T: Any>(&self) -> Option<Ref<T>> {
+        self.storage.get(self.id)
+    }
+
+    fn get_mut<T: Any>(&self) -> Option<RefMut<T>> {
+        self.storage.get_mut(self.id)
+    }
+
+    // FIX: ignored result!
+    fn set<T: Any>(self, value: T) -> Self {
+        self.storage.set_value(self.id, Some(value));
         self
     }
 
-    pub fn build(self) {
-        self.entity_manager.add_entity(self.components);
+    fn remove<T: Any>(&mut self) {
+        self.storage.set_value::<T>(self.id, None);
+    }
+
+    fn id(self) -> EntityID {
+        self.id
+    }
+
+    fn is_alive(&self) -> bool {
+        self.storage.is_alive(self.id)
+    }
+
+    fn destroy(&mut self) {
+        self.storage.remove_entity(self.id);
     }
 }
 
@@ -113,30 +82,36 @@ impl<'a> EntityBuilder<'a> {
 mod test {
     use super::*;
 
-    struct C1(i32);
-    impl Component for C1 {}
-    struct C2 {
-        x: f32,
-        y: f32,
+    #[test]
+    fn em_alive() {
+        let mut em = EntityManager::new();
+        let id_1 = em.create_entity().set(0i32).set(0.0f64);
+        assert!(id_1.is_alive());
+        let mut id_2 = em.create_entity();
+        id_2.destroy();
+        assert!(!id_2.is_alive());
     }
-    impl Component for C2 {}
+
+    #[derive(Debug, PartialEq)]
+    struct C1(i32);
+    #[derive(Debug, PartialEq)]
+    struct C2(f32);
 
     #[test]
-    fn em_create() {
+    fn em_component_modify() {
         let mut em = EntityManager::new();
         em.register_component::<C1>();
         em.register_component::<C2>();
-        em.create_entity()
-            .with_component(C1(123))
-            .with_component(C2 { x: 1.0, y: 2.0 })
-            .build();
-        em.create_entity()
-            .with_component(C1(234))
-            .with_component(C2 { x: 2.3, y: 4.5 })
-            .build();
-        em.update();
-        for (_, row) in em.storage.iter() {
-            assert_eq!(row.len(), 2);
-        }
+
+        let mut entity = em.create_entity().set(C1(1)).set(C2(2.3));
+
+        assert_eq!(*entity.get::<C1>().unwrap(), C1(1));
+        assert_eq!(*entity.get::<C2>().unwrap(), C2(2.3));
+
+        *entity.get_mut::<C1>().unwrap() = C1(5);
+        assert_eq!(*entity.get::<C1>().unwrap(), C1(5));
+
+        entity.remove::<C2>();
+        assert!(entity.get::<C2>().is_none());
     }
 }
