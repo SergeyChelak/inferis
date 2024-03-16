@@ -62,11 +62,12 @@ impl GameWorld {
         while self.is_running {
             let frame_start = Instant::now();
             let Some(scene_ref) = self.current_scene_ref() else {
-                println!("Can't get current scene");
+                println!("[GameWorld] Can't get current scene");
                 break;
             };
-            let mut scene = scene_ref.borrow_mut();
-            scene.update(self);
+            let scene = scene_ref.borrow_mut();
+            // TODO: process systems
+            scene.render(self);
 
             // delay the rest of the time if needed
             let elapsed = time.elapsed();
@@ -76,7 +77,7 @@ impl GameWorld {
             let suspend_ms = target_duration.saturating_sub(frame_start.elapsed().as_millis());
             if suspend_ms > 0 {
                 let duration = Duration::from_millis(suspend_ms as u64);
-                ::std::thread::sleep(duration);
+                std::thread::sleep(duration);
             }
         }
     }

@@ -139,7 +139,7 @@ impl ComponentStorage {
         };
         let ref_val = Ref::map(borrowed, |item| {
             item.downcast_ref::<T>()
-                .expect("[ComponentStorage] Failed to downcast")
+                .expect("[ComponentStorage] Failed to downcast_ref")
         });
         Some(ref_val)
     }
@@ -153,7 +153,7 @@ impl ComponentStorage {
         };
         let ref_val = RefMut::map(borrowed, |item| {
             item.downcast_mut::<T>()
-                .expect("[ComponentStorage] Failed to downcast")
+                .expect("[ComponentStorage] Failed to downcast_mut")
         });
         Some(ref_val)
     }

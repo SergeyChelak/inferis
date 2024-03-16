@@ -36,8 +36,8 @@ impl<'a> EntityHandler<'a> {
         self
     }
 
-    fn add<T: Any>(&mut self, value: T) {
-        self.storage.set_value(self.id, Some(value));
+    fn add<T: Any>(&mut self, value: T) -> bool {
+        self.storage.set_value(self.id, Some(value))
     }
 
     fn remove<T: Any>(&mut self) {
