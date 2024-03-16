@@ -37,8 +37,6 @@ impl EntityManager {
         self.storage.remove_entity(entity_id);
         todo!()
     }
-
-    pub fn update(&mut self) {}
 }
 
 struct EntityHandler<'a> {
