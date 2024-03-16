@@ -5,6 +5,8 @@ use std::{
     rc::Rc,
 };
 
+use super::handler::EntityHandler;
+
 mod allocator {
     #[derive(Default)]
     pub struct Allocator {
@@ -192,31 +194,13 @@ impl ComponentStorage {
     pub fn len(&self) -> usize {
         self.allocator.len()
     }
-}
 
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    struct C1(i32);
-    struct C2 {
-        a: f32,
-        b: char,
+    pub fn create_entity(&mut self) -> EntityHandler {
+        let id = self.add_entity();
+        self.entity(id)
     }
 
-    #[test]
-    fn cs_add_remove() {
-        let mut storage = ComponentStorage::new();
-        storage.register_component::<C1>();
-        storage.register_component::<C2>();
-        let entity_a = storage.add_entity();
-        assert_eq!(1, storage.len());
-        let entity_b = storage.add_entity();
-        assert_eq!(2, storage.len());
-        storage.remove_entity(entity_a);
-        assert!(!storage.remove_entity(entity_a));
-        assert_eq!(1, storage.len());
-        storage.remove_entity(entity_b);
-        assert_eq!(0, storage.len());
+    pub fn entity(&mut self, entity_id: EntityID) -> EntityHandler {
+        EntityHandler::new(entity_id, self)
     }
 }

@@ -1,25 +1,23 @@
-use crate::entities::entity_manager::EntityManager;
-
 use super::Scene;
 
 pub struct GameScene {
-    entities: EntityManager,
+    // entities: EntityManager,
 }
 
 impl GameScene {
     pub fn new() -> Self {
         Self {
-            entities: EntityManager::new(),
+            // entities: EntityManager::new(),
         }
     }
 }
 
 impl Scene for GameScene {
     fn update(&mut self, engine: &mut dyn super::Engine) {
-        todo!()
+        // todo!()
     }
 
     fn render(&self, engine: &dyn super::Engine) {
-        todo!()
+        // todo!()
     }
 }

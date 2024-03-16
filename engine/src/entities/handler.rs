@@ -5,46 +5,16 @@ use std::{
 
 use super::storage::{ComponentStorage, EntityID};
 
-pub struct EntityManager {
-    storage: ComponentStorage,
-}
-
-impl EntityManager {
-    pub fn new() -> Self {
-        Self {
-            storage: ComponentStorage::new(),
-        }
-    }
-
-    pub fn register_component<T: Any>(&mut self) {
-        self.storage.register_component::<T>();
-        // TODO: Ok(...)
-    }
-
-    pub fn create_entity(&mut self) -> EntityHandler {
-        let id = self.storage.add_entity();
-        self.entity(id)
-    }
-
-    pub fn entity(&mut self, entity_id: EntityID) -> EntityHandler {
-        EntityHandler {
-            id: entity_id,
-            storage: &mut self.storage,
-        }
-    }
-
-    pub fn remove_entity(&mut self, entity_id: EntityID) {
-        self.storage.remove_entity(entity_id);
-        todo!()
-    }
-}
-
-struct EntityHandler<'a> {
+pub struct EntityHandler<'a> {
     id: EntityID,
     storage: &'a mut ComponentStorage,
 }
 
 impl<'a> EntityHandler<'a> {
+    pub fn new(id: EntityID, storage: &'a mut ComponentStorage) -> Self {
+        Self { id, storage }
+    }
+
     fn get<T: Any>(&self) -> Option<Ref<T>> {
         self.storage.get(self.id)
     }
@@ -83,6 +53,7 @@ impl<'a> EntityHandler<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
+    type EntityManager = ComponentStorage;
 
     #[test]
     fn em_alive() {
@@ -121,5 +92,17 @@ mod test {
 
         entity.remove::<C2>();
         assert!(entity.get::<C2>().is_none());
+    }
+
+    #[test]
+    fn em_multiple_entities() {
+        let mut em = EntityManager::new();
+        em.register_component::<C1>();
+        em.register_component::<C2>();
+
+        let _ = em.create_entity().with_component(C1(1));
+        let _ = em.create_entity().with_component(C2(2.0));
+
+        assert_eq!(em.len(), 2);
     }
 }
