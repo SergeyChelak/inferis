@@ -30,8 +30,7 @@ pub struct GameWorld {
 impl GameWorld {
     pub fn new(settings: WindowSettings) -> EngineResult<Self> {
         let sdl_context = sdl2::init().map_err(|err| EngineError::Sdl(err))?;
-        let size = settings.size;
-        let canvas = Self::canvas(&sdl_context, &settings.title, size.width, size.height)?;
+        let canvas = Self::canvas(&sdl_context, settings)?;
         let audio_subsystem = sdl_context.audio().map_err(|err| EngineError::Sdl(err))?;
         let event_pump = sdl_context
             .event_pump()
@@ -48,15 +47,11 @@ impl GameWorld {
         })
     }
 
-    fn canvas(
-        sdl_context: &Sdl,
-        title: &str,
-        width: u32,
-        height: u32,
-    ) -> EngineResult<WindowCanvas> {
+    fn canvas(sdl_context: &Sdl, window_settings: WindowSettings) -> EngineResult<WindowCanvas> {
         let video_subsystem = sdl_context.video().map_err(|err| EngineError::Sdl(err))?;
+        let size = window_settings.size;
         let window = video_subsystem
-            .window(title, width, height)
+            .window(&window_settings.title, size.width, size.height)
             .position_centered()
             .build()
             .map_err(|op| EngineError::Sdl(op.to_string()))?;
@@ -83,6 +78,7 @@ impl GameWorld {
                 println!("[GameWorld] Can't get current scene");
                 break;
             };
+            self.process_events();
             let scene = scene_ref.borrow_mut();
             // TODO: process systems
             self.canvas.clear();
@@ -98,6 +94,23 @@ impl GameWorld {
             if suspend_ms > 0 {
                 let duration = Duration::from_millis(suspend_ms as u64);
                 std::thread::sleep(duration);
+            }
+        }
+    }
+
+    fn process_events(&mut self) {
+        for event in self.event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => {
+                    self.is_running = false;
+                }
+                _ => {
+                    //
+                }
             }
         }
     }
