@@ -1,4 +1,7 @@
-use sdl2::{event::Event, keyboard::Keycode, AudioSubsystem, EventPump, VideoSubsystem};
+use sdl2::{
+    event::Event, keyboard::Keycode, render::WindowCanvas, AudioSubsystem, EventPump, Sdl,
+    VideoSubsystem,
+};
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -6,7 +9,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::assets::AssetManager;
+use crate::{assets::AssetManager, settings::WindowSettings, EngineError, EngineResult};
 
 use super::{scene, Engine, Scene, SceneID};
 
@@ -20,35 +23,50 @@ pub struct GameWorld {
 
     frame_counter: u64,
     event_pump: EventPump,
-    video_subsystem: VideoSubsystem,
     audio_subsystem: AudioSubsystem,
+    canvas: WindowCanvas,
 }
 
 impl GameWorld {
-    pub fn new() -> Self {
-        let sdl_context = sdl2::init()
-            //.map_err(|err| EngineError::SDLError(err))?;
-            .expect("sdl init error");
-        let video_subsystem = sdl_context.video().expect("video_subsystem error");
-        // .map_err(|err| EngineError::SDLError(err))?;
-        let audio_subsystem = sdl_context
-            .audio()
-            // .map_err(|err| EngineError::SDLError(err))?;
-            .expect("audio_subsystem error");
+    pub fn new(settings: WindowSettings) -> EngineResult<Self> {
+        let sdl_context = sdl2::init().map_err(|err| EngineError::Sdl(err))?;
+        let size = settings.size;
+        let canvas = Self::canvas(&sdl_context, &settings.title, size.width, size.height)?;
+        let audio_subsystem = sdl_context.audio().map_err(|err| EngineError::Sdl(err))?;
         let event_pump = sdl_context
             .event_pump()
-            // .map_err(|err| EngineError::SDLError(err))?;
-            .expect("event_pump error");
-        Self {
+            .map_err(|err| EngineError::Sdl(err))?;
+        Ok(Self {
             assets: AssetManager::new(),
             is_running: false,
             scenes: HashMap::default(),
             current_scene: SceneID::default(),
             frame_counter: 0,
             event_pump,
-            video_subsystem,
+            canvas,
             audio_subsystem,
-        }
+        })
+    }
+
+    fn canvas(
+        sdl_context: &Sdl,
+        title: &str,
+        width: u32,
+        height: u32,
+    ) -> EngineResult<WindowCanvas> {
+        let video_subsystem = sdl_context.video().map_err(|err| EngineError::Sdl(err))?;
+        let window = video_subsystem
+            .window(title, width, height)
+            .position_centered()
+            .build()
+            .map_err(|op| EngineError::Sdl(op.to_string()))?;
+        window
+            .into_canvas()
+            .accelerated()
+            .target_texture()
+            .present_vsync()
+            .build()
+            .map_err(|op| EngineError::Sdl(op.to_string()))
     }
 
     pub fn register_scene<T: Scene + 'static>(&mut self, scene_id: SceneID, scene: T) {
@@ -67,7 +85,9 @@ impl GameWorld {
             };
             let scene = scene_ref.borrow_mut();
             // TODO: process systems
+            self.canvas.clear();
             scene.render(self);
+            self.canvas.present();
 
             // delay the rest of the time if needed
             let elapsed = time.elapsed();
