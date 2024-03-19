@@ -1,9 +1,9 @@
 use std::{
     any::{Any, TypeId},
-    collections::HashSet,
+    collections::{HashMap, HashSet},
 };
 
-use super::storage::ComponentStorage;
+use super::storage::{ComponentEntry, ComponentStorage, EntityID};
 
 pub struct Query<'a> {
     storage: &'a mut ComponentStorage,
@@ -24,7 +24,11 @@ impl<'a> Query<'a> {
         self
     }
 
-    pub fn run(&self) {
-        //
+    pub fn entities(&self) -> HashSet<EntityID> {
+        self.storage.fetch_entities(&self.types)
+    }
+
+    pub fn components(&self) -> HashMap<TypeId, Vec<ComponentEntry>> {
+        self.storage.fetch_components(&self.types)
     }
 }
