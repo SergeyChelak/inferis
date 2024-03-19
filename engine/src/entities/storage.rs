@@ -239,7 +239,7 @@ impl ComponentStorage {
                 .get(entity_id)
                 .and_then(|index| self.entity_footprint.get(index))
             else {
-                println!("[ComponentStorage] footprint isn't registered for entity");
+                println!("[ComponentStorage] fetch: footprint isn't registered for entity");
                 continue;
             };
             if query_footprint.is_matches(entity_footprint) {
@@ -253,6 +253,24 @@ impl ComponentStorage {
         &self,
         types: &HashSet<TypeId>,
     ) -> HashMap<TypeId, Vec<ComponentEntry>> {
-        todo!()
+        let idx_array = self
+            .fetch_entities(types)
+            .iter()
+            .map(|item| item.index())
+            .collect::<Vec<usize>>();
+        let mut result: HashMap<TypeId, Vec<ComponentEntry>> = HashMap::new();
+        for type_id in types {
+            let Some(row) = self.raw.get(type_id) else {
+                panic!("[ComponentStorage] fetch: failed to get component row");
+            };
+            let entry = result.entry(*type_id).or_default();
+            for entity_id in &idx_array {
+                let Some(component) = row.get(*entity_id).and_then(|x| x.as_ref()) else {
+                    panic!("[ComponentStorage] fetch: component is none");
+                };
+                entry.push(component.clone());
+            }
+        }
+        result
     }
 }
