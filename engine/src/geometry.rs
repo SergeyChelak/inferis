@@ -2,3 +2,21 @@ pub struct Size<T> {
     pub width: T,
     pub height: T,
 }
+
+pub struct Vec2<T> {
+    pub x: T,
+    pub y: T,
+}
+
+impl<T> Vec2<T> {
+    pub fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+}
+
+pub type Float = f32;
+pub type Vec2f = Vec2<Float>;
+
+impl Vec2f {
+    //
+}
