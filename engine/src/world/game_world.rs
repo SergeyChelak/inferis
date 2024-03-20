@@ -8,12 +8,11 @@ use std::{
 
 use crate::{assets::AssetManager, settings::WindowSettings, EngineError, EngineResult};
 
-use super::{scene, Engine, Scene, SceneID};
+use super::{Engine, Scene, SceneID};
 
 const TARGET_FPS: u128 = 60;
 
 pub struct GameWorld {
-    assets: AssetManager,
     is_running: bool,
     scenes: HashMap<SceneID, Rc<RefCell<dyn Scene>>>,
     current_scene: SceneID,
@@ -33,7 +32,6 @@ impl GameWorld {
             .event_pump()
             .map_err(|err| EngineError::Sdl(err))?;
         Ok(Self {
-            assets: AssetManager::new(),
             is_running: false,
             scenes: HashMap::default(),
             current_scene: SceneID::default(),
@@ -66,6 +64,10 @@ impl GameWorld {
     }
 
     pub fn run(&mut self) {
+        let texture_creator = self.canvas.texture_creator();
+        let mut asset_manager = AssetManager::new();
+        asset_manager.load(&texture_creator);
+
         self.is_running = true;
         let mut time = Instant::now();
         let target_duration = 1000 / TARGET_FPS;
@@ -79,7 +81,7 @@ impl GameWorld {
             let scene = scene_ref.borrow_mut();
             // TODO: process systems
             self.canvas.clear();
-            scene.render(self);
+            scene.render(self, &asset_manager);
             self.canvas.present();
 
             // delay the rest of the time if needed

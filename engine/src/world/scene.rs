@@ -1,9 +1,10 @@
 use sdl2::pixels::Color;
 
+use crate::assets::AssetManager;
 use crate::entities::storage::*;
 use crate::prelude::handler::EntityHandler;
 
-use super::Scene;
+use super::{Engine, Scene};
 
 pub struct GameScene {
     storage: ComponentStorage,
@@ -31,7 +32,7 @@ impl Scene for GameScene {
         // todo!()
     }
 
-    fn render(&self, engine: &mut dyn super::Engine) {
+    fn render(&self, engine: &mut dyn Engine, assets: &AssetManager) {
         let canvas = engine.canvas();
         canvas.set_draw_color(Color::RED)
     }

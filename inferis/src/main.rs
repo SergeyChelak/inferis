@@ -9,8 +9,8 @@ fn main() -> EngineResult<()> {
     let settings = WindowSettings {
         title: "INFERIS".to_string(),
         size: WindowSize {
-            width: 800,
-            height: 600,
+            width: 1024,
+            height: 768,
         },
     };
     let mut world = GameWorld::new(settings)?;

@@ -219,7 +219,7 @@ impl ComponentStorage {
         self.allocator.len()
     }
 
-    pub fn footprint(&self, types: &HashSet<TypeId>) -> Footprint {
+    fn footprint(&self, types: &HashSet<TypeId>) -> Footprint {
         let mut footprint = Footprint::new();
         for item in types {
             let Some(&pos) = self.type_position_map.get(item) else {

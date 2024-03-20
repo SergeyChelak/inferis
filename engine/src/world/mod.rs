@@ -1,5 +1,7 @@
 use sdl2::render::WindowCanvas;
 
+use crate::assets::AssetManager;
+
 pub mod game_world;
 pub mod scene;
 
@@ -12,5 +14,5 @@ pub trait Engine {
 
 pub trait Scene {
     fn update(&mut self, engine: &mut dyn Engine);
-    fn render(&self, engine: &mut dyn Engine);
+    fn render(&self, engine: &mut dyn Engine, assets: &AssetManager);
 }
