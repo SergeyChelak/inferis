@@ -1,9 +1,9 @@
-mod assets;
-mod entities;
+pub mod assets;
+pub mod entities;
 pub mod geometry;
 pub mod prelude;
 pub mod settings;
-mod world;
+pub mod world;
 
 #[derive(Debug)]
 pub enum EngineError {

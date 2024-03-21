@@ -1,10 +1,10 @@
-use sdl2::pixels::Color;
-
-use crate::assets::AssetManager;
-use crate::entities::storage::*;
-use crate::prelude::handler::EntityHandler;
-
-use super::{Engine, Scene};
+use engine::prelude::{
+    assets::AssetManager,
+    handler::EntityHandler,
+    storage::{ComponentStorage, EntityID},
+    world::Scene,
+    Engine,
+};
 
 pub struct GameScene {
     storage: ComponentStorage,
@@ -34,6 +34,9 @@ impl Scene for GameScene {
 
     fn render(&self, engine: &mut dyn Engine, assets: &AssetManager) {
         let canvas = engine.canvas();
-        canvas.set_draw_color(Color::RED)
+        let Some(&color) = assets.color("floor") else {
+            return;
+        };
+        canvas.set_draw_color(color);
     }
 }

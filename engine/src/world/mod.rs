@@ -3,7 +3,6 @@ use sdl2::render::WindowCanvas;
 use crate::assets::AssetManager;
 
 pub mod game_world;
-pub mod scene;
 
 type SceneID = String;
 pub trait Engine {
