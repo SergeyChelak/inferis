@@ -8,6 +8,7 @@ pub mod world;
 #[derive(Debug)]
 pub enum EngineError {
     ComponentNotRegistered,
+    SceneNotFound,
     FileAccessError(String),
     ResourceParseError(String),
     Sdl(String),

@@ -1,9 +1,8 @@
-use engine::prelude::*;
-use scene::GameScene;
-mod scene;
+use engine::{prelude::*, world::Scene};
+use game_scene::GameScene;
+mod game_scene;
 
 const WINDOW_TITLE: &str = "INFERIS";
-const SCENE_MAIN: &str = "game_scene";
 
 fn main() -> EngineResult<()> {
     let settings = EngineSettings {
@@ -19,8 +18,8 @@ fn main() -> EngineResult<()> {
     let mut world = GameWorld::new(settings)?;
 
     let game_scene = GameScene::new();
-    world.register_scene(SCENE_MAIN.to_string(), game_scene);
-
-    world.change_scene(SCENE_MAIN.to_string());
+    let id = game_scene.id();
+    world.register_scene(game_scene);
+    world.change_scene(id);
     world.run()
 }

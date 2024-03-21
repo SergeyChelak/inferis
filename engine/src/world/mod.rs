@@ -14,4 +14,5 @@ pub trait Engine {
 pub trait Scene {
     fn update(&mut self, engine: &mut dyn Engine);
     fn render(&self, engine: &mut dyn Engine, assets: &AssetManager);
+    fn id(&self) -> SceneID;
 }

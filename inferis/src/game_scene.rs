@@ -39,4 +39,8 @@ impl Scene for GameScene {
         };
         canvas.set_draw_color(color);
     }
+
+    fn id(&self) -> String {
+        "game_scene".to_string()
+    }
 }

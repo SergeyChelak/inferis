@@ -65,7 +65,8 @@ impl GameWorld {
             .map_err(|op| EngineError::Sdl(op.to_string()))
     }
 
-    pub fn register_scene<T: Scene + 'static>(&mut self, scene_id: SceneID, scene: T) {
+    pub fn register_scene<T: Scene + 'static>(&mut self, scene: T) {
+        let scene_id = scene.id();
         self.scenes.insert(scene_id, Rc::new(RefCell::new(scene)));
     }
 
@@ -80,7 +81,7 @@ impl GameWorld {
             let frame_start = Instant::now();
             let Some(scene_ref) = self.current_scene_ref() else {
                 println!("[GameWorld] Can't get current scene");
-                break;
+                return Err(EngineError::SceneNotFound);
             };
             self.process_events(scene_ref.clone());
             let mut scene = scene_ref.borrow_mut();
