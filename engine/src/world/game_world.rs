@@ -6,7 +6,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{assets::AssetManager, settings::WindowSettings, EngineError, EngineResult};
+use crate::{
+    assets::AssetManager,
+    settings::{EngineSettings, WindowSettings},
+    EngineError, EngineResult,
+};
 
 use super::{Engine, Scene, SceneID};
 
@@ -21,12 +25,13 @@ pub struct GameWorld {
     event_pump: EventPump,
     audio_subsystem: AudioSubsystem,
     canvas: WindowCanvas,
+    settings: EngineSettings,
 }
 
 impl GameWorld {
-    pub fn new(settings: WindowSettings) -> EngineResult<Self> {
+    pub fn new(settings: EngineSettings) -> EngineResult<Self> {
         let sdl_context = sdl2::init().map_err(|err| EngineError::Sdl(err))?;
-        let canvas = Self::canvas(&sdl_context, settings)?;
+        let canvas = Self::canvas(&sdl_context, &settings.window)?;
         let audio_subsystem = sdl_context.audio().map_err(|err| EngineError::Sdl(err))?;
         let event_pump = sdl_context
             .event_pump()
@@ -39,12 +44,13 @@ impl GameWorld {
             event_pump,
             canvas,
             audio_subsystem,
+            settings,
         })
     }
 
-    fn canvas(sdl_context: &Sdl, window_settings: WindowSettings) -> EngineResult<WindowCanvas> {
+    fn canvas(sdl_context: &Sdl, window_settings: &WindowSettings) -> EngineResult<WindowCanvas> {
         let video_subsystem = sdl_context.video().map_err(|err| EngineError::Sdl(err))?;
-        let size = window_settings.size;
+        let size = &window_settings.size;
         let window = video_subsystem
             .window(&window_settings.title, size.width, size.height)
             .position_centered()
@@ -63,10 +69,9 @@ impl GameWorld {
         self.scenes.insert(scene_id, Rc::new(RefCell::new(scene)));
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> EngineResult<()> {
         let texture_creator = self.canvas.texture_creator();
-        let mut asset_manager = AssetManager::new();
-        asset_manager.load(&texture_creator);
+        let asset_manager = AssetManager::new(&self.settings.asset_path, &texture_creator)?;
 
         self.is_running = true;
         let mut time = Instant::now();
@@ -78,8 +83,8 @@ impl GameWorld {
                 break;
             };
             self.process_events();
-            let scene = scene_ref.borrow_mut();
-            // TODO: process systems
+            let mut scene = scene_ref.borrow_mut();
+            scene.update(self);
             self.canvas.clear();
             scene.render(self, &asset_manager);
             self.canvas.present();
@@ -95,6 +100,7 @@ impl GameWorld {
                 std::thread::sleep(duration);
             }
         }
+        Ok(())
     }
 
     fn process_events(&mut self) {

@@ -8,6 +8,8 @@ mod world;
 #[derive(Debug)]
 pub enum EngineError {
     ComponentNotRegistered,
+    FileAccessError(String),
+    ResourceParseError(String),
     Sdl(String),
 }
 

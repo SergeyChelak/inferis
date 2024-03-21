@@ -1,16 +1,23 @@
-use engine::prelude::{
-    settings::{WindowSettings, WindowSize},
-    *,
+use engine::{
+    prelude::{
+        settings::{WindowSettings, WindowSize},
+        *,
+    },
+    settings::EngineSettings,
 };
 
+const WINDOW_TITLE: &str = "INFERIS";
 const SCENE_MAIN: &str = "game_scene";
 
 fn main() -> EngineResult<()> {
-    let settings = WindowSettings {
-        title: "INFERIS".to_string(),
-        size: WindowSize {
-            width: 1024,
-            height: 768,
+    let settings = EngineSettings {
+        asset_path: "assets/asset_registry.txt".to_string(),
+        window: WindowSettings {
+            title: WINDOW_TITLE.to_owned(),
+            size: WindowSize {
+                width: 1024,
+                height: 768,
+            },
         },
     };
     let mut world = GameWorld::new(settings)?;
@@ -19,6 +26,5 @@ fn main() -> EngineResult<()> {
     world.register_scene(SCENE_MAIN.to_string(), game_scene);
 
     world.change_scene(SCENE_MAIN.to_string());
-    world.run();
-    Ok(())
+    world.run()
 }
