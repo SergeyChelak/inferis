@@ -64,7 +64,14 @@ impl<'a> AssetManager<'a> {
                     };
                     textures.insert(name.to_string(), texture);
                 }
-                // "color" => {}
+                "color" => {
+                    let Ok(color) = parse_color(value) else {
+                        return Err(EngineError::ResourceParseError(format!(
+                            "Failed to parse color '{value}'"
+                        )));
+                    };
+                    colors.insert(name.to_string(), color);
+                }
                 _ => {
                     println!("[Assets] skipped '{tag}'")
                 }
@@ -80,4 +87,22 @@ impl<'a> AssetManager<'a> {
     pub fn color(&self, key: &str) -> Option<&Color> {
         self.colors.get(key)
     }
+}
+
+fn parse_color(value: &str) -> EngineResult<Color> {
+    let (comps, errors): (Vec<_>, Vec<_>) = value
+        .split(',')
+        .map(|comp| comp.parse::<u8>())
+        .partition(Result::is_ok);
+    if !errors.is_empty() || comps.len() < 3 {
+        return Err(EngineError::ResourceParseError(format!(
+            "Incorrect color string: '{value}'"
+        )));
+    }
+    let comps = comps.into_iter().map(Result::unwrap).collect::<Vec<u8>>();
+    let r = comps[0];
+    let g = comps[1];
+    let b = comps[2];
+    let a = *comps.get(3).unwrap_or(&0xff);
+    Ok(Color::RGBA(r, g, b, a))
 }
