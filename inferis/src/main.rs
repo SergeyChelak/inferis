@@ -1,10 +1,4 @@
-use engine::{
-    prelude::{
-        settings::{WindowSettings, WindowSize},
-        *,
-    },
-    settings::EngineSettings,
-};
+use engine::prelude::*;
 
 const WINDOW_TITLE: &str = "INFERIS";
 const SCENE_MAIN: &str = "game_scene";
