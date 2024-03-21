@@ -82,7 +82,7 @@ impl GameWorld {
                 println!("[GameWorld] Can't get current scene");
                 break;
             };
-            self.process_events();
+            self.process_events(scene_ref.clone());
             let mut scene = scene_ref.borrow_mut();
             scene.update(self);
             self.canvas.clear();
@@ -103,7 +103,7 @@ impl GameWorld {
         Ok(())
     }
 
-    fn process_events(&mut self) {
+    fn process_events(&mut self, scene: Rc<RefCell<dyn Scene>>) {
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
