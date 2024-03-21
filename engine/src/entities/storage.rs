@@ -108,17 +108,16 @@ impl ComponentStorage {
 
     pub fn register_component<T: Any>(&mut self) -> bool {
         let key = TypeId::of::<T>();
-        if self.raw.get(&key).is_none() {
-            let position = self.type_position_map.len();
-            if position >= Footprint::max_items() {
-                return false;
-            }
-            self.type_position_map.insert(key, position);
-            self.raw.insert(key, Vec::with_capacity(STORAGE_CAPACITY));
-            true
-        } else {
-            false
+        if self.raw.get(&key).is_some() {
+            return false;
         }
+        let position = self.type_position_map.len();
+        if position >= Footprint::max_items() {
+            return false;
+        }
+        self.type_position_map.insert(key, position);
+        self.raw.insert(key, Vec::with_capacity(STORAGE_CAPACITY));
+        true
     }
 
     pub fn add_entity(&mut self) -> EntityID {
