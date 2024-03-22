@@ -12,7 +12,7 @@ use crate::{
     EngineError, EngineResult,
 };
 
-use super::{Engine, Scene, SceneID};
+use super::{Engine, InputEvent, Scene, SceneID};
 
 const TARGET_FPS: u128 = 60;
 
@@ -105,6 +105,7 @@ impl GameWorld {
     }
 
     fn process_events(&mut self, scene: Rc<RefCell<dyn Scene>>) {
+        let mut events = Vec::new();
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -114,11 +115,38 @@ impl GameWorld {
                 } => {
                     self.is_running = false;
                 }
-                _ => {
-                    //
+                Event::KeyDown {
+                    keycode: Some(keycode),
+                    ..
+                } => {
+                    events.push(InputEvent::Keyboard {
+                        code: keycode as i32,
+                        pressed: true,
+                    });
                 }
+                Event::KeyUp {
+                    keycode: Some(keycode),
+                    ..
+                } => {
+                    events.push(InputEvent::Keyboard {
+                        code: keycode as i32,
+                        pressed: false,
+                    });
+                }
+                Event::MouseMotion {
+                    x, y, xrel, yrel, ..
+                } => {
+                    events.push(InputEvent::Mouse {
+                        x,
+                        y,
+                        x_rel: xrel,
+                        y_rel: yrel,
+                    });
+                }
+                _ => {}
             }
         }
+        scene.borrow_mut().process_events(&events);
     }
 
     fn current_scene_ref(&self) -> Option<Rc<RefCell<dyn Scene>>> {

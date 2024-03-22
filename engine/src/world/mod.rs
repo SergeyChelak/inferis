@@ -16,4 +16,18 @@ pub trait Scene {
     fn update(&mut self, engine: &mut dyn Engine);
     fn render(&self, engine: &mut dyn Engine, assets: &AssetManager);
     fn id(&self) -> SceneID;
+    fn process_events(&mut self, events: &[InputEvent]);
+}
+
+pub enum InputEvent {
+    Keyboard {
+        code: i32,
+        pressed: bool,
+    },
+    Mouse {
+        x: i32,
+        y: i32,
+        x_rel: i32,
+        y_rel: i32,
+    },
 }

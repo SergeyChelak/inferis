@@ -23,7 +23,7 @@ impl GameScene {
         storage.register_component::<Position>()?;
         storage.register_component::<Velocity>()?;
         storage.register_component::<RotationSpeed>()?;
-        storage.register_component::<LevelTiles>()?;
+        storage.register_component::<Maze>()?;
         Ok(Self { storage })
     }
 
@@ -60,5 +60,9 @@ impl Scene for GameScene {
             .with_component(Health(100))
             .with_component(Velocity(5.0))
             .with_component(RotationSpeed(2.0));
+    }
+
+    fn process_events(&mut self, events: &[InputEvent]) {
+        // TODO: implement
     }
 }

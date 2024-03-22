@@ -12,7 +12,4 @@ pub struct Velocity(pub Float);
 
 pub struct RotationSpeed(pub Float);
 
-pub struct LevelTiles {
-    pub content: Vec<Vec<u32>>,
-    pub size: usize,
-}
+pub struct Maze(pub Vec<Vec<u32>>);
