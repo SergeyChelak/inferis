@@ -8,10 +8,11 @@ use engine::{
     EngineResult,
 };
 
-use super::components::*;
+use super::{components::*, controller::ControllerState};
 
 pub struct GameScene {
     storage: ComponentStorage,
+    controller: ControllerState,
 }
 
 impl GameScene {
@@ -24,7 +25,10 @@ impl GameScene {
         storage.register_component::<Velocity>()?;
         storage.register_component::<RotationSpeed>()?;
         storage.register_component::<Maze>()?;
-        Ok(Self { storage })
+        Ok(Self {
+            storage,
+            controller: ControllerState::default(),
+        })
     }
 
     fn create_entity(&mut self) -> EntityHandler {
@@ -39,7 +43,8 @@ impl GameScene {
 
 impl Scene for GameScene {
     fn update(&mut self, engine: &mut dyn Engine) {
-        // call systems here
+        // TODO: call systems here
+        self.controller.clean_up();
     }
 
     fn render(&self, engine: &mut dyn Engine, assets: &AssetManager) {
@@ -63,6 +68,6 @@ impl Scene for GameScene {
     }
 
     fn process_events(&mut self, events: &[InputEvent]) {
-        // TODO: implement
+        self.controller.update(events);
     }
 }
