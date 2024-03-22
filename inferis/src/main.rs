@@ -1,6 +1,6 @@
 use engine::{prelude::*, world::Scene};
-use game_scene::GameScene;
-mod game_scene;
+mod gameplay;
+use gameplay::main_scene::*;
 
 const WINDOW_TITLE: &str = "INFERIS";
 
