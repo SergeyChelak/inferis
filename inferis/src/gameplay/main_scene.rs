@@ -1,23 +1,30 @@
-use engine::prelude::{
-    assets::AssetManager,
-    handler::EntityHandler,
-    storage::{ComponentStorage, EntityID},
-    world::*,
+use engine::{
+    prelude::{
+        assets::AssetManager,
+        handler::EntityHandler,
+        storage::{ComponentStorage, EntityID},
+        world::*,
+    },
+    EngineResult,
 };
 
-use super::components::{Health, PlayerTag, Position};
+use super::components::*;
 
 pub struct GameScene {
     storage: ComponentStorage,
 }
 
 impl GameScene {
-    pub fn new() -> Self {
+    pub fn new() -> EngineResult<Self> {
         let mut storage = ComponentStorage::new();
-        storage.register_component::<PlayerTag>();
-        storage.register_component::<Health>();
-        storage.register_component::<Position>();
-        Self { storage }
+        storage.register_component::<PlayerTag>()?;
+        storage.register_component::<NpcTag>()?;
+        storage.register_component::<Health>()?;
+        storage.register_component::<Position>()?;
+        storage.register_component::<Velocity>()?;
+        storage.register_component::<RotationSpeed>()?;
+        storage.register_component::<LevelTiles>()?;
+        Ok(Self { storage })
     }
 
     fn create_entity(&mut self) -> EntityHandler {
@@ -50,6 +57,8 @@ impl Scene for GameScene {
     fn setup(&mut self) {
         self.create_entity()
             .with_component(PlayerTag)
-            .with_component(Health(100));
+            .with_component(Health(100))
+            .with_component(Velocity(5.0))
+            .with_component(RotationSpeed(2.0));
     }
 }

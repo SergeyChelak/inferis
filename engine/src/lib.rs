@@ -8,6 +8,8 @@ pub mod world;
 #[derive(Debug)]
 pub enum EngineError {
     ComponentNotRegistered,
+    ComponentAlreadyRegistered,
+    ComponentCountOverflow,
     SceneNotFound,
     FileAccessError(String),
     ResourceParseError(String),

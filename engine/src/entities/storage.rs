@@ -5,6 +5,8 @@ use std::{
     rc::Rc,
 };
 
+use crate::{EngineError, EngineResult};
+
 use super::footprint::Footprint;
 
 mod allocator {
@@ -106,18 +108,18 @@ impl ComponentStorage {
         }
     }
 
-    pub fn register_component<T: Any>(&mut self) -> bool {
+    pub fn register_component<T: Any>(&mut self) -> EngineResult<()> {
         let key = TypeId::of::<T>();
         if self.raw.get(&key).is_some() {
-            return false;
+            return Err(EngineError::ComponentAlreadyRegistered);
         }
         let position = self.type_position_map.len();
         if position >= Footprint::max_items() {
-            return false;
+            return Err(EngineError::ComponentCountOverflow);
         }
         self.type_position_map.insert(key, position);
         self.raw.insert(key, Vec::with_capacity(STORAGE_CAPACITY));
-        true
+        Ok(())
     }
 
     pub fn add_entity(&mut self) -> EntityID {

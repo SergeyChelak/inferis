@@ -10,14 +10,14 @@ fn main() -> EngineResult<()> {
         window: WindowSettings {
             title: WINDOW_TITLE.to_owned(),
             size: WindowSize {
-                width: 1024,
-                height: 768,
+                width: 1600,
+                height: 900,
             },
         },
     };
     let mut world = GameWorld::new(settings)?;
 
-    let game_scene = GameScene::new();
+    let game_scene = GameScene::new()?;
     let id = game_scene.id();
     world.register_scene(game_scene);
     world.change_scene(id);
