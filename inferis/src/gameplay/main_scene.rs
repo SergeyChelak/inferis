@@ -2,8 +2,7 @@ use engine::prelude::{
     assets::AssetManager,
     handler::EntityHandler,
     storage::{ComponentStorage, EntityID},
-    world::Engine,
-    world::Scene,
+    world::*,
 };
 
 use super::components::{Health, PlayerTag, Position};
@@ -46,5 +45,11 @@ impl Scene for GameScene {
 
     fn id(&self) -> String {
         "game_scene".to_string()
+    }
+
+    fn setup(&mut self) {
+        self.create_entity()
+            .with_component(PlayerTag)
+            .with_component(Health(100));
     }
 }

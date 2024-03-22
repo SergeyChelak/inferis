@@ -1,7 +1,7 @@
 use engine::geometry::Vec2f;
 
-pub struct Health(u32);
+pub struct Health(pub u32);
 
 pub struct PlayerTag;
 
-pub struct Position(Vec2f);
+pub struct Position(pub Vec2f);

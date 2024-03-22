@@ -31,7 +31,7 @@ impl<'a> EntityHandler<'a> {
     }
 
     // FIX: ignored result!
-    fn with_component<T: Any>(mut self, value: T) -> Self {
+    pub fn with_component<T: Any>(mut self, value: T) -> Self {
         self.add::<T>(value);
         self
     }
