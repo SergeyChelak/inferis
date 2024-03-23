@@ -27,7 +27,7 @@ impl GameScene {
             .with_component(Health(100))
             .with_component(Velocity(5.0))
             .with_component(RotationSpeed(2.0))
-            .with_component(Position(Vec2f::new(3.0, 3.0)));
+            .with_component(Position(Vec2f::new(300.0, 150.0)));
         Ok(Self {
             storage,
             controller: ControllerState::default(),
@@ -60,23 +60,26 @@ impl GameScene {
 
     fn update_player_position(&mut self) -> EngineResult<()> {
         let (mut dx, mut dy) = (0.0, 0.0);
-        if self.controller.forward_pressed {
-            dy = -1.0;
-        }
-        if self.controller.backward_pressed {
-            dy = 1.0;
-        }
-        if self.controller.left_pressed {
-            dx = -1.0;
-        }
-        if self.controller.right_pressed {
-            dx = 1.0;
-        }
-
-        let Some(mut comp) = self.storage.get_mut::<Position>(self.player_id) else {
+        let Some(vel_comp) = self.storage.get::<Velocity>(self.player_id) else {
             return Err(EngineError::ComponentNotFound("".to_string()));
         };
-        let position = comp.borrow_mut();
+        let velocity = vel_comp.0;
+        if self.controller.forward_pressed {
+            dy = -velocity;
+        }
+        if self.controller.backward_pressed {
+            dy = velocity;
+        }
+        if self.controller.left_pressed {
+            dx = -velocity;
+        }
+        if self.controller.right_pressed {
+            dx = velocity;
+        }
+        let Some(mut pos_comp) = self.storage.get_mut::<Position>(self.player_id) else {
+            return Err(EngineError::ComponentNotFound("".to_string()));
+        };
+        let position = pos_comp.borrow_mut();
         position.0.x += dx;
         position.0.y += dy;
         Ok(())

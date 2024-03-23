@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{EngineError, EngineResult};
+use crate::{query::Query, EngineError, EngineResult};
 
 use super::footprint::Footprint;
 
@@ -231,9 +231,9 @@ impl ComponentStorage {
         footprint
     }
 
-    pub fn fetch_entities(&self, types: &HashSet<TypeId>) -> HashSet<EntityID> {
+    pub fn fetch_entities(&self, query: &Query) -> HashSet<EntityID> {
         let mut entities = HashSet::new();
-        let query_footprint = self.footprint(types);
+        let query_footprint = self.footprint(&query.types);
         for entity_id in &self.indices {
             let Some(entity_footprint) = self
                 .indices
@@ -250,17 +250,14 @@ impl ComponentStorage {
         entities
     }
 
-    pub fn fetch_components(
-        &self,
-        types: &HashSet<TypeId>,
-    ) -> HashMap<TypeId, Vec<ComponentEntry>> {
+    pub fn fetch_components(&self, query: &Query) -> HashMap<TypeId, Vec<ComponentEntry>> {
         let idx_array = self
-            .fetch_entities(types)
+            .fetch_entities(query)
             .iter()
             .map(|item| item.index())
             .collect::<Vec<usize>>();
         let mut result: HashMap<TypeId, Vec<ComponentEntry>> = HashMap::new();
-        for type_id in types {
+        for type_id in query.types.iter() {
             let Some(row) = self.raw.get(type_id) else {
                 panic!("[ComponentStorage] fetch: failed to get component row");
             };

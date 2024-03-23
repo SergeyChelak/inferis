@@ -29,7 +29,7 @@ impl ControllerState {
                     self.handle_key(*code, *pressed);
                 }
                 InputEvent::Mouse { x, y, x_rel, y_rel } => {
-                    println!("Mouse x = {x}, dx = {x_rel}, y = {y}, dy = {y_rel}");
+                    // println!("Mouse x = {x}, dx = {x_rel}, y = {y}, dy = {y_rel}");
                 }
             }
         }
