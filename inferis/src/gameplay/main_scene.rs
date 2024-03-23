@@ -3,7 +3,7 @@ use std::{
     f32::consts::PI,
 };
 
-use engine::{pixels::Color, rect::Rect, *};
+use engine::{pixels::Color, query::Query, rect::Rect, *};
 
 use super::{components::*, controller::ControllerState};
 
@@ -65,11 +65,22 @@ impl GameScene {
     }
 
     fn update_player_position(&mut self) -> EngineResult<()> {
+        let query = Query::new()
+            .with_component::<Position>()
+            .with_component::<Velocity>()
+            .with_component::<Angle>()
+            .with_component::<RotationSpeed>();
+        let Some(&id) = self.storage.fetch_entities(&query).first() else {
+            println!("[UPDATE POSITION] entity not found");
+            return Ok(());
+        };
+        // let id = self.player_id;
+
         let delta_time = 1.0;
-        let Some(vel_comp) = self.storage.get::<Velocity>(self.player_id) else {
+        let Some(vel_comp) = self.storage.get::<Velocity>(id) else {
             return Err(EngineError::ComponentNotFound("".to_string()));
         };
-        let Some(mut angle_comp) = self.storage.get_mut::<Angle>(self.player_id) else {
+        let Some(mut angle_comp) = self.storage.get_mut::<Angle>(id) else {
             return Err(EngineError::ComponentNotFound("".to_string()));
         };
         let angle = angle_comp.borrow().0;
@@ -99,14 +110,14 @@ impl GameScene {
             dx = -dist_sin;
             dy = dist_cos;
         }
-        let Some(mut pos_comp) = self.storage.get_mut::<Position>(self.player_id) else {
+        let Some(mut pos_comp) = self.storage.get_mut::<Position>(id) else {
             return Err(EngineError::ComponentNotFound("".to_string()));
         };
         let position = pos_comp.borrow_mut();
         position.0.x += dx;
         position.0.y += dy;
         // rotation
-        let Some(rot_speed_comp) = self.storage.get::<RotationSpeed>(self.player_id) else {
+        let Some(rot_speed_comp) = self.storage.get::<RotationSpeed>(id) else {
             return Err(EngineError::ComponentNotFound("".to_string()));
         };
         let rotation_speed = rot_speed_comp.0;

@@ -141,7 +141,12 @@ impl ComponentStorage {
             let Some(row) = self.raw.get_mut(key) else {
                 continue;
             };
+            let Some(&position) = self.type_position_map.get(&key) else {
+                continue;
+            };
             row[id.index()] = Some(value.clone());
+            let footprint = self.entity_footprint.entry(id).or_insert(Footprint::new());
+            footprint.set(position, true);
         }
         id
     }
@@ -242,8 +247,8 @@ impl ComponentStorage {
         footprint
     }
 
-    pub fn fetch_entities(&self, query: &Query) -> HashSet<EntityID> {
-        let mut entities = HashSet::new();
+    pub fn fetch_entities(&self, query: &Query) -> Vec<EntityID> {
+        let mut entities = Vec::new();
         let query_footprint = self.footprint(&query.types);
         for entity_id in &self.indices {
             let Some(entity_footprint) = self
@@ -255,7 +260,7 @@ impl ComponentStorage {
                 continue;
             };
             if query_footprint.is_matches(entity_footprint) {
-                entities.insert(*entity_id);
+                entities.push(*entity_id);
             }
         }
         entities
