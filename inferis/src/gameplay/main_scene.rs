@@ -100,20 +100,20 @@ impl GameScene {
         let (mut dx, mut dy) = (0.0, 0.0);
 
         if self.controller.forward_pressed {
-            dx = dist_cos;
-            dy = dist_sin;
+            dx += dist_cos;
+            dy += dist_sin;
         }
         if self.controller.backward_pressed {
-            dx = -dist_cos;
-            dy = -dist_sin;
+            dx += -dist_cos;
+            dy += -dist_sin;
         }
         if self.controller.left_pressed {
-            dx = dist_sin;
-            dy = -dist_cos;
+            dx += dist_sin;
+            dy += -dist_cos;
         }
         if self.controller.right_pressed {
-            dx = -dist_sin;
-            dy = dist_cos;
+            dx += -dist_sin;
+            dy += dist_cos;
         }
 
         let position = pos_comp.borrow_mut();
