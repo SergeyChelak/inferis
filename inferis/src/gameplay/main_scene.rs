@@ -3,7 +3,7 @@ use std::{
     f32::consts::PI,
 };
 
-use engine::{pixels::Color, query::Query, rect::Rect, *};
+use engine::{pixels::Color, rect::Rect, *};
 
 use super::{components::*, controller::ControllerState};
 
@@ -78,10 +78,16 @@ impl GameScene {
 
         let delta_time = 1.0;
         let Some(vel_comp) = self.storage.get::<Velocity>(id) else {
-            return Err(EngineError::ComponentNotFound("".to_string()));
+            return Err(EngineError::ComponentNotFound("Velocity".to_string()));
         };
         let Some(mut angle_comp) = self.storage.get_mut::<Angle>(id) else {
-            return Err(EngineError::ComponentNotFound("".to_string()));
+            return Err(EngineError::ComponentNotFound("Angle".to_string()));
+        };
+        let Some(mut pos_comp) = self.storage.get_mut::<Position>(id) else {
+            return Err(EngineError::ComponentNotFound("Position".to_string()));
+        };
+        let Some(rot_speed_comp) = self.storage.get::<RotationSpeed>(id) else {
+            return Err(EngineError::ComponentNotFound("RotationSpeed".to_string()));
         };
         let angle = angle_comp.borrow().0;
         let sin_a = angle.sin();
@@ -110,16 +116,11 @@ impl GameScene {
             dx = -dist_sin;
             dy = dist_cos;
         }
-        let Some(mut pos_comp) = self.storage.get_mut::<Position>(id) else {
-            return Err(EngineError::ComponentNotFound("".to_string()));
-        };
+
         let position = pos_comp.borrow_mut();
         position.0.x += dx;
         position.0.y += dy;
         // rotation
-        let Some(rot_speed_comp) = self.storage.get::<RotationSpeed>(id) else {
-            return Err(EngineError::ComponentNotFound("".to_string()));
-        };
         let rotation_speed = rot_speed_comp.0;
         let angle = angle_comp.borrow_mut();
         if self.controller.rotate_left_pressed {

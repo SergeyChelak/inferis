@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{query::Query, EngineError, EngineResult, EntityBundle};
+use crate::{utils::*, EngineError, EngineResult};
 
 use super::footprint::Footprint;
 
