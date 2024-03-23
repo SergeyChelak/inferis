@@ -28,7 +28,7 @@ impl GameScene {
         let bundle = EntityBundle::new()
             .add(PlayerTag)
             .add(Health(100))
-            .add(Velocity(5.0))
+            .add(Velocity(50.0))
             .add(RotationSpeed(2.0))
             .add(Position(Vec2f::new(300.0, 150.0)))
             .add(Angle(0.0));
@@ -64,19 +64,18 @@ impl GameScene {
         Ok(())
     }
 
-    fn update_player_position(&mut self) -> EngineResult<()> {
-        let query = Query::new()
-            .with_component::<Position>()
-            .with_component::<Velocity>()
-            .with_component::<Angle>()
-            .with_component::<RotationSpeed>();
-        let Some(&id) = self.storage.fetch_entities(&query).first() else {
-            println!("[UPDATE POSITION] entity not found");
-            return Ok(());
-        };
-        // let id = self.player_id;
+    fn update_player_position(&mut self, delta_time: f32) -> EngineResult<()> {
+        // let query = Query::new()
+        //     .with_component::<Position>()
+        //     .with_component::<Velocity>()
+        //     .with_component::<Angle>()
+        //     .with_component::<RotationSpeed>();
+        // let Some(&id) = self.storage.fetch_entities(&query).first() else {
+        //     println!("[UPDATE POSITION] entity not found");
+        //     return Ok(());
+        // };
+        let id = self.player_id;
 
-        let delta_time = 1.0;
         let Some(vel_comp) = self.storage.get::<Velocity>(id) else {
             return Err(EngineError::ComponentNotFound("Velocity".to_string()));
         };
@@ -144,7 +143,7 @@ impl Scene for GameScene {
         self.controller.update(events);
         // TODO: call systems here
         // update player position
-        self.update_player_position()?;
+        self.update_player_position(engine.delta_time())?;
         // update NPC position
         // find & resolve collisions
 

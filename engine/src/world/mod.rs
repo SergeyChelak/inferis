@@ -9,6 +9,7 @@ pub trait Engine {
     fn change_scene(&mut self, scene_id: SceneID);
     fn terminate(&mut self);
     fn canvas(&mut self) -> &mut WindowCanvas;
+    fn delta_time(&self) -> f32;
 }
 
 pub trait Scene {
