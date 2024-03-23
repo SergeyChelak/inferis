@@ -83,13 +83,11 @@ impl GameWorld {
                 println!("[GameWorld] Can't get current scene");
                 return Err(EngineError::SceneNotFound);
             };
-            self.process_events(scene_ref.clone());
             let mut scene = scene_ref.borrow_mut();
-            scene.update(self);
+            let events = self.input_events();
             self.canvas.clear();
-            scene.render(self, &asset_manager);
+            scene.teak(self, &events, &asset_manager);
             self.canvas.present();
-
             // delay the rest of the time if needed
             let elapsed = time.elapsed();
             if elapsed.as_millis() > 1000 {
@@ -104,7 +102,7 @@ impl GameWorld {
         Ok(())
     }
 
-    fn process_events(&mut self, scene: Rc<RefCell<dyn Scene>>) {
+    fn input_events(&mut self) -> Vec<InputEvent> {
         let mut events = Vec::new();
         for event in self.event_pump.poll_iter() {
             match event {
@@ -146,7 +144,7 @@ impl GameWorld {
                 _ => {}
             }
         }
-        scene.borrow_mut().process_events(&events);
+        events
     }
 
     fn current_scene_ref(&self) -> Option<Rc<RefCell<dyn Scene>>> {

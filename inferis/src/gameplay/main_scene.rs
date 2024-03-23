@@ -39,13 +39,6 @@ impl GameScene {
     fn entity(&mut self, entity_id: EntityID) -> EntityHandler {
         EntityHandler::new(entity_id, &mut self.storage)
     }
-}
-
-impl Scene for GameScene {
-    fn update(&mut self, engine: &mut dyn Engine) {
-        // TODO: call systems here
-        self.controller.clean_up();
-    }
 
     fn render(&self, engine: &mut dyn Engine, assets: &AssetManager) {
         let canvas = engine.canvas();
@@ -53,6 +46,20 @@ impl Scene for GameScene {
             return;
         };
         canvas.set_draw_color(color);
+    }
+}
+
+impl Scene for GameScene {
+    fn teak(&mut self, engine: &mut dyn Engine, events: &[InputEvent], assets: &AssetManager) {
+        self.controller.update(events);
+        // TODO: call systems here
+        // update player position
+        // update NPC position
+        // find & resolve collisions
+
+        // call renderer system
+        self.render(engine, assets);
+        self.controller.clean_up();
     }
 
     fn id(&self) -> String {
@@ -65,9 +72,5 @@ impl Scene for GameScene {
             .with_component(Health(100))
             .with_component(Velocity(5.0))
             .with_component(RotationSpeed(2.0));
-    }
-
-    fn process_events(&mut self, events: &[InputEvent]) {
-        self.controller.update(events);
     }
 }
