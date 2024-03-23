@@ -75,22 +75,21 @@ impl GameWorld {
         let asset_manager = AssetManager::new(&self.settings.asset_path, &texture_creator)?;
 
         self.is_running = true;
-        let mut time = Instant::now();
+        // let mut time = Instant::now();
         let target_duration = 1000 / TARGET_FPS;
         while self.is_running {
             let frame_start = Instant::now();
             let Some(scene_ref) = self.current_scene_ref() else {
-                println!("[GameWorld] Can't get current scene");
                 return Err(EngineError::SceneNotFound);
             };
             let mut scene = scene_ref.borrow_mut();
             let events = self.input_events();
             scene.teak(self, &events, &asset_manager)?;
+            // let elapsed = time.elapsed();
+            // if elapsed.as_millis() > 1000 {
+            //     time = Instant::now();
+            // }
             // delay the rest of the time if needed
-            let elapsed = time.elapsed();
-            if elapsed.as_millis() > 1000 {
-                time = Instant::now();
-            }
             let suspend_ms = target_duration.saturating_sub(frame_start.elapsed().as_millis());
             if suspend_ms > 0 {
                 let duration = Duration::from_millis(suspend_ms as u64);

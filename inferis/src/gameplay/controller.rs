@@ -41,7 +41,7 @@ impl ControllerState {
         }
     }
 
-    pub fn clean_up(&mut self) {
+    pub fn reset_relative(&mut self) {
         self.mouse_x_relative = 0;
         self.mouse_y_relative = 0;
     }
