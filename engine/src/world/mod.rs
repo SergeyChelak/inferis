@@ -12,7 +12,6 @@ pub trait Engine {
 }
 
 pub trait Scene {
-    fn setup(&mut self);
     fn teak(&mut self, engine: &mut dyn Engine, events: &[InputEvent], assets: &AssetManager);
     fn id(&self) -> SceneID;
 }

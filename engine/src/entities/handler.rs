@@ -30,9 +30,12 @@ impl<'a> EntityHandler<'a> {
         self.storage.get_mut(self.id)
     }
 
-    // FIX: ignored result!
     pub fn with_component<T: Any>(mut self, value: T) -> Self {
-        self.add::<T>(value);
+        let added = self.add::<T>(value);
+        assert!(
+            added,
+            "[EntityHandler] Failed to add component. Need to convert a return type to result"
+        );
         self
     }
 

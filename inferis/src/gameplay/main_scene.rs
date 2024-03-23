@@ -13,6 +13,7 @@ use super::{components::*, controller::ControllerState};
 pub struct GameScene {
     storage: ComponentStorage,
     controller: ControllerState,
+    player_id: EntityID,
 }
 
 impl GameScene {
@@ -25,18 +26,26 @@ impl GameScene {
         storage.register_component::<Velocity>()?;
         storage.register_component::<RotationSpeed>()?;
         storage.register_component::<Maze>()?;
+
+        let player_id = storage.add_entity();
+        EntityHandler::new(player_id, &mut storage)
+            .with_component(PlayerTag)
+            .with_component(Health(100))
+            .with_component(Velocity(5.0))
+            .with_component(RotationSpeed(2.0));
         Ok(Self {
             storage,
             controller: ControllerState::default(),
+            player_id,
         })
     }
 
-    fn create_entity(&mut self) -> EntityHandler {
+    fn spawn_entity(&mut self) -> EntityHandler {
         let id = self.storage.add_entity();
-        self.entity(id)
+        self.get_entity(id)
     }
 
-    fn entity(&mut self, entity_id: EntityID) -> EntityHandler {
+    fn get_entity(&mut self, entity_id: EntityID) -> EntityHandler {
         EntityHandler::new(entity_id, &mut self.storage)
     }
 
@@ -64,13 +73,5 @@ impl Scene for GameScene {
 
     fn id(&self) -> String {
         "game_scene".to_string()
-    }
-
-    fn setup(&mut self) {
-        self.create_entity()
-            .with_component(PlayerTag)
-            .with_component(Health(100))
-            .with_component(Velocity(5.0))
-            .with_component(RotationSpeed(2.0));
     }
 }
