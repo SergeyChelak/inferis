@@ -21,13 +21,14 @@ impl GameScene {
         storage.register_component::<RotationSpeed>()?;
         storage.register_component::<Maze>()?;
 
-        let player_id = storage.add_entity();
-        EntityHandler::new(player_id, &mut storage)
-            .with_component(PlayerTag)
-            .with_component(Health(100))
-            .with_component(Velocity(5.0))
-            .with_component(RotationSpeed(2.0))
-            .with_component(Position(Vec2f::new(300.0, 150.0)));
+        let bundle = EntityBundle::new()
+            .add(PlayerTag)
+            .add(Health(100))
+            .add(Velocity(5.0))
+            .add(RotationSpeed(2.0))
+            .add(Position(Vec2f::new(300.0, 150.0)));
+
+        let player_id = storage.add_from_bundle(&bundle);
         Ok(Self {
             storage,
             controller: ControllerState::default(),

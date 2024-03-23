@@ -5,7 +5,7 @@ pub mod settings;
 pub mod world;
 
 pub use assets::AssetManager;
-pub use entities::handler::*;
+pub use entities::bundle::*;
 pub use entities::*;
 pub use geometry::*;
 pub use sdl2::*;

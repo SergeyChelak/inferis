@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{query::Query, EngineError, EngineResult};
+use crate::{query::Query, EngineError, EngineResult, EntityBundle};
 
 use super::footprint::Footprint;
 
@@ -133,6 +133,17 @@ impl ComponentStorage {
         });
         self.indices.insert(entity_id);
         entity_id
+    }
+
+    pub fn add_from_bundle(&mut self, bundle: &EntityBundle) -> EntityID {
+        let id = self.add_entity();
+        for (key, value) in bundle.raw.iter() {
+            let Some(row) = self.raw.get_mut(key) else {
+                continue;
+            };
+            row[id.index()] = Some(value.clone());
+        }
+        id
     }
 
     pub fn remove_entity(&mut self, entity_id: EntityID) -> bool {
