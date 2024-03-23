@@ -1,12 +1,6 @@
-use engine::{
-    prelude::{
-        assets::AssetManager,
-        handler::EntityHandler,
-        storage::{ComponentStorage, EntityID},
-        world::*,
-    },
-    EngineResult,
-};
+use std::borrow::BorrowMut;
+
+use engine::{pixels::Color, rect::Rect, *};
 
 use super::{components::*, controller::ControllerState};
 
@@ -32,7 +26,8 @@ impl GameScene {
             .with_component(PlayerTag)
             .with_component(Health(100))
             .with_component(Velocity(5.0))
-            .with_component(RotationSpeed(2.0));
+            .with_component(RotationSpeed(2.0))
+            .with_component(Position(Vec2f::new(3.0, 3.0)));
         Ok(Self {
             storage,
             controller: ControllerState::default(),
@@ -40,35 +35,72 @@ impl GameScene {
         })
     }
 
-    fn spawn_entity(&mut self) -> EntityHandler {
-        let id = self.storage.add_entity();
-        self.get_entity(id)
-    }
-
-    fn get_entity(&mut self, entity_id: EntityID) -> EntityHandler {
-        EntityHandler::new(entity_id, &mut self.storage)
-    }
-
-    fn render(&self, engine: &mut dyn Engine, assets: &AssetManager) {
+    fn render(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()> {
         let canvas = engine.canvas();
         let Some(&color) = assets.color("floor") else {
-            return;
+            return Err(EngineError::ResourceNotFound("floor".to_string()));
         };
         canvas.set_draw_color(color);
+        canvas.clear();
+        // draw player rect
+        {
+            let Some(pos) = self.storage.get::<Position>(self.player_id) else {
+                return Err(EngineError::ComponentNotFound("Position".to_string()));
+            };
+            // let scale = 10.0;
+            let rect = Rect::new(pos.0.x as i32, pos.0.y as i32, 10, 10);
+            canvas.set_draw_color(Color::RED);
+            canvas
+                .fill_rect(rect)
+                .map_err(|e| EngineError::Sdl(e.to_string()))?
+        }
+        canvas.present();
+        Ok(())
+    }
+
+    fn update_player_position(&mut self) -> EngineResult<()> {
+        let (mut dx, mut dy) = (0.0, 0.0);
+        if self.controller.forward_pressed {
+            dy = -1.0;
+        }
+        if self.controller.backward_pressed {
+            dy = 1.0;
+        }
+        if self.controller.left_pressed {
+            dx = -1.0;
+        }
+        if self.controller.right_pressed {
+            dx = 1.0;
+        }
+
+        let Some(mut comp) = self.storage.get_mut::<Position>(self.player_id) else {
+            return Err(EngineError::ComponentNotFound("".to_string()));
+        };
+        let position = comp.borrow_mut();
+        position.0.x += dx;
+        position.0.y += dy;
+        Ok(())
     }
 }
 
 impl Scene for GameScene {
-    fn teak(&mut self, engine: &mut dyn Engine, events: &[InputEvent], assets: &AssetManager) {
+    fn teak(
+        &mut self,
+        engine: &mut dyn Engine,
+        events: &[InputEvent],
+        assets: &AssetManager,
+    ) -> EngineResult<()> {
         self.controller.update(events);
         // TODO: call systems here
         // update player position
+        self.update_player_position()?;
         // update NPC position
         // find & resolve collisions
 
         // call renderer system
-        self.render(engine, assets);
+        self.render(engine, assets)?;
         self.controller.clean_up();
+        Ok(())
     }
 
     fn id(&self) -> String {

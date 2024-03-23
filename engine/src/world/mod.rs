@@ -1,6 +1,6 @@
 use sdl2::render::WindowCanvas;
 
-use crate::assets::AssetManager;
+use crate::{assets::AssetManager, EngineResult};
 
 pub mod game_world;
 
@@ -12,7 +12,12 @@ pub trait Engine {
 }
 
 pub trait Scene {
-    fn teak(&mut self, engine: &mut dyn Engine, events: &[InputEvent], assets: &AssetManager);
+    fn teak(
+        &mut self,
+        engine: &mut dyn Engine,
+        events: &[InputEvent],
+        assets: &AssetManager,
+    ) -> EngineResult<()>;
     fn id(&self) -> SceneID;
 }
 

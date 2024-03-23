@@ -22,11 +22,11 @@ impl<'a> EntityHandler<'a> {
         }
     }
 
-    fn get<T: Any>(&self) -> Option<Ref<T>> {
+    pub fn get<T: Any>(&self) -> Option<Ref<T>> {
         self.storage.get(self.id)
     }
 
-    fn get_mut<T: Any>(&self) -> Option<RefMut<T>> {
+    pub fn get_mut<T: Any>(&self) -> Option<RefMut<T>> {
         self.storage.get_mut(self.id)
     }
 

@@ -85,9 +85,7 @@ impl GameWorld {
             };
             let mut scene = scene_ref.borrow_mut();
             let events = self.input_events();
-            self.canvas.clear();
-            scene.teak(self, &events, &asset_manager);
-            self.canvas.present();
+            scene.teak(self, &events, &asset_manager)?;
             // delay the rest of the time if needed
             let elapsed = time.elapsed();
             if elapsed.as_millis() > 1000 {
