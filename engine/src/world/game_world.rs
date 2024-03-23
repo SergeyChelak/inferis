@@ -21,7 +21,6 @@ pub struct GameWorld {
     scenes: HashMap<SceneID, Rc<RefCell<dyn Scene>>>,
     current_scene: SceneID,
 
-    frame_counter: u64,
     event_pump: EventPump,
     audio_subsystem: AudioSubsystem,
     canvas: WindowCanvas,
@@ -40,7 +39,6 @@ impl GameWorld {
             is_running: false,
             scenes: HashMap::default(),
             current_scene: SceneID::default(),
-            frame_counter: 0,
             event_pump,
             canvas,
             audio_subsystem,
@@ -75,7 +73,6 @@ impl GameWorld {
         let asset_manager = AssetManager::new(&self.settings.asset_path, &texture_creator)?;
 
         self.is_running = true;
-        // let mut time = Instant::now();
         let target_duration = 1000 / TARGET_FPS;
         while self.is_running {
             let frame_start = Instant::now();
@@ -85,10 +82,6 @@ impl GameWorld {
             let mut scene = scene_ref.borrow_mut();
             let events = self.input_events();
             scene.teak(self, &events, &asset_manager)?;
-            // let elapsed = time.elapsed();
-            // if elapsed.as_millis() > 1000 {
-            //     time = Instant::now();
-            // }
             // delay the rest of the time if needed
             let suspend_ms = target_duration.saturating_sub(frame_start.elapsed().as_millis());
             if suspend_ms > 0 {

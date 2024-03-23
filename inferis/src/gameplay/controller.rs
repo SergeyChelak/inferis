@@ -19,8 +19,9 @@ impl ControllerState {
                 InputEvent::Keyboard { code, pressed } => {
                     self.handle_key(*code, *pressed);
                 }
-                InputEvent::Mouse { x, y, x_rel, y_rel } => {
-                    // println!("Mouse x = {x}, dx = {x_rel}, y = {y}, dy = {y_rel}");
+                InputEvent::Mouse { x_rel, y_rel, .. } => {
+                    self.mouse_x_relative = *x_rel;
+                    self.mouse_y_relative = *y_rel;
                 }
             }
         }
