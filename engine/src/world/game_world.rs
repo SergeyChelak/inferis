@@ -116,7 +116,7 @@ impl GameWorld {
                     ..
                 } => {
                     events.push(InputEvent::Keyboard {
-                        code: keycode as i32,
+                        code: keycode,
                         pressed: true,
                     });
                 }
@@ -125,7 +125,7 @@ impl GameWorld {
                     ..
                 } => {
                     events.push(InputEvent::Keyboard {
-                        code: keycode as i32,
+                        code: keycode,
                         pressed: false,
                     });
                 }

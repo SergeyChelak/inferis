@@ -1,4 +1,4 @@
-use sdl2::render::WindowCanvas;
+use sdl2::{keyboard::Keycode, render::WindowCanvas};
 
 use crate::{assets::AssetManager, EngineResult};
 
@@ -23,7 +23,7 @@ pub trait Scene {
 
 pub enum InputEvent {
     Keyboard {
-        code: i32,
+        code: Keycode,
         pressed: bool,
     },
     Mouse {

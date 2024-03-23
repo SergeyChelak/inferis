@@ -1,13 +1,4 @@
-use engine::world::InputEvent;
-
-const KEYCODE_W: i32 = 119;
-const KEYCODE_S: i32 = 115;
-const KEYCODE_A: i32 = 97;
-const KEYCODE_D: i32 = 100;
-const KEYCODE_LEFT: i32 = 1073741904;
-const KEYCODE_RIGHT: i32 = 1073741903;
-const KEYCODE_UP: i32 = 1073741906;
-const KEYCODE_DOWN: i32 = 1073741905;
+use engine::{keyboard::Keycode, world::InputEvent};
 
 #[derive(Default)]
 pub struct ControllerState {
@@ -35,14 +26,15 @@ impl ControllerState {
         }
     }
 
-    fn handle_key(&mut self, code: i32, pressed: bool) {
+    fn handle_key(&mut self, code: Keycode, pressed: bool) {
+        use Keycode::*;
         match code {
-            KEYCODE_UP | KEYCODE_W => self.forward_pressed = pressed,
-            KEYCODE_DOWN | KEYCODE_S => self.backward_pressed = pressed,
-            KEYCODE_A => self.left_pressed = pressed,
-            KEYCODE_D => self.right_pressed = pressed,
-            KEYCODE_LEFT => self.rotate_left_pressed = pressed,
-            KEYCODE_RIGHT => self.rotate_right_pressed = pressed,
+            Up | W => self.forward_pressed = pressed,
+            Down | S => self.backward_pressed = pressed,
+            A => self.left_pressed = pressed,
+            D => self.right_pressed = pressed,
+            Left => self.rotate_left_pressed = pressed,
+            Right => self.rotate_right_pressed = pressed,
             _ => {
                 // println!("Key {code} pressed {pressed}")
             }
