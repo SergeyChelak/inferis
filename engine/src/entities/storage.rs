@@ -139,9 +139,11 @@ impl ComponentStorage {
         let id = self.add_entity();
         for (key, value) in bundle.raw.iter() {
             let Some(row) = self.raw.get_mut(key) else {
+                println!("[ComponentStorage] failed to get component's row");
                 continue;
             };
             let Some(&position) = self.type_position_map.get(&key) else {
+                println!("[ComponentStorage] failed to get component's position");
                 continue;
             };
             row[id.index()] = Some(value.clone());

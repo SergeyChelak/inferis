@@ -3,6 +3,7 @@ pub struct Size<T> {
     pub height: T,
 }
 
+#[derive(Copy, Clone, Default, PartialEq, Eq)]
 pub struct Vec2<T> {
     pub x: T,
     pub y: T,

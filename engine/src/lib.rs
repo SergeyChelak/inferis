@@ -25,6 +25,7 @@ pub enum EngineError {
     ResourceParseError(String),
     ResourceNotFound(String),
     Sdl(String),
+    MazeGenerationFailed(String),
 }
 
 pub type EngineResult<T> = Result<T, EngineError>;

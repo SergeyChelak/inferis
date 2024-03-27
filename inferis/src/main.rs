@@ -1,6 +1,7 @@
 use engine::*;
 mod gameplay;
 use gameplay::main_scene::*;
+mod pbm;
 
 const WINDOW_TITLE: &str = "INFERIS";
 
