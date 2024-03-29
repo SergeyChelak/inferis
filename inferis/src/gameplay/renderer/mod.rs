@@ -65,13 +65,15 @@ fn render_sky(context: &mut RendererContext) -> EngineResult<()> {
     else {
         return Err(EngineError::ComponentNotFound("Angle".to_string()));
     };
-    let w = context.window_size.width as Float;
-    let offset = -(1.5 * angle * w / PI) % w;
-    let query = texture.query();
-    let (w, h) = (query.width, query.height);
-    let src = Rect::new(0, 0, w, h);
     let window_size = context.window_size;
+    let w = window_size.width as Float;
+    let offset = -(1.5 * angle * w / PI) % w;
     let offset = offset as i32;
+    let (w, h) = {
+        let query = texture.query();
+        (query.width, query.height)
+    };
+    let src = Rect::new(0, 0, w, h);
     let half_height = window_size.height >> 1;
     let dst = Rect::new(offset, 0, window_size.width, half_height);
     context
