@@ -1,8 +1,8 @@
 use engine::*;
 
 use super::{
-    components::*, controller::ControllerState, maze_generator::MazeGenerator,
-    renderer::render_scene, transform::transform_position,
+    components::*, controller::ControllerState, maze_generator::MazeGenerator, renderer::*,
+    transform::transform_position,
 };
 
 pub struct GameScene {
