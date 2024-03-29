@@ -1,10 +1,14 @@
 mod minimap;
 mod raycaster;
+use std::f32::consts::PI;
+
 use engine::{
-    render::WindowCanvas, AssetManager, ComponentStorage, Engine, EngineError, EngineResult,
-    EntityID, WindowSize,
+    rect::Rect, render::WindowCanvas, AssetManager, ComponentStorage, Engine, EngineError,
+    EngineResult, EntityID, Float, WindowSize,
 };
 use minimap::*;
+
+use super::components::Angle;
 
 // const FIELD_OF_VIEW: Float = PI / 3.0;
 // const MAX_DEPTH: usize = 50;
@@ -44,16 +48,55 @@ pub fn render_scene(
     };
     context.canvas.set_draw_color(color);
     context.canvas.clear();
-    render_sky(&mut context);
+    render_sky(&mut context)?;
     render_minimap(&mut context)?;
     context.canvas.present();
     Ok(())
 }
 
-fn render_sky(context: &mut RendererContext) {
-    /*
-    let w = self.scene_size.width as Float;
-       self.offset = 1.5 * angle * w / PI;
-       self.offset %= w;
-        */
+fn render_sky(context: &mut RendererContext) -> EngineResult<()> {
+    let Some(texture) = context.assets.texture("sky") else {
+        return Err(EngineError::TextureNotFound("sky".to_string()));
+    };
+    let Some(angle) = context
+        .storage
+        .get::<Angle>(context.player_id)
+        .and_then(|x| Some(x.0))
+    else {
+        return Err(EngineError::ComponentNotFound("Angle".to_string()));
+    };
+    let w = context.window_size.width as Float;
+    let offset = -(1.5 * angle * w / PI) % w;
+    let query = texture.query();
+    let (w, h) = (query.width, query.height);
+    let src = Rect::new(0, 0, w, h);
+    let window_size = context.window_size;
+    let offset = offset as i32;
+    let half_height = window_size.height >> 1;
+    let dst = Rect::new(offset, 0, window_size.width, half_height);
+    context
+        .canvas
+        .copy(texture, src, dst)
+        .map_err(|e| EngineError::Sdl(e.to_string()))?;
+    let dst = Rect::new(
+        offset - window_size.width as i32,
+        0,
+        window_size.width,
+        half_height,
+    );
+    context
+        .canvas
+        .copy(texture, src, dst)
+        .map_err(|e| EngineError::Sdl(e.to_string()))?;
+    let dst = Rect::new(
+        offset + window_size.width as i32,
+        0,
+        window_size.width,
+        half_height,
+    );
+    context
+        .canvas
+        .copy(texture, src, dst)
+        .map_err(|e| EngineError::Sdl(e.to_string()))?;
+    Ok(())
 }
