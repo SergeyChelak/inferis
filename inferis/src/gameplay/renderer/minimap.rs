@@ -1,37 +1,26 @@
-// use std::f32::consts::PI;
-
 use engine::{
     pixels::Color,
     rect::{Point, Rect},
-    render::WindowCanvas,
-    ComponentStorage, EngineError, EngineResult, EntityID, Float, Query,
+    EngineError, EngineResult, Float,
 };
 
 use crate::gameplay::components::{Angle, Maze, Position};
 
-pub fn render_minimap(
-    storage: &ComponentStorage,
-    player_id: EntityID,
-    canvas: &mut WindowCanvas,
-) -> EngineResult<()> {
-    render_walls(storage, canvas)?;
-    render_player_position(storage, player_id, canvas)
+use super::RendererContext;
+
+pub fn render_minimap(context: &mut RendererContext) -> EngineResult<()> {
+    render_walls(context)?;
+    render_player_position(context)
 }
 
 const MAP_SCALE: u32 = 6;
 
-fn render_walls(storage: &ComponentStorage, canvas: &mut WindowCanvas) -> EngineResult<()> {
-    let query_map = Query::new().with_component::<Maze>();
-    let Some(maze_comp) = storage
-        .fetch_entities(&query_map)
-        .first()
-        .and_then(|id| storage.get::<Maze>(*id))
-    else {
-        // ???
+fn render_walls(context: &mut RendererContext) -> EngineResult<()> {
+    let Some(maze_comp) = context.storage.get::<Maze>(context.maze_id) else {
         return Ok(());
     };
     let maze = &maze_comp.0;
-    canvas.set_draw_color(Color::WHITE);
+    context.canvas.set_draw_color(Color::WHITE);
     for (row, vector) in maze.iter().enumerate() {
         for (col, value) in vector.iter().enumerate() {
             if *value == 0 {
@@ -43,7 +32,8 @@ fn render_walls(storage: &ComponentStorage, canvas: &mut WindowCanvas) -> Engine
                 MAP_SCALE,
                 MAP_SCALE,
             );
-            canvas
+            context
+                .canvas
                 .fill_rect(rect)
                 .map_err(|e| EngineError::Sdl(e.to_string()))?
         }
@@ -51,11 +41,10 @@ fn render_walls(storage: &ComponentStorage, canvas: &mut WindowCanvas) -> Engine
     Ok(())
 }
 
-fn render_player_position(
-    storage: &ComponentStorage,
-    player_id: EntityID,
-    canvas: &mut WindowCanvas,
-) -> EngineResult<()> {
+fn render_player_position(context: &mut RendererContext) -> EngineResult<()> {
+    let storage = context.storage;
+    let canvas = &mut context.canvas;
+    let player_id = context.player_id;
     let Some(pos) = storage.get::<Position>(player_id) else {
         return Err(EngineError::ComponentNotFound("Position".to_string()));
     };

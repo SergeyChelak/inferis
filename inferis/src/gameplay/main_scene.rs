@@ -28,7 +28,7 @@ impl GameScene {
             Ok(storage)
         }?;
         let player_id = {
-            let position = Vec2f::new(300.0, 150.0);
+            let position = Vec2f::new(10.0, 10.0);
             let bundle = EntityBundle::new()
                 .add(PlayerTag)
                 .add(Health(100))
@@ -71,7 +71,13 @@ impl Scene for GameScene {
         )?;
         // TODO: update NPC position
         // TODO: find & resolve collisions
-        render_scene(&mut self.storage, engine, assets, self.player_id)?;
+        render_scene(
+            &mut self.storage,
+            engine,
+            assets,
+            self.player_id,
+            self.maze_id,
+        )?;
         self.controller.reset_relative();
         Ok(())
     }

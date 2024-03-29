@@ -1,6 +1,6 @@
 use sdl2::{keyboard::Keycode, render::WindowCanvas};
 
-use crate::{assets::AssetManager, EngineResult};
+use crate::{assets::AssetManager, EngineResult, WindowSize};
 
 pub mod game_world;
 
@@ -10,6 +10,7 @@ pub trait Engine {
     fn terminate(&mut self);
     fn canvas(&mut self) -> &mut WindowCanvas;
     fn delta_time(&self) -> f32;
+    fn window_size(&self) -> WindowSize;
 }
 
 pub trait Scene {
