@@ -1,8 +1,8 @@
 use engine::*;
 
 use super::{
-    components::*, controller::ControllerState, maze_generator::MazeGenerator, renderer::*,
-    transform::transform_position,
+    collider::run_collider, components::*, controller::ControllerState,
+    maze_generator::MazeGenerator, renderer::*, transform::transform_position,
 };
 
 pub struct GameScene {
@@ -70,7 +70,7 @@ impl Scene for GameScene {
             delta_time,
         )?;
         // TODO: update NPC position
-        // TODO: find & resolve collisions
+        run_collider(&mut self.storage, self.player_id, self.maze_id)?;
         render_scene(
             &mut self.storage,
             engine,
