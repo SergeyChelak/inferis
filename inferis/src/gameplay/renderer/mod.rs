@@ -7,13 +7,11 @@ use engine::{
     EngineResult, EntityID, Float, WindowSize,
 };
 use minimap::*;
+use raycaster::*;
 
 use super::components::Angle;
 
-// const FIELD_OF_VIEW: Float = PI / 3.0;
-// const MAX_DEPTH: usize = 50;
 // const TILE_SIZE: usize = 5;
-// const TOL: Float = 1e-5;
 
 pub struct RendererContext<'a> {
     storage: &'a ComponentStorage,
@@ -49,6 +47,7 @@ pub fn render_scene(
     context.canvas.set_draw_color(color);
     context.canvas.clear();
     render_sky(&mut context)?;
+    render_game_objects(&mut context)?;
     render_minimap(&mut context)?;
     context.canvas.present();
     Ok(())

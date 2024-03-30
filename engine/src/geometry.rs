@@ -20,5 +20,10 @@ pub type Float = f32;
 pub type Vec2f = Vec2<Float>;
 
 impl Vec2f {
-    //
+    pub fn floor(&self) -> Self {
+        Self {
+            x: self.x.floor(),
+            y: self.y.floor(),
+        }
+    }
 }

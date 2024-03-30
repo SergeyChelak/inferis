@@ -16,4 +16,5 @@ pub struct RotationSpeed(pub Float);
 
 pub struct Angle(pub Float);
 
-pub struct Maze(pub Vec<Vec<i32>>);
+pub type MazeData = Vec<Vec<i32>>;
+pub struct Maze(pub MazeData);
