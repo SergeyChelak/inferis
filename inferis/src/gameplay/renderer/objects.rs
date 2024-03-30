@@ -24,17 +24,23 @@ pub fn render_game_objects(context: &mut RendererContext) -> EngineResult<()> {
     let Some(component_maze) = context.storage.get::<Maze>(context.maze_id) else {
         return Err(EngineError::ComponentNotFound("Maze".to_string()));
     };
+    // dims
     let width = context.window_size.width;
+    let width_float = width as Float;
     let height = context.window_size.height as Float;
-    let screen_distance = width as Float * 0.5 * HALF_FIELD_OF_VIEW.tan();
-    let rays = width >> 1;
-    let scale = width as Float / rays as Float;
+    // ray
     let mut ray_angle = angle - HALF_FIELD_OF_VIEW;
-    let ray_angle_step = FIELD_OF_VIEW / rays as Float;
+    let rays_count = width >> 1;
+    let ray_angle_step = FIELD_OF_VIEW / rays_count as Float;
+    // distance
+    let scale = width_float / rays_count as Float;
+    let screen_distance = 0.5 * width_float * HALF_FIELD_OF_VIEW.tan();
+    let image_width = scale as u32;
+
     let check = |point: Vec2f| wall_texture(point, &component_maze.0);
-    for ray in 0..rays {
+    for ray in 0..rays_count {
         let result = ray_cast(pos, ray_angle, &check);
-        let Some(texture) = result.value.and_then(|key| context.assets.texture(&key)) else {
+        let Some(texture) = result.value.and_then(|key| context.assets.texture(key)) else {
             continue;
         };
         // get rid of fishbowl effect
@@ -44,15 +50,15 @@ pub fn render_game_objects(context: &mut RendererContext) -> EngineResult<()> {
         let x = (ray as Float * scale) as i32;
         let y = (0.5 * (height - projected_height)) as i32;
 
-        let dst = Rect::new(x, y, width, projected_height as u32);
+        let dst = Rect::new(x, y, image_width, projected_height as u32);
         let (w, h) = {
             let query = texture.query();
             (query.width, query.height)
         };
         let src = Rect::new(
-            (result.offset * (w as Float - width as Float)) as i32,
+            (result.offset * (w as Float - image_width as Float)) as i32,
             0,
-            width,
+            image_width,
             h,
         );
         context
@@ -65,7 +71,7 @@ pub fn render_game_objects(context: &mut RendererContext) -> EngineResult<()> {
     Ok(())
 }
 
-fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<String> {
+fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<&str> {
     let Vec2f { x, y } = point;
     if x < 0.0 || y < 0.0 {
         return None;
@@ -75,11 +81,11 @@ fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<String> {
         return None;
     };
     match value {
-        1 => Some("wall1".to_string()),
-        2 => Some("wall2".to_string()),
-        3 => Some("wall3".to_string()),
-        4 => Some("wall4".to_string()),
-        5 => Some("wall5".to_string()),
+        1 => Some("wall1"),
+        2 => Some("wall2"),
+        3 => Some("wall3"),
+        4 => Some("wall4"),
+        5 => Some("wall5"),
         _ => None,
     }
 }
