@@ -56,7 +56,7 @@ fn render_player_position(context: &mut RendererContext) -> EngineResult<()> {
         (pos.y * MAP_SCALE as Float) as i32,
     );
 
-    let size = MAP_SCALE - 2;
+    let size = MAP_SCALE - 1;
     let rect = Rect::new(x - (size >> 1) as i32, y - (size >> 1) as i32, size, size);
     canvas.set_draw_color(Color::RED);
     canvas
