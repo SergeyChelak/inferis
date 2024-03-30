@@ -24,19 +24,14 @@ pub fn render_game_objects(context: &mut RendererContext) -> EngineResult<()> {
     let Some(component_maze) = context.storage.get::<Maze>(context.maze_id) else {
         return Err(EngineError::ComponentNotFound("Maze".to_string()));
     };
-    let mut ray_cast_context = RayCastContext {
-        pos,
-        tile: pos.floor(),
-    };
 
     let maze = &component_maze.0;
     let check = |point: Vec2f| wall_texture(point, maze);
-
     let rays = context.window_size.width >> 1;
     let mut ray_angle = angle - HALF_FIELD_OF_VIEW;
     let ray_angle_step = FIELD_OF_VIEW / rays as Float;
     for _ in 0..rays {
-        ray_cast(&mut ray_cast_context, ray_angle, &check);
+        ray_cast(pos, ray_angle, &check);
         ray_angle += ray_angle_step;
     }
     Ok(())

@@ -3,11 +3,6 @@ use engine::{Float, Vec2f};
 const TOL: Float = 1e-5;
 const MAX_DEPTH: usize = 50;
 
-pub struct RayCastContext {
-    pub pos: Vec2f,
-    pub tile: Vec2f,
-}
-
 pub struct RayCastResult<T> {
     pub value: Option<T>,
     pub depth: Float,
@@ -15,14 +10,15 @@ pub struct RayCastResult<T> {
 }
 
 pub fn ray_cast<T>(
-    context: &mut RayCastContext,
+    pos: Vec2f,
     ray_angle: Float,
     check: &impl Fn(Vec2f) -> Option<T>,
 ) -> RayCastResult<T> {
     let sin = ray_angle.sin();
     let cos = ray_angle.cos();
-    let (h_val, h_depth, h_vec) = cast_horizontal(context, sin, cos, check);
-    let (v_val, v_depth, v_vec) = cast_vertical(context, sin, cos, check);
+    let tile = pos.floor();
+    let (h_val, h_depth, h_vec) = cast_horizontal(pos, tile, sin, cos, check);
+    let (v_val, v_depth, v_vec) = cast_vertical(pos, tile, sin, cos, check);
 
     if v_depth < h_depth {
         let vertical_y = v_vec.y % 1.0;
@@ -52,14 +48,12 @@ pub fn ray_cast<T>(
 }
 
 fn cast_horizontal<T>(
-    context: &mut RayCastContext,
+    pos: Vec2f,
+    tile: Vec2f,
     sin: Float,
     cos: Float,
     check: impl Fn(Vec2f) -> Option<T>,
 ) -> (Option<T>, Float, Vec2f) {
-    // horizontals
-    let tile = context.tile;
-    let pos = context.pos;
     let (mut y, dy) = if sin > 0.0 {
         (tile.y + 1.0, 1.0)
     } else {
@@ -83,14 +77,12 @@ fn cast_horizontal<T>(
 }
 
 fn cast_vertical<T>(
-    context: &mut RayCastContext,
+    pos: Vec2f,
+    tile: Vec2f,
     sin: Float,
     cos: Float,
     check: impl Fn(Vec2f) -> Option<T>,
 ) -> (Option<T>, Float, Vec2f) {
-    // verticals
-    let tile = context.tile;
-    let pos = context.pos;
     let (mut x, dx) = if cos > 0.0 {
         (tile.x + 1.0, 1.0)
     } else {
