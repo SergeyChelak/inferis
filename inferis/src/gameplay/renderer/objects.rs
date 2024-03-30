@@ -43,10 +43,6 @@ pub fn render_game_objects(context: &mut RendererContext) -> EngineResult<()> {
 
         let x = (ray as Float * scale) as i32;
         let y = (0.5 * (height - projected_height)) as i32;
-        // offset
-        // width = scale as u32
-        // projected_height
-        // texture id
 
         let dst = Rect::new(x, y, width, projected_height as u32);
         let (w, h) = {
@@ -68,32 +64,6 @@ pub fn render_game_objects(context: &mut RendererContext) -> EngineResult<()> {
     }
     Ok(())
 }
-
-/*
-    DrawCommand::Texture {
-        depth,
-        x,
-        y,
-        offset,
-        width,
-        projected_height,
-        texture_id,
-    } => {
-        let dst = Rect::new(x, y, width, projected_height);
-        let Some(texture) = textures.get(&texture_id) else {
-            // draw gray-scale bars in case of missing texture
-            let clr = (255.0 / (1.0 + depth.powi(5) * 0.00002)) as u8;
-            self.canvas.set_draw_color(Color::RGB(clr, clr, clr));
-            self.canvas.draw_rect(dst)?;
-            continue;
-        };
-        let query = texture.query();
-        let (w, h) = (query.width, query.height);
-        let src =
-            Rect::new((offset * (w as Float - width as Float)) as i32, 0, width, h);
-        self.canvas.copy(texture, src, dst)?;
-    }
-*/
 
 fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<String> {
     let Vec2f { x, y } = point;
