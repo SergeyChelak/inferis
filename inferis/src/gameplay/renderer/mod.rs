@@ -1,5 +1,5 @@
 mod minimap;
-mod raycaster;
+mod objects;
 use std::f32::consts::PI;
 
 use engine::{
@@ -7,7 +7,7 @@ use engine::{
     EngineResult, EntityID, Float, WindowSize,
 };
 use minimap::*;
-use raycaster::*;
+use objects::*;
 
 use super::components::Angle;
 
