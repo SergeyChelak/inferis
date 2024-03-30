@@ -28,11 +28,11 @@ impl GameScene {
             Ok(storage)
         }?;
         let player_id = {
-            let position = Vec2f::new(10.0, 10.0);
+            let position = Vec2f::new(5.0, 10.0);
             let bundle = EntityBundle::new()
                 .add(PlayerTag)
                 .add(Health(100))
-                .add(Velocity(50.0))
+                .add(Velocity(5.0))
                 .add(RotationSpeed(2.0))
                 .add(Position(position))
                 .add(PrevPosition(position))

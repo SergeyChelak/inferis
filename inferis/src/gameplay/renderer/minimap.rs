@@ -51,13 +51,13 @@ fn render_player_position(context: &mut RendererContext) -> EngineResult<()> {
     let Some(angle) = storage.get::<Angle>(player_id).and_then(|x| Some(x.0)) else {
         return Err(EngineError::ComponentNotFound("Angle".to_string()));
     };
-    let (x, y) = (pos.x as i32, pos.y as i32);
-    let rect = Rect::new(
-        x - (MAP_SCALE >> 1) as i32,
-        y - (MAP_SCALE >> 1) as i32,
-        MAP_SCALE,
-        MAP_SCALE,
+    let (x, y) = (
+        (pos.x * MAP_SCALE as Float) as i32,
+        (pos.y * MAP_SCALE as Float) as i32,
     );
+
+    let size = MAP_SCALE - 2;
+    let rect = Rect::new(x - (size >> 1) as i32, y - (size >> 1) as i32, size, size);
     canvas.set_draw_color(Color::RED);
     canvas
         .fill_rect(rect)

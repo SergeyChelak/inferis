@@ -40,7 +40,12 @@ pub fn render_game_objects(context: &mut RendererContext) -> EngineResult<()> {
     let check = |point: Vec2f| wall_texture(point, &component_maze.0);
     for ray in 0..rays_count {
         let result = ray_cast(pos, ray_angle, &check);
-        let Some(texture) = result.value.and_then(|key| context.assets.texture(key)) else {
+        let Some(texture) = result
+            .value
+            .or(Some("wall5"))
+            .and_then(|key| context.assets.texture(key))
+        else {
+            println!("No texture");
             continue;
         };
         // get rid of fishbowl effect
