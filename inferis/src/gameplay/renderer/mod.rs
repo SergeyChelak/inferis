@@ -11,8 +11,6 @@ use objects::*;
 
 use super::components::Angle;
 
-// const TILE_SIZE: usize = 5;
-
 pub struct RendererContext<'a> {
     storage: &'a ComponentStorage,
     canvas: &'a mut WindowCanvas,
