@@ -48,8 +48,48 @@ pub fn render_game_objects(context: &mut RendererContext) -> EngineResult<()> {
 fn ray_cast(context: &mut RayCastContext, ray_angle: Float) {
     let sin = ray_angle.sin();
     let cos = ray_angle.cos();
-    let _ = cast_horizontal(context, sin, cos);
-    let _ = cast_vertical(context, sin, cos);
+    let (h_depth, h_vec) = cast_horizontal(context, sin, cos);
+    let (v_depth, v_vec) = cast_vertical(context, sin, cos);
+
+    let (depth, offset) = if v_depth < h_depth {
+        let vertical_y = v_vec.y % 1.0;
+        let offset = if cos > 0.0 {
+            vertical_y
+        } else {
+            1.0 - vertical_y
+        };
+        (v_depth, offset)
+    } else {
+        let horizontal_x = h_vec.x % 1.0;
+        let offset = if sin > 0.0 {
+            1.0 - horizontal_x
+        } else {
+            horizontal_x
+        };
+        (h_depth, offset)
+    };
+}
+
+fn collider_check_walls(point: Vec2f, maze: &MazeData) -> Option<String> {
+    let Vec2f { x, y } = point;
+    if x < 0.0 || y < 0.0 {
+        return None;
+    }
+    let (col, row) = (point.x as usize, point.y as usize);
+    let Some(value) = maze.get(row).and_then(|x| x.get(col)) else {
+        return None;
+    };
+    match value {
+        1 => Some("wall1".to_string()),
+        2 => Some("wall2".to_string()),
+        3 => Some("wall3".to_string()),
+        4 => Some("wall4".to_string()),
+        5 => Some("wall5".to_string()),
+        _ => {
+            println!("[Renderer] unexpected maze value {value}");
+            None
+        }
+    }
 }
 
 fn cast_horizontal(context: &mut RayCastContext, sin: Float, cos: Float) -> (Float, Vec2f) {
