@@ -1,6 +1,6 @@
 use engine::{Float, Vec2f};
 
-const TOL: Float = 1e-5;
+pub const RAY_CASTER_TOL: Float = 1e-5;
 const MAX_DEPTH: usize = 50;
 
 pub struct RayCastResult<T> {
@@ -57,7 +57,7 @@ fn cast_horizontal<T>(
     let (mut y, dy) = if sin > 0.0 {
         (tile.y + 1.0, 1.0)
     } else {
-        (tile.y - TOL, -1.0)
+        (tile.y - RAY_CASTER_TOL, -1.0)
     };
     let mut depth = (y - pos.y) / sin;
     let mut x = pos.x + depth * cos;
@@ -86,7 +86,7 @@ fn cast_vertical<T>(
     let (mut x, dx) = if cos > 0.0 {
         (tile.x + 1.0, 1.0)
     } else {
-        (tile.x - TOL, -1.0)
+        (tile.x - RAY_CASTER_TOL, -1.0)
     };
     let mut depth = (x - pos.x) / cos;
     let mut y = pos.y + depth * sin;
