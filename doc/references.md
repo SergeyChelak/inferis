@@ -18,3 +18,7 @@ I found these resources very useful and inspiring during learning ECS architectu
 ## Improve your Rust skills by making an ECS library
 - [Youtube playlist](https://youtu.be/UKgz4T8o7PM?si=7nAACL6EALp2zHAN)
 - [Github](https://github.com/brooks-builds/improve_skills_by_building_ecs_library_in_rust)
+
+## Ray-Casting Tutorial For Game Development And Other Purposes by F. Permadi
+- [Site](https://permadi.com/1996/05/ray-casting-tutorial-table-of-contents/)
+- [Github](https://github.com/permadi-com/ray-cast)
