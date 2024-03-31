@@ -9,12 +9,12 @@ use std::{collections::HashMap, fs::read_to_string};
 
 use sdl2::{
     image::LoadTexture,
-    pixels::Color,
+    pixels::{Color, PixelFormatEnum},
     render::{Texture, TextureCreator},
     video::WindowContext,
 };
 
-use crate::{EngineError, EngineResult};
+use crate::{EngineError, EngineResult, Float};
 
 pub struct AssetManager<'a> {
     textures: HashMap<String, Texture<'a>>,
@@ -72,6 +72,22 @@ impl<'a> AssetManager<'a> {
                     };
                     colors.insert(name.to_string(), color);
                 }
+                "vertical_gradient" => {
+                    let Some(height) = tokens.get(3).and_then(|&val| val.parse::<u32>().ok())
+                    else {
+                        return Err(EngineError::ResourceParseError(format!(
+                            "Gradient height not found or invalid '{item}'"
+                        )));
+                    };
+                    let (from, to) = parse_gradient(value)?;
+                    let Ok(texture) = create_gradient_texture(texture_creator, from, to, height)
+                    else {
+                        return Err(EngineError::ResourceParseError(format!(
+                            "Failed to create texture gradient '{value}'"
+                        )));
+                    };
+                    textures.insert(name.to_string(), texture);
+                }
                 _ => {
                     println!("[Assets] skipped '{tag}'")
                 }
@@ -105,4 +121,58 @@ fn parse_color(value: &str) -> EngineResult<Color> {
     let b = comps[2];
     let a = *comps.get(3).unwrap_or(&0xff);
     Ok(Color::RGBA(r, g, b, a))
+}
+
+fn parse_gradient(value: &str) -> EngineResult<(Color, Color)> {
+    let Some((from, to)) = value.split_once('-').and_then(|(from, to)| {
+        let Ok(f) = parse_color(from) else {
+            return None;
+        };
+        let Ok(t) = parse_color(to) else {
+            return None;
+        };
+        Some((f, t))
+    }) else {
+        return Err(EngineError::ResourceParseError(format!(
+            "Failed to parse vertical gradient colors '{value}'"
+        )));
+    };
+    Ok((from, to))
+}
+
+fn create_gradient_texture<'a>(
+    texture_creator: &'a TextureCreator<WindowContext>,
+    from: Color,
+    to: Color,
+    height: u32,
+) -> EngineResult<Texture<'a>> {
+    let mut texture = texture_creator
+        .create_texture_streaming(PixelFormatEnum::RGB24, 1, height)
+        .map_err(|e| EngineError::Sdl(e.to_string()))?;
+
+    let height_float = height as Float;
+    let step = |begin: u8, end: u8| -> (Float, bool) {
+        ((begin.abs_diff(end)) as Float / height_float, begin < end)
+    };
+
+    let steps = [step(from.r, to.r), step(from.g, to.g), step(from.b, to.b)];
+    let next_color = |initial: u8, step: u32, step_size: Float, is_natural: bool| -> u8 {
+        let val = (step_size * step as Float) as u8;
+        if is_natural {
+            initial.saturating_add(val)
+        } else {
+            initial.saturating_sub(val)
+        }
+    };
+    texture
+        .with_lock(None, |buffer: &mut [u8], pitch: usize| {
+            for step in 0..height {
+                let pos = step as usize * pitch;
+                buffer[pos] = next_color(from.r, step, steps[0].0, steps[0].1);
+                buffer[pos + 1] = next_color(from.g, step, steps[1].0, steps[1].1);
+                buffer[pos + 2] = next_color(from.b, step, steps[2].0, steps[2].1);
+            }
+        })
+        .map_err(|e| EngineError::Sdl(e.to_string()))?;
+    Ok(texture)
 }
