@@ -1,13 +1,14 @@
 # Inferis
 
 ## About
-- Inferis is a latin word meaning *hell*. I found that Latin is a good source to obtain an unique name for the Wolfenstein/Doom-like first person shooter game.<br>
-- Game architecture is based on ECS approach.<br>
-- For video rendering used ray-casting technique like in original Wolfenstein/Doom by id Software.
+- 2.5D First Person Shooter<br>
+- Game architecture is based on ECS approach<br>
+- For video rendering used ray-casting technique
 
 ## Contents
 - [Prerequisites](doc/prerequisites.md)
 - [ECS tutorial & resources](doc/references.md)
 
 ## Current State
-Early development stage
+- March 2024 designed MVP of simple ECS
+- April 2024 rendering walls, sky
