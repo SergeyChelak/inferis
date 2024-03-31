@@ -3,8 +3,8 @@ mod objects;
 use std::f32::consts::PI;
 
 use engine::{
-    rect::Rect, render::WindowCanvas, AssetManager, ComponentStorage, Engine, EngineError,
-    EngineResult, EntityID, Float, WindowSize,
+    pixels::Color, rect::Rect, render::WindowCanvas, AssetManager, ComponentStorage, Engine,
+    EngineError, EngineResult, EntityID, Float, WindowSize,
 };
 use minimap::*;
 use objects::*;
@@ -39,15 +39,47 @@ pub fn render_scene(
             maze_id,
         }
     };
-    let Some(&color) = assets.color("floor") else {
-        return Err(EngineError::ResourceNotFound("floor".to_string()));
-    };
-    context.canvas.set_draw_color(color);
+    // let Some(&color) = assets.color("floor") else {
+    //     return Err(EngineError::ResourceNotFound("floor".to_string()));
+    // };
+    context.canvas.set_draw_color(Color::BLACK);
     context.canvas.clear();
     render_sky(&mut context)?;
+    render_floor(&mut context)?;
     render_game_objects(&mut context)?;
     render_minimap(&mut context)?;
     context.canvas.present();
+    Ok(())
+}
+
+fn render_floor(context: &mut RendererContext) -> EngineResult<()> {
+    let window_size = context.window_size;
+    let half_height = window_size.height >> 1;
+    let dst = Rect::new(0, half_height as i32, window_size.width, half_height);
+
+    // solid floor
+    // let Some(&color) = context.assets.color("floor") else {
+    //     return Err(EngineError::ResourceNotFound("floor".to_string()));
+    // };
+    // context.canvas.set_draw_color(color);
+    // context
+    //     .canvas
+    //     .fill_rect(dst)
+    //     .map_err(|e| EngineError::Sdl(e.to_string()))?;
+
+    // gradient floor
+    let Some(texture) = context.assets.texture("floor_grad") else {
+        return Err(EngineError::TextureNotFound("floor_grad".to_string()));
+    };
+    let src = {
+        let query = texture.query();
+        let (w, h) = (query.width, query.height);
+        Rect::new(0, 0, w, h)
+    };
+    context
+        .canvas
+        .copy(texture, src, dst)
+        .map_err(|e| EngineError::Sdl(e.to_string()))?;
     Ok(())
 }
 

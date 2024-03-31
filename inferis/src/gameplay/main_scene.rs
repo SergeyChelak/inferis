@@ -32,8 +32,8 @@ impl GameScene {
             let bundle = EntityBundle::new()
                 .add(PlayerTag)
                 .add(Health(100))
-                .add(Velocity(5.0))
-                .add(RotationSpeed(2.0))
+                .add(Velocity(7.0))
+                .add(RotationSpeed(2.5))
                 .add(Position(position))
                 .add(PrevPosition(position))
                 .add(Angle(0.0));
