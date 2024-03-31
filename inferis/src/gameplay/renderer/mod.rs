@@ -39,9 +39,6 @@ pub fn render_scene(
             maze_id,
         }
     };
-    // let Some(&color) = assets.color("floor") else {
-    //     return Err(EngineError::ResourceNotFound("floor".to_string()));
-    // };
     context.canvas.set_draw_color(Color::BLACK);
     context.canvas.clear();
     render_sky(&mut context)?;
