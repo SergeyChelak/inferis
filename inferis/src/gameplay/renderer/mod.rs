@@ -1,13 +1,13 @@
 mod background;
 mod minimap;
 mod objects;
-use background::*;
+use background::render_background;
 
 use engine::{
     pixels::Color, render::WindowCanvas, AssetManager, ComponentStorage, Engine, EngineResult,
     EntityID, WindowSize,
 };
-use minimap::*;
+use minimap::render_minimap;
 use objects::*;
 
 pub struct RendererContext<'a> {
