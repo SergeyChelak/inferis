@@ -39,6 +39,9 @@ impl<'a> AssetManager<'a> {
         let mut textures: HashMap<String, Texture<'a>> = HashMap::default();
         let mut colors: HashMap<String, Color> = HashMap::default();
         for item in items {
+            if item.starts_with('#') {
+                continue;
+            }
             let tokens = item.split_whitespace().collect::<Vec<&str>>();
             let Some(&tag) = tokens.get(0) else {
                 return Err(EngineError::ResourceParseError(format!(
