@@ -22,10 +22,14 @@ fn render_sprites(context: &mut RendererContext) -> EngineResult<()> {
     let Some(player_pos) = storage.get::<Position>(player_id).and_then(|x| Some(x.0)) else {
         return Err(EngineError::ComponentNotFound("Position".to_string()));
     };
-    let Some(player_angle) = storage.get::<Angle>(player_id).and_then(|x| Some(x.0)) else {
+    // player angle must positive
+    let Some(player_angle) = storage
+        .get::<Angle>(player_id)
+        .and_then(|x| Some(x.0))
+        .and_then(|x| Some(if x < 0.0 { x + 2.0 * PI } else { x }))
+    else {
         return Err(EngineError::ComponentNotFound("Angle".to_string()));
     };
-
     let rays_count = context.rays_count();
     let ray_angle_step = context.ray_angle_step();
     let scale = context.scale();
@@ -43,24 +47,19 @@ fn render_sprites(context: &mut RendererContext) -> EngineResult<()> {
         };
 
         let vector = sprite_pos - player_pos;
-
         let delta = {
             let Vec2f { x: dx, y: dy } = vector;
             let theta = dy.atan2(dx);
             let value = theta - player_angle;
-            let tmp = if dx > 0.0 && player_angle > PI || dx < 0.0 && dy < 0.0 {
+            if dx > 0.0 && player_angle > PI || dx < 0.0 && dy < 0.0 {
                 value + 2.0 * PI
             } else {
                 value
-            };
-            println!("dx = {dx}, dy = {dy}, val = {value}, updated pi = {tmp}");
-            tmp
+            }
         };
 
         let delta_rays = delta / ray_angle_step;
-
         let x = ((rays_count >> 1) as Float + delta_rays) * scale;
-
         let norm_distance = vector.hypotenuse() * delta.cos();
         let Size {
             width: w,
@@ -69,9 +68,7 @@ fn render_sprites(context: &mut RendererContext) -> EngineResult<()> {
         // if !(-half_width < x && x < (w + half_width) && norm_dist > 0.5) {
         //     return Ok(());
         // }
-
         let ratio = w as Float / h as Float;
-
         // ????
         let sprite_scale = 0.7;
         let proj = context.screen_distance() / norm_distance * sprite_scale;
