@@ -1,14 +1,19 @@
 mod background;
 mod minimap;
 mod objects;
+use std::f32::consts::PI;
+
 use background::render_background;
 
 use engine::{
     pixels::Color, render::WindowCanvas, AssetManager, ComponentStorage, Engine, EngineResult,
-    EntityID, WindowSize,
+    EntityID, Float, WindowSize,
 };
 use minimap::render_minimap;
 use objects::*;
+
+pub const FIELD_OF_VIEW: Float = PI / 3.0;
+pub const HALF_FIELD_OF_VIEW: Float = FIELD_OF_VIEW * 0.5;
 
 pub struct RendererContext<'a> {
     storage: &'a ComponentStorage,
@@ -23,6 +28,20 @@ impl<'a> RendererContext<'a> {
     pub fn rays_count(&self) -> u32 {
         let width = self.window_size.width;
         width >> 1
+    }
+
+    pub fn ray_angle_step(&self) -> Float {
+        FIELD_OF_VIEW / self.rays_count() as Float
+    }
+
+    pub fn scale(&self) -> Float {
+        let width = self.window_size.width as Float;
+        width / self.rays_count() as Float
+    }
+
+    pub fn screen_distance(&self) -> Float {
+        let width = (self.window_size.width >> 1) as Float;
+        width / HALF_FIELD_OF_VIEW.tan()
     }
 }
 

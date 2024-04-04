@@ -30,7 +30,7 @@ impl Vec2f {
         self.x * self.x + self.y * self.y
     }
 
-    pub fn dist(&self) -> Float {
+    pub fn hypotenuse(&self) -> Float {
         self.square_dist().sqrt()
     }
 }
