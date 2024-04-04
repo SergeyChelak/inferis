@@ -16,6 +16,7 @@ impl GameScene {
     pub fn new() -> EngineResult<Self> {
         let mut storage = {
             let mut storage = ComponentStorage::new();
+            storage.register_component::<SpriteTag>()?;
             storage.register_component::<PlayerTag>()?;
             storage.register_component::<NpcTag>()?;
             storage.register_component::<Health>()?;
@@ -25,6 +26,7 @@ impl GameScene {
             storage.register_component::<Maze>()?;
             storage.register_component::<Angle>()?;
             storage.register_component::<PrevPosition>()?;
+            storage.register_component::<TextureID>()?;
             Ok(storage)
         }?;
         let player_id = {
@@ -45,6 +47,13 @@ impl GameScene {
             let bundle = EntityBundle::new().add(maze);
             storage.add_from_bundle(&bundle)
         };
+        {
+            let bundle = EntityBundle::new()
+                .add(TextureID("candelabra".to_string()))
+                .add(Position(Vec2f::new(6.0, 6.0)))
+                .add(SpriteTag);
+            storage.add_from_bundle(&bundle);
+        }
         Ok(Self {
             storage,
             controller: ControllerState::default(),

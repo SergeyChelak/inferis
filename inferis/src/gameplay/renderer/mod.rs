@@ -19,6 +19,13 @@ pub struct RendererContext<'a> {
     maze_id: EntityID,
 }
 
+impl<'a> RendererContext<'a> {
+    pub fn rays_count(&self) -> u32 {
+        let width = self.window_size.width;
+        width >> 1
+    }
+}
+
 pub fn render_scene(
     storage: &ComponentStorage,
     engine: &mut dyn Engine,

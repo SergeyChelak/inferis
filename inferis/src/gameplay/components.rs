@@ -18,3 +18,8 @@ pub struct Angle(pub Float);
 
 pub type MazeData = Vec<Vec<i32>>;
 pub struct Maze(pub MazeData);
+
+// texture id
+pub struct TextureID(pub String);
+
+pub struct SpriteTag;
