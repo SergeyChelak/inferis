@@ -26,10 +26,6 @@ impl Vec2f {
         }
     }
 
-    pub fn atan2(&self) -> Float {
-        self.y.atan2(self.x)
-    }
-
     pub fn square_dist(&self) -> Float {
         self.x * self.x + self.y * self.y
     }
