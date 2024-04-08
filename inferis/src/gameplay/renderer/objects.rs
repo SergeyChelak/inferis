@@ -83,9 +83,12 @@ fn render_sprites<'a>(
             height: h,
         } = texture_size(texture);
         // TODO: skip rendering if sprite is out of screen
+        if norm_distance <= 0.01 {
+            return Ok(());
+        }
         let ratio = w as Float / h as Float;
         // ????
-        let sprite_scale = 0.7;
+        let sprite_scale = 1.0; //0.7;
         let proj = context.screen_distance() / norm_distance * sprite_scale;
         let (proj_width, proj_height) = (proj * ratio, proj);
 
