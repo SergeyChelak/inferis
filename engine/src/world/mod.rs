@@ -3,7 +3,7 @@ use sdl2::{
     render::{Texture, WindowCanvas},
 };
 
-use crate::{assets::AssetManager, EngineResult, Size, WindowSize};
+use crate::{assets::AssetManager, EngineResult, SizeU32};
 
 pub mod game_world;
 
@@ -13,7 +13,7 @@ pub trait Engine {
     fn terminate(&mut self);
     fn canvas(&mut self) -> &mut WindowCanvas;
     fn delta_time(&self) -> f32;
-    fn window_size(&self) -> WindowSize;
+    fn window_size(&self) -> SizeU32;
 }
 
 pub trait Scene {
@@ -39,9 +39,9 @@ pub enum InputEvent {
     },
 }
 
-pub fn texture_size(texture: &Texture) -> Size<u32> {
+pub fn texture_size(texture: &Texture) -> SizeU32 {
     let query = texture.query();
-    Size {
+    SizeU32 {
         width: query.width,
         height: query.height,
     }

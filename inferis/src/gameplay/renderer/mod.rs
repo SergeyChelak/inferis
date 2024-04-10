@@ -7,7 +7,7 @@ use background::render_background;
 
 use engine::{
     pixels::Color, render::WindowCanvas, AssetManager, ComponentStorage, Engine, EngineResult,
-    EntityID, Float, WindowSize,
+    EntityID, Float, SizeU32,
 };
 use minimap::render_minimap;
 use objects::*;
@@ -19,7 +19,7 @@ pub struct RendererContext<'a> {
     storage: &'a ComponentStorage,
     canvas: &'a mut WindowCanvas,
     assets: &'a AssetManager<'a>,
-    window_size: WindowSize,
+    window_size: SizeU32,
     player_id: EntityID,
     maze_id: EntityID,
 }

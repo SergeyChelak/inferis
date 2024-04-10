@@ -7,13 +7,14 @@ use sdl2::{
     video::WindowContext,
 };
 
-use crate::{EngineError, EngineResult, Float};
+use crate::{texture_size, EngineError, EngineResult, Float, SizeU32};
 
 pub struct Animation {
     pub duration: usize, // duration in frames
     pub rows: usize,
     pub cols: usize,
     pub texture_id: String,
+    pub size: SizeU32,
 }
 
 pub struct AssetManager<'a> {
@@ -112,19 +113,21 @@ impl<'a> AssetManager<'a> {
                             "Failed to parse animation duration in '{value}'"
                         )));
                     };
-                    let animation = Animation {
-                        rows,
-                        cols,
-                        duration,
-                        texture_id: name.to_string(),
-                    };
-                    animations.insert(name.to_string(), animation);
                     let Ok(texture) = texture_creator.load_texture(value) else {
                         return Err(EngineError::ResourceParseError(format!(
                             "Failed to load texture at '{value}'"
                         )));
                     };
+                    let size = texture_size(&texture);
                     textures.insert(name.to_string(), texture);
+                    let animation = Animation {
+                        rows,
+                        cols,
+                        duration,
+                        texture_id: name.to_string(),
+                        size,
+                    };
+                    animations.insert(name.to_string(), animation);
                 }
                 _ => {
                     println!("[Assets] skipped '{tag}'")

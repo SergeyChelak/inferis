@@ -10,7 +10,7 @@ fn main() -> EngineResult<()> {
         asset_path: "assets/asset_registry.txt".to_string(),
         window: WindowSettings {
             title: WINDOW_TITLE.to_owned(),
-            size: WindowSize {
+            size: SizeU32 {
                 width: 1600,
                 height: 900,
             },

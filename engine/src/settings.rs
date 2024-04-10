@@ -1,6 +1,4 @@
-use crate::geometry::Size;
-
-pub type WindowSize = Size<u32>;
+use crate::geometry::SizeU32;
 
 pub struct EngineSettings {
     pub window: WindowSettings,
@@ -8,5 +6,5 @@ pub struct EngineSettings {
 }
 pub struct WindowSettings {
     pub title: String,
-    pub size: WindowSize,
+    pub size: SizeU32,
 }

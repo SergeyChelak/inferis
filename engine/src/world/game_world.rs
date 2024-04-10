@@ -9,7 +9,7 @@ use std::{
 use crate::{
     assets::AssetManager,
     settings::{EngineSettings, WindowSettings},
-    EngineError, EngineResult, WindowSize,
+    EngineError, EngineResult, SizeU32,
 };
 
 use super::{Engine, InputEvent, Scene, SceneID};
@@ -161,7 +161,7 @@ impl Engine for GameWorld {
         self.time.elapsed().as_secs_f32()
     }
 
-    fn window_size(&self) -> WindowSize {
+    fn window_size(&self) -> SizeU32 {
         self.settings.window.size
     }
 }
