@@ -27,13 +27,6 @@ pub struct RendererContext<'a> {
     maze_id: EntityID,
 }
 
-pub struct TextureRendererTask<'a> {
-    texture: &'a Texture<'a>,
-    source: Rect,
-    destination: Rect,
-    depth: Float,
-}
-
 impl<'a> RendererContext<'a> {
     pub fn rays_count(&self) -> u32 {
         let width = self.window_size.width;
@@ -53,6 +46,13 @@ impl<'a> RendererContext<'a> {
         let width = (self.window_size.width >> 1) as Float;
         width / HALF_FIELD_OF_VIEW.tan()
     }
+}
+
+pub struct TextureRendererTask<'a> {
+    texture: &'a Texture<'a>,
+    source: Rect,
+    destination: Rect,
+    depth: Float,
 }
 
 pub fn render_scene(
