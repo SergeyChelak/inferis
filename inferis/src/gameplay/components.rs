@@ -24,3 +24,5 @@ pub struct TextureID(pub String);
 pub struct SpriteTag;
 
 pub struct ScaleRatio(pub Float);
+
+pub struct HeightShift(pub Float);

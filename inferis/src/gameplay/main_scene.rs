@@ -28,6 +28,7 @@ impl GameScene {
             storage.register_component::<PrevPosition>()?;
             storage.register_component::<TextureID>()?;
             storage.register_component::<ScaleRatio>()?;
+            storage.register_component::<HeightShift>()?;
             Ok(storage)
         }?;
         let player_id = {
@@ -53,6 +54,7 @@ impl GameScene {
                 .add(TextureID("candelabra".to_string()))
                 .add(Position(Vec2f::new(6.0, 6.0)))
                 .add(ScaleRatio(0.7))
+                .add(HeightShift(0.27))
                 .add(SpriteTag);
             storage.add_from_bundle(&bundle);
         }

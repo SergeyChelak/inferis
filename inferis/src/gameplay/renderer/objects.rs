@@ -5,7 +5,7 @@ use engine::{
 };
 
 use crate::gameplay::{
-    components::{Angle, Maze, MazeData, Position, ScaleRatio, SpriteTag, TextureID},
+    components::{Angle, HeightShift, Maze, MazeData, Position, ScaleRatio, SpriteTag, TextureID},
     ray_caster::*,
 };
 
@@ -69,6 +69,10 @@ fn render_sprites<'a>(
             .get::<ScaleRatio>(entity_id)
             .and_then(|x| Some(x.0))
             .unwrap_or(1.0);
+        let sprite_height_shift = storage
+            .get::<HeightShift>(entity_id)
+            .and_then(|x| Some(x.0))
+            .unwrap_or(1.0);
         let vector = sprite_pos - player_pos;
         let delta = {
             let Vec2f { x: dx, y: dy } = vector;
@@ -95,8 +99,9 @@ fn render_sprites<'a>(
         let proj = screen_distance / norm_distance * sprite_scale;
         let (proj_width, proj_height) = (proj * ratio, proj);
         let sprite_half_width = 0.5 * proj_width;
+        let height_shift = proj_height * sprite_height_shift;
         let sx = x - sprite_half_width;
-        let sy = (context.window_size.height as Float - proj_height) * 0.5;
+        let sy = (context.window_size.height as Float - proj_height) * 0.5 + height_shift;
         let task = TextureRendererTask {
             texture,
             source: Rect::new(0, 0, w as u32, h),
