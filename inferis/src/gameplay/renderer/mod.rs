@@ -1,13 +1,16 @@
 mod background;
 mod minimap;
 mod objects;
+mod sprites;
 use std::f32::consts::PI;
 
 use background::render_background;
 
 use engine::{
-    pixels::Color, render::WindowCanvas, AssetManager, ComponentStorage, Engine, EngineResult,
-    EntityID, Float, SizeU32,
+    pixels::Color,
+    rect::Rect,
+    render::{Texture, WindowCanvas},
+    AssetManager, ComponentStorage, Engine, EngineResult, EntityID, Float, SizeU32,
 };
 use minimap::render_minimap;
 use objects::*;
@@ -22,6 +25,13 @@ pub struct RendererContext<'a> {
     window_size: SizeU32,
     player_id: EntityID,
     maze_id: EntityID,
+}
+
+pub struct TextureRendererTask<'a> {
+    texture: &'a Texture<'a>,
+    source: Rect,
+    destination: Rect,
+    depth: Float,
 }
 
 impl<'a> RendererContext<'a> {
