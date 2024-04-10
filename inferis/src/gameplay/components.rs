@@ -23,4 +23,4 @@ pub struct TextureID(pub String);
 
 pub struct SpriteTag;
 
-pub struct AnimationID(pub String);
+pub struct ScaleRatio(pub Float);

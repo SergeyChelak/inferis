@@ -5,7 +5,7 @@ use engine::{
 };
 
 use crate::gameplay::{
-    components::{Angle, Maze, MazeData, Position, SpriteTag, TextureID},
+    components::{Angle, Maze, MazeData, Position, ScaleRatio, SpriteTag, TextureID},
     ray_caster::*,
 };
 
@@ -52,6 +52,7 @@ fn render_sprites<'a>(
     let rays_count = context.rays_count();
     let ray_angle_step = context.ray_angle_step();
     let scale = context.scale();
+    let screen_distance = context.screen_distance();
 
     let query = Query::new().with_component::<SpriteTag>();
     for entity_id in storage.fetch_entities(&query) {
@@ -64,7 +65,10 @@ fn render_sprites<'a>(
         let Some(sprite_pos) = storage.get::<Position>(entity_id).and_then(|x| Some(x.0)) else {
             return Err(EngineError::ComponentNotFound("Position".to_string()));
         };
-
+        let sprite_scale = storage
+            .get::<ScaleRatio>(entity_id)
+            .and_then(|x| Some(x.0))
+            .unwrap_or(1.0);
         let vector = sprite_pos - player_pos;
         let delta = {
             let Vec2f { x: dx, y: dy } = vector;
@@ -76,7 +80,6 @@ fn render_sprites<'a>(
                 value
             }
         };
-
         let delta_rays = delta / ray_angle_step;
         let x = ((rays_count >> 1) as Float + delta_rays) * scale;
         let norm_distance = vector.hypotenuse() * delta.cos();
@@ -89,11 +92,8 @@ fn render_sprites<'a>(
             return Ok(());
         }
         let ratio = w as Float / h as Float;
-        // ????
-        let sprite_scale = 1.0; //0.7;
-        let proj = context.screen_distance() / norm_distance * sprite_scale;
+        let proj = screen_distance / norm_distance * sprite_scale;
         let (proj_width, proj_height) = (proj * ratio, proj);
-
         let sprite_half_width = 0.5 * proj_width;
         let sx = x - sprite_half_width;
         let sy = (context.window_size.height as Float - proj_height) * 0.5;

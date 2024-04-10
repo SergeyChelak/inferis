@@ -27,6 +27,7 @@ impl GameScene {
             storage.register_component::<Angle>()?;
             storage.register_component::<PrevPosition>()?;
             storage.register_component::<TextureID>()?;
+            storage.register_component::<ScaleRatio>()?;
             Ok(storage)
         }?;
         let player_id = {
@@ -51,6 +52,7 @@ impl GameScene {
             let bundle = EntityBundle::new()
                 .add(TextureID("candelabra".to_string()))
                 .add(Position(Vec2f::new(6.0, 6.0)))
+                .add(ScaleRatio(0.7))
                 .add(SpriteTag);
             storage.add_from_bundle(&bundle);
         }
