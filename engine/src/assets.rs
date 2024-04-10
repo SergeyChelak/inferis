@@ -1,10 +1,3 @@
-// allowed types
-// 1. textures
-// 2. animations
-// 3. sounds
-// 4. fonts
-// 5. colors
-
 use std::{collections::HashMap, fs::read_to_string};
 
 use sdl2::{
@@ -16,9 +9,17 @@ use sdl2::{
 
 use crate::{EngineError, EngineResult, Float};
 
+pub struct Animation {
+    pub duration: usize, // duration in frames
+    pub rows: usize,
+    pub cols: usize,
+    pub texture_id: String,
+}
+
 pub struct AssetManager<'a> {
     textures: HashMap<String, Texture<'a>>,
     colors: HashMap<String, Color>,
+    animations: HashMap<String, Animation>,
 }
 
 impl<'a> AssetManager<'a> {
@@ -38,6 +39,7 @@ impl<'a> AssetManager<'a> {
             .collect::<Vec<String>>();
         let mut textures: HashMap<String, Texture<'a>> = HashMap::default();
         let mut colors: HashMap<String, Color> = HashMap::default();
+        let mut animations: HashMap<String, Animation> = HashMap::default();
         for item in items {
             if item.starts_with('#') {
                 continue;
@@ -91,12 +93,49 @@ impl<'a> AssetManager<'a> {
                     };
                     textures.insert(name.to_string(), texture);
                 }
+                "animation" => {
+                    let Some(rows) = tokens.get(3).and_then(|&val| val.parse::<usize>().ok())
+                    else {
+                        return Err(EngineError::ResourceParseError(format!(
+                            "Failed to parse rows count in '{value}'"
+                        )));
+                    };
+                    let Some(cols) = tokens.get(4).and_then(|&val| val.parse::<usize>().ok())
+                    else {
+                        return Err(EngineError::ResourceParseError(format!(
+                            "Failed to parse cols count in '{value}'"
+                        )));
+                    };
+                    let Some(duration) = tokens.get(5).and_then(|&val| val.parse::<usize>().ok())
+                    else {
+                        return Err(EngineError::ResourceParseError(format!(
+                            "Failed to parse animation duration in '{value}'"
+                        )));
+                    };
+                    let animation = Animation {
+                        rows,
+                        cols,
+                        duration,
+                        texture_id: name.to_string(),
+                    };
+                    animations.insert(name.to_string(), animation);
+                    let Ok(texture) = texture_creator.load_texture(value) else {
+                        return Err(EngineError::ResourceParseError(format!(
+                            "Failed to load texture at '{value}'"
+                        )));
+                    };
+                    textures.insert(name.to_string(), texture);
+                }
                 _ => {
                     println!("[Assets] skipped '{tag}'")
                 }
             }
         }
-        Ok(Self { textures, colors })
+        Ok(Self {
+            textures,
+            colors,
+            animations,
+        })
     }
 
     pub fn texture(&self, key: &str) -> Option<&Texture> {
@@ -105,6 +144,10 @@ impl<'a> AssetManager<'a> {
 
     pub fn color(&self, key: &str) -> Option<&Color> {
         self.colors.get(key)
+    }
+
+    pub fn animation(&self, key: &str) -> Option<&Animation> {
+        self.animations.get(key)
     }
 }
 

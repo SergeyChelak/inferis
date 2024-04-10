@@ -1,6 +1,9 @@
-use sdl2::{keyboard::Keycode, render::WindowCanvas};
+use sdl2::{
+    keyboard::Keycode,
+    render::{Texture, WindowCanvas},
+};
 
-use crate::{assets::AssetManager, EngineResult, WindowSize};
+use crate::{assets::AssetManager, EngineResult, Size, WindowSize};
 
 pub mod game_world;
 
@@ -34,4 +37,12 @@ pub enum InputEvent {
         x_rel: i32,
         y_rel: i32,
     },
+}
+
+pub fn texture_size(texture: &Texture) -> Size<u32> {
+    let query = texture.query();
+    Size {
+        width: query.width,
+        height: query.height,
+    }
 }

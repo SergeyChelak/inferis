@@ -1,6 +1,8 @@
 use std::{cmp::Ordering, f32::consts::PI};
 
-use engine::{rect::Rect, render::Texture, EngineError, EngineResult, Float, Query, Size, Vec2f};
+use engine::{
+    rect::Rect, render::Texture, texture_size, EngineError, EngineResult, Float, Query, Size, Vec2f,
+};
 
 use crate::gameplay::{
     components::{Angle, Maze, MazeData, Position, SpriteTag, TextureID},
@@ -185,13 +187,5 @@ fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<&str> {
         4 => Some("wall4"),
         5 => Some("wall5"),
         _ => None,
-    }
-}
-
-fn texture_size(texture: &Texture) -> Size<u32> {
-    let query = texture.query();
-    Size {
-        width: query.width,
-        height: query.height,
     }
 }
