@@ -26,10 +26,10 @@ fn render_walls<'a>(
 ) -> EngineResult<()> {
     let storage = context.storage;
     let player_id = context.player_id;
-    let Some(pos) = storage.get::<Position>(player_id).and_then(|x| Some(x.0)) else {
+    let Some(pos) = storage.get::<Position>(player_id).map(|x| x.0) else {
         return Err(EngineError::ComponentNotFound("Position".to_string()));
     };
-    let Some(angle) = storage.get::<Angle>(player_id).and_then(|x| Some(x.0)) else {
+    let Some(angle) = storage.get::<Angle>(player_id).map(|x| x.0) else {
         return Err(EngineError::ComponentNotFound("Angle".to_string()));
     };
     let Some(component_maze) = context.storage.get::<Maze>(context.maze_id) else {
@@ -89,9 +89,7 @@ fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<&str> {
         return None;
     }
     let (col, row) = (point.x as usize, point.y as usize);
-    let Some(value) = maze.get(row).and_then(|x| x.get(col)) else {
-        return None;
-    };
+    let value = maze.get(row).and_then(|x| x.get(col))?;
     match value {
         1 => Some("wall1"),
         2 => Some("wall2"),

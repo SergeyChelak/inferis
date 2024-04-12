@@ -48,11 +48,7 @@ fn render_sky(context: &mut RendererContext) -> EngineResult<()> {
     let Some(texture) = context.assets.texture("sky") else {
         return Err(EngineError::TextureNotFound("sky".to_string()));
     };
-    let Some(angle) = context
-        .storage
-        .get::<Angle>(context.player_id)
-        .and_then(|x| Some(x.0))
-    else {
+    let Some(angle) = context.storage.get::<Angle>(context.player_id).map(|x| x.0) else {
         return Err(EngineError::ComponentNotFound("Angle".to_string()));
     };
     let window_size = context.window_size;

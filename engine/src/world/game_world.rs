@@ -138,7 +138,7 @@ impl GameWorld {
     }
 
     fn current_scene_ref(&self) -> Option<Rc<RefCell<dyn Scene>>> {
-        self.scenes.get(&self.current_scene).map(|x| x.clone())
+        self.scenes.get(&self.current_scene).cloned()
     }
 }
 

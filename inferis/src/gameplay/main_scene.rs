@@ -68,13 +68,7 @@ impl Scene for GameScene {
         )?;
         // TODO: update NPC position
         run_collider(&mut self.storage, self.player_id, self.maze_id)?;
-        render_scene(
-            &mut self.storage,
-            engine,
-            assets,
-            self.player_id,
-            self.maze_id,
-        )?;
+        render_scene(&self.storage, engine, assets, self.player_id, self.maze_id)?;
         self.controller.reset_relative();
         Ok(())
     }

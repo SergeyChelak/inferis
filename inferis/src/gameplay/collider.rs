@@ -21,13 +21,10 @@ fn check_wall_collisions(
     let Some(component_maze) = storage.get::<Maze>(maze_id) else {
         return Err(EngineError::ComponentNotFound("Maze".to_string()));
     };
-    let Some(pos) = storage.get::<Position>(player_id).and_then(|x| Some(x.0)) else {
+    let Some(pos) = storage.get::<Position>(player_id).map(|x| x.0) else {
         return Err(EngineError::ComponentNotFound("Position".to_string()));
     };
-    let Some(prev_pos) = storage
-        .get::<PrevPosition>(player_id)
-        .and_then(|x| Some(x.0))
-    else {
+    let Some(prev_pos) = storage.get::<PrevPosition>(player_id).map(|x| x.0) else {
         return Err(EngineError::ComponentNotFound("PrevPosition".to_string()));
     };
     let maze = &component_maze.0;

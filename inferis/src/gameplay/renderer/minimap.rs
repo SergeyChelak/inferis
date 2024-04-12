@@ -45,10 +45,10 @@ fn render_player_position(context: &mut RendererContext) -> EngineResult<()> {
     let storage = context.storage;
     let canvas = &mut context.canvas;
     let player_id = context.player_id;
-    let Some(pos) = storage.get::<Position>(player_id).and_then(|x| Some(x.0)) else {
+    let Some(pos) = storage.get::<Position>(player_id).map(|x| x.0) else {
         return Err(EngineError::ComponentNotFound("Position".to_string()));
     };
-    let Some(angle) = storage.get::<Angle>(player_id).and_then(|x| Some(x.0)) else {
+    let Some(angle) = storage.get::<Angle>(player_id).map(|x| x.0) else {
         return Err(EngineError::ComponentNotFound("Angle".to_string()));
     };
     let (x, y) = (

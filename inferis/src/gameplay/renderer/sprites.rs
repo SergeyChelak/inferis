@@ -12,14 +12,15 @@ pub fn render_sprites<'a>(
 ) -> EngineResult<()> {
     let storage = context.storage;
     let player_id = context.player_id;
-    let Some(player_pos) = storage.get::<Position>(player_id).and_then(|x| Some(x.0)) else {
+    let Some(player_pos) = storage.get::<Position>(player_id).map(|x| x.0) else {
         return Err(EngineError::ComponentNotFound("Position".to_string()));
     };
     // player angle must be positive
-    let Some(player_angle) = storage
-        .get::<Angle>(player_id)
-        .and_then(|x| Some(x.0))
-        .and_then(|x| Some(if x < 0.0 { x + 2.0 * PI } else { x }))
+    let Some(player_angle) =
+        storage
+            .get::<Angle>(player_id)
+            .map(|x| x.0)
+            .map(|x| if x < 0.0 { x + 2.0 * PI } else { x })
     else {
         return Err(EngineError::ComponentNotFound("Angle".to_string()));
     };
@@ -35,16 +36,16 @@ pub fn render_sprites<'a>(
         let Some(texture) = context.assets.texture(&texture_id_component.0) else {
             continue;
         };
-        let Some(sprite_pos) = storage.get::<Position>(entity_id).and_then(|x| Some(x.0)) else {
+        let Some(sprite_pos) = storage.get::<Position>(entity_id).map(|x| x.0) else {
             return Err(EngineError::ComponentNotFound("Position".to_string()));
         };
         let sprite_scale = storage
             .get::<ScaleRatio>(entity_id)
-            .and_then(|x| Some(x.0))
+            .map(|x| x.0)
             .unwrap_or(1.0);
         let sprite_height_shift = storage
             .get::<HeightShift>(entity_id)
-            .and_then(|x| Some(x.0))
+            .map(|x| x.0)
             .unwrap_or(1.0);
         let vector = sprite_pos - player_pos;
         let delta = {
@@ -77,7 +78,7 @@ pub fn render_sprites<'a>(
         let sy = (context.window_size.height as Float - proj_height) * 0.5 + height_shift;
         let task = TextureRendererTask {
             texture,
-            source: Rect::new(0, 0, w as u32, h),
+            source: Rect::new(0, 0, w, h),
             destination: Rect::new(sx as i32, sy as i32, proj_width as u32, proj_height as u32),
             depth: norm_distance,
         };
