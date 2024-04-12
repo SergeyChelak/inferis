@@ -2,7 +2,7 @@ use engine::{EngineError, EngineResult};
 
 use crate::pbm::PBMImage;
 
-use super::components::Maze;
+use super::Maze;
 
 #[derive(Default)]
 pub struct MazeGenerator {

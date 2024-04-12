@@ -2,7 +2,7 @@ use std::borrow::BorrowMut;
 
 use engine::{ComponentStorage, EngineError, EngineResult, EntityID};
 
-use super::components::{Maze, Position, PrevPosition};
+use super::{Maze, Position, PrevPosition};
 
 pub fn run_collider(
     storage: &mut ComponentStorage,

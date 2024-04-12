@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use engine::{rect::Rect, EngineError, EngineResult, Float};
 
-use crate::gameplay::components::Angle;
+use crate::gameplay::Angle;
 
 use super::RendererContext;
 

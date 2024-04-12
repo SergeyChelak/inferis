@@ -5,7 +5,7 @@ use std::{
 
 use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Query};
 
-use super::{components::*, controller::ControllerState};
+use super::{controller::ControllerState, *};
 
 pub fn _fetch_transform_position(
     storage: &mut ComponentStorage,

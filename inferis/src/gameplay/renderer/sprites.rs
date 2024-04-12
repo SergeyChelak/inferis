@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use engine::{rect::Rect, texture_size, EngineError, EngineResult, Float, Query, Size, Vec2f};
 
-use crate::gameplay::components::{Angle, HeightShift, Position, ScaleRatio, SpriteTag, TextureID};
+use crate::gameplay::{Angle, HeightShift, Position, ScaleRatio, SpriteTag, TextureID};
 
 use super::{RendererContext, TextureRendererTask};
 

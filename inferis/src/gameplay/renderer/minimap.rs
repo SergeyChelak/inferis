@@ -4,7 +4,7 @@ use engine::{
     EngineError, EngineResult, Float,
 };
 
-use crate::gameplay::components::{Angle, Maze, Position};
+use crate::gameplay::{Angle, Maze, Position};
 
 use super::RendererContext;
 

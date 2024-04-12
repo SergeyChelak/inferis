@@ -2,10 +2,7 @@ use std::cmp::Ordering;
 
 use engine::{rect::Rect, texture_size, EngineError, EngineResult, Float, Size, Vec2f};
 
-use crate::gameplay::{
-    components::{Angle, Maze, MazeData, Position},
-    ray_caster::*,
-};
+use crate::gameplay::{ray_caster::*, Angle, Maze, MazeData, Position};
 
 use super::{sprites::render_sprites, RendererContext, TextureRendererTask, HALF_FIELD_OF_VIEW};
 
