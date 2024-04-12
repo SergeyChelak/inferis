@@ -17,7 +17,7 @@ impl EntityBundle {
         Self::default()
     }
 
-    pub fn add<T: Any>(mut self, value: T) -> Self {
+    pub fn put<T: Any>(mut self, value: T) -> Self {
         let key = TypeId::of::<T>();
         self.raw.insert(key, Rc::new(RefCell::new(value)));
         self

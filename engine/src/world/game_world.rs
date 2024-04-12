@@ -29,12 +29,10 @@ pub struct GameWorld {
 
 impl GameWorld {
     pub fn new(settings: EngineSettings) -> EngineResult<Self> {
-        let sdl_context = sdl2::init().map_err(|err| EngineError::Sdl(err))?;
+        let sdl_context = sdl2::init().map_err(EngineError::Sdl)?;
         let canvas = Self::canvas(&sdl_context, &settings.window)?;
-        let audio_subsystem = sdl_context.audio().map_err(|err| EngineError::Sdl(err))?;
-        let event_pump = sdl_context
-            .event_pump()
-            .map_err(|err| EngineError::Sdl(err))?;
+        let audio_subsystem = sdl_context.audio().map_err(EngineError::Sdl)?;
+        let event_pump = sdl_context.event_pump().map_err(EngineError::Sdl)?;
         Ok(Self {
             is_running: false,
             scenes: HashMap::default(),
@@ -48,7 +46,7 @@ impl GameWorld {
     }
 
     fn canvas(sdl_context: &Sdl, window_settings: &WindowSettings) -> EngineResult<WindowCanvas> {
-        let video_subsystem = sdl_context.video().map_err(|err| EngineError::Sdl(err))?;
+        let video_subsystem = sdl_context.video().map_err(EngineError::Sdl)?;
         let size = &window_settings.size;
         let window = video_subsystem
             .window(&window_settings.title, size.width, size.height)

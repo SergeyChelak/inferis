@@ -45,6 +45,7 @@ impl<'a> AssetManager<'a> {
                 continue;
             }
             let tokens = item.split_whitespace().collect::<Vec<&str>>();
+            #[allow(clippy::get_first)]
             let Some(&tag) = tokens.get(0) else {
                 return Err(EngineError::ResourceParseError(format!(
                     "Tag not found in '{item}'"

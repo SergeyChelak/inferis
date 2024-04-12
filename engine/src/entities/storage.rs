@@ -137,7 +137,7 @@ impl ComponentStorage {
                 println!("[ComponentStorage] failed to get component's row");
                 continue;
             };
-            let Some(&position) = self.type_position_map.get(&key) else {
+            let Some(&position) = self.type_position_map.get(key) else {
                 println!("[ComponentStorage] failed to get component's position");
                 continue;
             };
@@ -162,9 +162,7 @@ impl ComponentStorage {
     }
 
     pub fn get<T: Any>(&self, entity_id: EntityID) -> Option<Ref<T>> {
-        let Some(val) = self.get_component::<T>(entity_id) else {
-            return None;
-        };
+        let val = self.get_component::<T>(entity_id)?;
         let Ok(borrowed) = val.try_borrow() else {
             return None;
         };
@@ -176,9 +174,7 @@ impl ComponentStorage {
     }
 
     pub fn get_mut<T: Any>(&self, entity_id: EntityID) -> Option<RefMut<T>> {
-        let Some(val) = self.get_component::<T>(entity_id) else {
-            return None;
-        };
+        let val = self.get_component::<T>(entity_id)?;
         let Ok(borrowed) = val.try_borrow_mut() else {
             return None;
         };
@@ -231,6 +227,10 @@ impl ComponentStorage {
 
     pub fn len(&self) -> usize {
         self.allocator.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     fn footprint(&self, types: &HashSet<TypeId>) -> Footprint {
