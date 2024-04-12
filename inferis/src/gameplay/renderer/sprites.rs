@@ -65,8 +65,13 @@ pub fn render_sprites<'a>(
             width: w,
             height: h,
         } = texture_size(texture);
-        // TODO: skip rendering if sprite is out of screen
-        if norm_distance <= 0.01 {
+        let skip_rendering = {
+            let half_width = (w >> 1) as Float;
+            x < -half_width
+                || x > context.window_size.width as Float + half_width
+                || norm_distance < 0.5
+        };
+        if skip_rendering {
             continue;
         }
         let ratio = w as Float / h as Float;
