@@ -31,8 +31,7 @@ impl<'a> AssetManager<'a> {
         let items = read_to_string(filename)
             .map_err(|e| {
                 EngineError::FileAccessError(format!(
-                    "Can't open file '{filename}' with error '{}'",
-                    e.to_string()
+                    "Can't open file '{filename}' with error '{e}'"
                 ))
             })?
             .lines()
@@ -189,12 +188,12 @@ fn parse_gradient(value: &str) -> EngineResult<(Color, Color)> {
     Ok((from, to))
 }
 
-fn create_gradient_texture<'a>(
-    texture_creator: &'a TextureCreator<WindowContext>,
+fn create_gradient_texture(
+    texture_creator: &TextureCreator<WindowContext>,
     from: Color,
     to: Color,
     height: u32,
-) -> EngineResult<Texture<'a>> {
+) -> EngineResult<Texture> {
     let mut texture = texture_creator
         .create_texture_streaming(PixelFormatEnum::RGB24, 1, height)
         .map_err(|e| EngineError::Sdl(e.to_string()))?;

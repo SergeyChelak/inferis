@@ -55,7 +55,7 @@ mod allocator {
         pub fn is_alive(&self, index: Index) -> bool {
             self.entries
                 .get(index.index)
-                .and_then(|x| Some(x.is_alive && x.generation == index.generation))
+                .map(|x| x.is_alive && x.generation == index.generation)
                 .unwrap_or_default()
         }
 
@@ -88,6 +88,7 @@ pub type EntityID = allocator::Index;
 
 const STORAGE_CAPACITY: usize = 1000;
 
+#[derive(Default)]
 pub struct ComponentStorage {
     raw: HashMap<TypeId, Vec<Option<ComponentEntry>>>,
     allocator: allocator::Allocator,
@@ -99,13 +100,7 @@ pub struct ComponentStorage {
 
 impl ComponentStorage {
     pub fn new() -> Self {
-        Self {
-            allocator: allocator::Allocator::default(),
-            raw: HashMap::default(),
-            type_position_map: HashMap::default(),
-            entity_footprint: HashMap::default(),
-            indices: HashSet::default(),
-        }
+        Self::default()
     }
 
     pub fn register_component<T: Any>(&mut self) -> EngineResult<()> {

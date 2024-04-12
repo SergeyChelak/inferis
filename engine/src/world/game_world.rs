@@ -22,7 +22,7 @@ pub struct GameWorld {
     current_scene: SceneID,
     time: Instant,
     event_pump: EventPump,
-    audio_subsystem: AudioSubsystem,
+    _audio_subsystem: AudioSubsystem,
     canvas: WindowCanvas,
     settings: EngineSettings,
 }
@@ -42,7 +42,7 @@ impl GameWorld {
             time: Instant::now(),
             event_pump,
             canvas,
-            audio_subsystem,
+            _audio_subsystem: audio_subsystem,
             settings,
         })
     }

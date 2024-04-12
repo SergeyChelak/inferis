@@ -1,4 +1,4 @@
-use std::mem::size_of;
+use std::mem::{self};
 
 type Representation = u128;
 
@@ -20,7 +20,7 @@ impl Footprint {
         }
     }
 
-    pub fn get(&self, pos: usize) -> bool {
+    pub fn _get(&self, pos: usize) -> bool {
         self.raw & 1 << pos > 0
     }
 
@@ -29,6 +29,6 @@ impl Footprint {
     }
 
     pub fn max_items() -> usize {
-        8 * size_of::<Representation>()
+        mem::size_of::<Representation>()
     }
 }
