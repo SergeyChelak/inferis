@@ -1,4 +1,7 @@
-use sdl2::{event::Event, keyboard::Keycode, render::WindowCanvas, AudioSubsystem, EventPump, Sdl};
+use sdl2::{
+    event::Event, keyboard::Keycode, pixels::Color, render::WindowCanvas, AudioSubsystem,
+    EventPump, Sdl,
+};
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -82,7 +85,10 @@ impl GameWorld {
             let events = self.input_events();
             scene.process_events(&events)?;
             scene.run_systems(self)?;
+            self.canvas.set_draw_color(Color::BLACK);
+            self.canvas.clear();
             scene.render_scene(self, &asset_manager)?;
+            self.canvas.present();
             self.time = Instant::now();
             // delay the rest of the time if needed
             let suspend_ms = target_duration.saturating_sub(frame_start.elapsed().as_millis());

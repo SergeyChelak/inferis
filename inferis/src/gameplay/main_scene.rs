@@ -101,6 +101,14 @@ impl Scene for GameScene {
     }
 
     fn render_scene(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()> {
+        let mut renderer = Renderer::new(
+            &mut self.storage,
+            engine,
+            assets,
+            self.player_id,
+            self.maze_id,
+        );
+        renderer.render()?;
         render_scene(&self.storage, engine, assets, self.player_id, self.maze_id)?;
         Ok(())
     }
