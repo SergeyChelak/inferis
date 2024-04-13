@@ -86,6 +86,12 @@ pub struct Renderer<'a> {
     maze_id: EntityID,
     player_position: Option<Vec2f>,
     player_angle: Option<Float>,
+    // cached values
+    window_size: SizeU32,
+    rays_count: u32,
+    ray_angle_step: Float,
+    scale: Float,
+    screen_distance: Float,
 }
 
 impl<'a> Renderer<'a> {
@@ -96,6 +102,11 @@ impl<'a> Renderer<'a> {
         player_id: EntityID,
         maze_id: EntityID,
     ) -> Self {
+        let window_size = engine.window_size();
+        let rays_count = window_size.width >> 1;
+        let ray_angle_step = FIELD_OF_VIEW / rays_count as Float;
+        let scale = window_size.width as Float / rays_count as Float;
+        let screen_distance = (window_size.width >> 1) as Float / HALF_FIELD_OF_VIEW.tan();
         Self {
             storage,
             engine,
@@ -104,6 +115,11 @@ impl<'a> Renderer<'a> {
             maze_id,
             player_position: None,
             player_angle: None,
+            window_size,
+            rays_count,
+            ray_angle_step,
+            scale,
+            screen_distance,
         }
     }
 
@@ -131,6 +147,11 @@ impl<'a> Renderer<'a> {
         Ok(())
     }
 
+    #[inline]
+    fn canvas(&mut self) -> &mut WindowCanvas {
+        self.engine.canvas()
+    }
+
     fn render_background(&mut self) -> EngineResult<()> {
         self.render_sky()?;
         self.render_floor(true)?;
@@ -138,9 +159,8 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_floor(&mut self, gradient: bool) -> EngineResult<()> {
-        let window_size = self.window_size();
-        let half_height = window_size.height >> 1;
-        let dst = Rect::new(0, half_height as i32, window_size.width, half_height);
+        let half_height = self.window_size.height >> 1;
+        let dst = Rect::new(0, half_height as i32, self.window_size.width, half_height);
         if gradient {
             // gradient floor
             let Some(texture) = self.assets.texture("floor_grad") else {
@@ -174,8 +194,7 @@ impl<'a> Renderer<'a> {
         let Some(angle) = self.player_angle else {
             return Err(EngineError::ComponentNotFound("Angle".to_string()));
         };
-        let window_size = self.window_size();
-        let w = window_size.width as Float;
+        let w = self.window_size.width as Float;
         let offset = -(1.5 * angle * w / PI) % w;
         let offset = offset as i32;
         let (w, h) = {
@@ -183,63 +202,29 @@ impl<'a> Renderer<'a> {
             (query.width, query.height)
         };
         let src = Rect::new(0, 0, w, h);
-        let half_height = window_size.height >> 1;
-        let dst = Rect::new(offset, 0, window_size.width, half_height);
+        let half_height = self.window_size.height >> 1;
+        let dst = Rect::new(offset, 0, self.window_size.width, half_height);
         self.canvas()
             .copy(texture, src, dst)
             .map_err(|e| EngineError::Sdl(e.to_string()))?;
         let dst = Rect::new(
-            offset - window_size.width as i32,
+            offset - self.window_size.width as i32,
             0,
-            window_size.width,
+            self.window_size.width,
             half_height,
         );
         self.canvas()
             .copy(texture, src, dst)
             .map_err(|e| EngineError::Sdl(e.to_string()))?;
         let dst = Rect::new(
-            offset + window_size.width as i32,
+            offset + self.window_size.width as i32,
             0,
-            window_size.width,
+            self.window_size.width,
             half_height,
         );
         self.canvas()
             .copy(texture, src, dst)
             .map_err(|e| EngineError::Sdl(e.to_string()))?;
         Ok(())
-    }
-
-    // helper functions
-    #[inline]
-    fn canvas(&mut self) -> &mut WindowCanvas {
-        self.engine.canvas()
-    }
-
-    #[inline]
-    fn window_size(&self) -> SizeU32 {
-        self.engine.window_size()
-    }
-
-    #[inline]
-    fn rays_count(&self) -> u32 {
-        let width = self.window_size().width;
-        width >> 1
-    }
-
-    #[inline]
-    fn ray_angle_step(&self) -> Float {
-        FIELD_OF_VIEW / self.rays_count() as Float
-    }
-
-    #[inline]
-    fn scale(&self) -> Float {
-        let width = self.window_size().width as Float;
-        width / self.rays_count() as Float
-    }
-
-    #[inline]
-    fn screen_distance(&self) -> Float {
-        let width = (self.window_size().width >> 1) as Float;
-        width / HALF_FIELD_OF_VIEW.tan()
     }
 }
