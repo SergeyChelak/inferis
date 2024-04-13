@@ -1,0 +1,20 @@
+texture                 wall1               assets/1.png
+texture                 wall2               assets/2.png
+texture                 wall3               assets/3.png
+texture                 wall4               assets/4.png
+texture                 wall5               assets/5.png
+texture                 sky                 assets/sky.png
+texture                 candelabra          assets/c1.png
+
+# animation textures must be declared first
+texture                 anim_cand_red       assets/anim_deco_1.png
+texture                 anim_cand_green     assets/anim_deco_2.png
+
+color                   floor               30,30,30
+color                   black               0,0,0
+
+vertical_gradient       floor_grad          0,0,0-35,35,35               450
+
+# animation is refers to the texure resource
+animation               deco_1              anim_cand_red         1       4       200
+animation               deco_2              anim_cand_green       1       4       200
