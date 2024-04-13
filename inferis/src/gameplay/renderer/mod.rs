@@ -1,7 +1,7 @@
 mod minimap;
 mod objects;
 mod sprites;
-use std::f32::consts::PI;
+use std::{cmp::Ordering, f32::consts::PI};
 
 use engine::{
     rect::Rect,
@@ -79,6 +79,8 @@ pub fn render_scene(
 }
 
 pub struct Renderer<'a> {
+    tasks: Vec<TextureRendererTask<'a>>,
+    // data
     storage: &'a mut ComponentStorage,
     engine: &'a mut dyn Engine,
     assets: &'a AssetManager<'a>,
@@ -108,6 +110,7 @@ impl<'a> Renderer<'a> {
         let scale = window_size.width as Float / rays_count as Float;
         let screen_distance = (window_size.width >> 1) as Float / HALF_FIELD_OF_VIEW.tan();
         Self {
+            tasks: Vec::default(),
             storage,
             engine,
             assets,
@@ -125,7 +128,16 @@ impl<'a> Renderer<'a> {
 
     pub fn render(&mut self) -> EngineResult<()> {
         self.fetch_common_info()?;
+        self.tasks.clear();
         self.render_background()?;
+        self.tasks
+            .sort_by(|a, b| b.depth.partial_cmp(&a.depth).unwrap_or(Ordering::Equal));
+        let canvas = self.engine.canvas();
+        for task in self.tasks.iter() {
+            canvas
+                .copy(task.texture, task.source, task.destination)
+                .map_err(|e| EngineError::Sdl(e.to_string()))?;
+        }
         Ok(())
     }
 
@@ -154,36 +166,29 @@ impl<'a> Renderer<'a> {
 
     fn render_background(&mut self) -> EngineResult<()> {
         self.render_sky()?;
-        self.render_floor(true)?;
+        self.render_floor()?;
         Ok(())
     }
 
-    fn render_floor(&mut self, gradient: bool) -> EngineResult<()> {
+    fn render_floor(&mut self) -> EngineResult<()> {
         let half_height = self.window_size.height >> 1;
-        let dst = Rect::new(0, half_height as i32, self.window_size.width, half_height);
-        if gradient {
-            // gradient floor
-            let Some(texture) = self.assets.texture("floor_grad") else {
-                return Err(EngineError::TextureNotFound("floor_grad".to_string()));
-            };
-            let src = {
-                let query = texture.query();
-                let (w, h) = (query.width, query.height);
-                Rect::new(0, 0, w, h)
-            };
-            self.canvas()
-                .copy(texture, src, dst)
-                .map_err(|e| EngineError::Sdl(e.to_string()))?;
-        } else {
-            // solid floor
-            let Some(&color) = self.assets.color("floor") else {
-                return Err(EngineError::ResourceNotFound("floor".to_string()));
-            };
-            self.canvas().set_draw_color(color);
-            self.canvas()
-                .fill_rect(dst)
-                .map_err(|e| EngineError::Sdl(e.to_string()))?;
-        }
+        let destination = Rect::new(0, half_height as i32, self.window_size.width, half_height);
+        // gradient floor
+        let Some(texture) = self.assets.texture("floor_grad") else {
+            return Err(EngineError::TextureNotFound("floor_grad".to_string()));
+        };
+        let source = {
+            let query = texture.query();
+            let (w, h) = (query.width, query.height);
+            Rect::new(0, 0, w, h)
+        };
+        let task = TextureRendererTask {
+            texture,
+            source,
+            destination,
+            depth: Float::MAX,
+        };
+        self.tasks.push(task);
         Ok(())
     }
 
@@ -204,27 +209,37 @@ impl<'a> Renderer<'a> {
         let src = Rect::new(0, 0, w, h);
         let half_height = self.window_size.height >> 1;
         let dst = Rect::new(offset, 0, self.window_size.width, half_height);
-        self.canvas()
-            .copy(texture, src, dst)
-            .map_err(|e| EngineError::Sdl(e.to_string()))?;
+        self.tasks.push(TextureRendererTask {
+            texture,
+            source: src,
+            destination: dst,
+            depth: Float::MAX,
+        });
         let dst = Rect::new(
             offset - self.window_size.width as i32,
             0,
             self.window_size.width,
             half_height,
         );
-        self.canvas()
-            .copy(texture, src, dst)
-            .map_err(|e| EngineError::Sdl(e.to_string()))?;
+        self.tasks.push(TextureRendererTask {
+            texture,
+            source: src,
+            destination: dst,
+            depth: Float::MAX,
+        });
         let dst = Rect::new(
             offset + self.window_size.width as i32,
             0,
             self.window_size.width,
             half_height,
         );
-        self.canvas()
-            .copy(texture, src, dst)
-            .map_err(|e| EngineError::Sdl(e.to_string()))?;
+        self.tasks.push(TextureRendererTask {
+            texture,
+            source: src,
+            destination: dst,
+            depth: Float::MAX,
+        });
+
         Ok(())
     }
 }
