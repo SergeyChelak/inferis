@@ -17,12 +17,12 @@ pub trait Engine {
 }
 
 pub trait Scene {
-    fn teak(
-        &mut self,
-        engine: &mut dyn Engine,
-        events: &[InputEvent],
-        assets: &AssetManager,
-    ) -> EngineResult<()>;
+    fn process_events(&mut self, events: &[InputEvent]) -> EngineResult<()>;
+
+    fn run_systems(&mut self, engine: &mut dyn Engine) -> EngineResult<()>;
+
+    fn render_scene(&self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()>;
+
     fn id(&self) -> SceneID;
 }
 

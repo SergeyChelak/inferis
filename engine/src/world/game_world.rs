@@ -80,7 +80,9 @@ impl GameWorld {
             };
             let mut scene = scene_ref.borrow_mut();
             let events = self.input_events();
-            scene.teak(self, &events, &asset_manager)?;
+            scene.process_events(&events)?;
+            scene.run_systems(self)?;
+            scene.render_scene(self, &asset_manager)?;
             self.time = Instant::now();
             // delay the rest of the time if needed
             let suspend_ms = target_duration.saturating_sub(frame_start.elapsed().as_millis());

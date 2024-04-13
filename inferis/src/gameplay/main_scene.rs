@@ -52,13 +52,16 @@ impl GameScene {
 }
 
 impl Scene for GameScene {
-    fn teak(
-        &mut self,
-        engine: &mut dyn Engine,
-        events: &[InputEvent],
-        assets: &AssetManager,
-    ) -> EngineResult<()> {
+    fn id(&self) -> String {
+        "game_scene".to_string()
+    }
+
+    fn process_events(&mut self, events: &[InputEvent]) -> EngineResult<()> {
         self.controller.update(events);
+        Ok(())
+    }
+
+    fn run_systems(&mut self, engine: &mut dyn Engine) -> EngineResult<()> {
         let delta_time = engine.delta_time();
         transform_position(
             &mut self.storage,
@@ -68,12 +71,11 @@ impl Scene for GameScene {
         )?;
         // TODO: update NPC position
         run_collider(&mut self.storage, self.player_id, self.maze_id)?;
-        render_scene(&self.storage, engine, assets, self.player_id, self.maze_id)?;
-        self.controller.reset_relative();
         Ok(())
     }
 
-    fn id(&self) -> String {
-        "game_scene".to_string()
+    fn render_scene(&self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()> {
+        render_scene(&self.storage, engine, assets, self.player_id, self.maze_id)?;
+        Ok(())
     }
 }

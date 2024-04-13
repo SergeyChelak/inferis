@@ -14,6 +14,7 @@ pub struct ControllerState {
 
 impl ControllerState {
     pub fn update(&mut self, events: &[InputEvent]) {
+        self.reset_relative();
         for event in events {
             match event {
                 InputEvent::Keyboard { code, pressed } => {
@@ -42,7 +43,7 @@ impl ControllerState {
         }
     }
 
-    pub fn reset_relative(&mut self) {
+    fn reset_relative(&mut self) {
         self.mouse_x_relative = 0;
         self.mouse_y_relative = 0;
     }
