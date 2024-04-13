@@ -206,40 +206,31 @@ impl<'a> Renderer<'a> {
             let query = texture.query();
             (query.width, query.height)
         };
-        let src = Rect::new(0, 0, w, h);
+        let source = Rect::new(0, 0, w, h);
         let half_height = self.window_size.height >> 1;
-        let dst = Rect::new(offset, 0, self.window_size.width, half_height);
-        self.tasks.push(TextureRendererTask {
-            texture,
-            source: src,
-            destination: dst,
-            depth: Float::MAX,
-        });
-        let dst = Rect::new(
-            offset - self.window_size.width as i32,
-            0,
-            self.window_size.width,
-            half_height,
-        );
-        self.tasks.push(TextureRendererTask {
-            texture,
-            source: src,
-            destination: dst,
-            depth: Float::MAX,
-        });
-        let dst = Rect::new(
-            offset + self.window_size.width as i32,
-            0,
-            self.window_size.width,
-            half_height,
-        );
-        self.tasks.push(TextureRendererTask {
-            texture,
-            source: src,
-            destination: dst,
-            depth: Float::MAX,
-        });
-
+        let destinations = [
+            Rect::new(offset, 0, self.window_size.width, half_height),
+            Rect::new(
+                offset - self.window_size.width as i32,
+                0,
+                self.window_size.width,
+                half_height,
+            ),
+            Rect::new(
+                offset + self.window_size.width as i32,
+                0,
+                self.window_size.width,
+                half_height,
+            ),
+        ];
+        for destination in destinations {
+            self.tasks.push(TextureRendererTask {
+                texture,
+                source,
+                destination,
+                depth: Float::MAX,
+            });
+        }
         Ok(())
     }
 }
