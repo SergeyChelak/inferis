@@ -7,7 +7,7 @@ use sdl2::{
     video::WindowContext,
 };
 
-use crate::{texture_size, EngineError, EngineResult, Float};
+use crate::{EngineError, EngineResult, Float};
 
 pub struct Animation {
     pub duration: usize, // duration in frames
