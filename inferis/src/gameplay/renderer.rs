@@ -116,11 +116,10 @@ impl<'a> Renderer<'a> {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     fn render_sprites(&mut self) -> EngineResult<()> {
         let Some(player_pos) = self.player_position else {
-            return Err(EngineError::ComponentNotFound("Position".to_string()));
+            return Ok(());
         };
-        // player angle must be positive
         let Some(player_angle) = self.player_angle else {
-            return Err(EngineError::ComponentNotFound("Angle".to_string()));
+            return Ok(());
         };
         let query = Query::new().with_component::<SpriteTag>();
         for entity_id in self.storage.fetch_entities(&query) {
@@ -128,7 +127,7 @@ impl<'a> Renderer<'a> {
                 continue;
             };
             let Some(sprite_pos) = self.storage.get::<Position>(entity_id).map(|x| x.0) else {
-                return Err(EngineError::ComponentNotFound("Position".to_string()));
+                continue;
             };
             let sprite_scale = self
                 .storage
@@ -232,13 +231,13 @@ impl<'a> Renderer<'a> {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     fn render_walls(&mut self) -> EngineResult<()> {
         let Some(pos) = self.player_position else {
-            return Err(EngineError::ComponentNotFound("Position".to_string()));
+            return Ok(());
         };
         let Some(angle) = self.player_angle else {
-            return Err(EngineError::ComponentNotFound("Angle".to_string()));
+            return Ok(());
         };
         let Some(component_maze) = self.storage.get::<Maze>(self.maze_id) else {
-            return Err(EngineError::ComponentNotFound("Maze".to_string()));
+            return Ok(());
         };
         // dims
         let height = self.window_size.height as Float;
@@ -277,7 +276,6 @@ impl<'a> Renderer<'a> {
                 depth,
             };
             self.tasks.push(task);
-
             ray_angle += self.ray_angle_step;
         }
         Ok(())
@@ -295,7 +293,7 @@ impl<'a> Renderer<'a> {
         let destination = Rect::new(0, half_height as i32, self.window_size.width, half_height);
         // gradient floor
         let Some(texture) = self.assets.texture("floor_grad") else {
-            return Err(EngineError::TextureNotFound("floor_grad".to_string()));
+            return Ok(());
         };
         let source = {
             let query = texture.query();
@@ -314,10 +312,10 @@ impl<'a> Renderer<'a> {
 
     fn render_sky(&mut self) -> EngineResult<()> {
         let Some(texture) = self.assets.texture("sky") else {
-            return Err(EngineError::TextureNotFound("sky".to_string()));
+            return Ok(());
         };
         let Some(angle) = self.player_angle else {
-            return Err(EngineError::ComponentNotFound("Angle".to_string()));
+            return Ok(());
         };
         let w = self.window_size.width as Float;
         let offset = -(1.5 * angle * w / PI) % w;
@@ -388,10 +386,10 @@ impl<'a> Renderer<'a> {
 
     fn render_maze_player(&mut self) -> EngineResult<()> {
         let Some(pos) = self.player_position else {
-            return Err(EngineError::ComponentNotFound("Position".to_string()));
+            return Ok(());
         };
         let Some(angle) = self.player_angle else {
-            return Err(EngineError::ComponentNotFound("Angle".to_string()));
+            return Ok(());
         };
         let (x, y) = (
             (pos.x * MAP_SCALE as Float) as i32,
