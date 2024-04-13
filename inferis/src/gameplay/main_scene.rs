@@ -108,8 +108,6 @@ impl Scene for GameScene {
             self.player_id,
             self.maze_id,
         );
-        renderer.render()?;
-        render_scene(&self.storage, engine, assets, self.player_id, self.maze_id)?;
-        Ok(())
+        renderer.render()
     }
 }

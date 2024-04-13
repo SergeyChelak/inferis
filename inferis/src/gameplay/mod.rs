@@ -35,6 +35,7 @@ pub struct ScaleRatio(pub Float);
 
 pub struct HeightShift(pub Float);
 
+#[derive(Clone)]
 pub struct AnimationData {
     pub frame_counter: usize,
     pub animation_id: String,

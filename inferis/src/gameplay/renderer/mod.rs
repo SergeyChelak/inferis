@@ -1,81 +1,32 @@
-mod minimap;
-mod objects;
-mod sprites;
-use std::{cmp::Ordering, f32::consts::PI};
+use std::{borrow::BorrowMut, cmp::Ordering, f32::consts::PI};
 
-use engine::{
-    rect::Rect,
-    render::{Texture, WindowCanvas},
-    AssetManager, ComponentStorage, Engine, EngineError, EngineResult, EntityID, Float, SizeU32,
-    Vec2f,
+use super::{
+    ray_caster::{ray_cast, RAY_CASTER_TOL},
+    Angle, AnimationData, HeightShift, Maze, MazeData, Position, ScaleRatio, SpriteTag, TextureID,
 };
-use minimap::render_minimap;
-use objects::*;
+use engine::{
+    pixels::Color,
+    rect::{Point, Rect},
+    render::Texture,
+    texture_size, AssetManager, ComponentStorage, Engine, EngineError, EngineResult, EntityID,
+    Float, Query, Size, SizeU32, Vec2f,
+};
 
-use super::{Angle, Position};
+const FIELD_OF_VIEW: Float = PI / 3.0;
+const HALF_FIELD_OF_VIEW: Float = FIELD_OF_VIEW * 0.5;
+const MAP_SCALE: u32 = 6;
 
-pub const FIELD_OF_VIEW: Float = PI / 3.0;
-pub const HALF_FIELD_OF_VIEW: Float = FIELD_OF_VIEW * 0.5;
-
-pub struct RendererContext<'a> {
-    storage: &'a ComponentStorage,
-    canvas: &'a mut WindowCanvas,
-    assets: &'a AssetManager<'a>,
-    window_size: SizeU32,
-    player_id: EntityID,
-    maze_id: EntityID,
-}
-
-impl<'a> RendererContext<'a> {
-    pub fn rays_count(&self) -> u32 {
-        let width = self.window_size.width;
-        width >> 1
-    }
-
-    pub fn ray_angle_step(&self) -> Float {
-        FIELD_OF_VIEW / self.rays_count() as Float
-    }
-
-    pub fn scale(&self) -> Float {
-        let width = self.window_size.width as Float;
-        width / self.rays_count() as Float
-    }
-
-    pub fn screen_distance(&self) -> Float {
-        let width = (self.window_size.width >> 1) as Float;
-        width / HALF_FIELD_OF_VIEW.tan()
-    }
-}
-
-pub struct TextureRendererTask<'a> {
+struct TextureRendererTask<'a> {
     texture: &'a Texture<'a>,
     source: Rect,
     destination: Rect,
     depth: Float,
 }
 
-pub fn render_scene(
-    storage: &ComponentStorage,
-    engine: &mut dyn Engine,
-    assets: &AssetManager,
-    player_id: EntityID,
-    maze_id: EntityID,
-) -> EngineResult<()> {
-    let mut context = {
-        let window_size = engine.window_size();
-        let canvas = engine.canvas();
-        RendererContext {
-            storage,
-            canvas,
-            assets,
-            window_size,
-            player_id,
-            maze_id,
-        }
-    };
-    render_game_objects(&mut context)?;
-    render_minimap(&mut context)?;
-    Ok(())
+struct TextureData<'a> {
+    size: SizeU32,
+    source: Rect,
+    texture: &'a Texture<'a>,
 }
 
 pub struct Renderer<'a> {
@@ -130,6 +81,8 @@ impl<'a> Renderer<'a> {
         self.fetch_common_info()?;
         self.tasks.clear();
         self.render_background()?;
+        self.render_sprites()?;
+        self.render_walls()?;
         self.tasks
             .sort_by(|a, b| b.depth.partial_cmp(&a.depth).unwrap_or(Ordering::Equal));
         let canvas = self.engine.canvas();
@@ -138,6 +91,7 @@ impl<'a> Renderer<'a> {
                 .copy(task.texture, task.source, task.destination)
                 .map_err(|e| EngineError::Sdl(e.to_string()))?;
         }
+        self.render_minimap()?;
         Ok(())
     }
 
@@ -159,11 +113,177 @@ impl<'a> Renderer<'a> {
         Ok(())
     }
 
-    #[inline]
-    fn canvas(&mut self) -> &mut WindowCanvas {
-        self.engine.canvas()
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    fn render_sprites(&mut self) -> EngineResult<()> {
+        let Some(player_pos) = self.player_position else {
+            return Err(EngineError::ComponentNotFound("Position".to_string()));
+        };
+        // player angle must be positive
+        let Some(player_angle) = self.player_angle else {
+            return Err(EngineError::ComponentNotFound("Angle".to_string()));
+        };
+        let query = Query::new().with_component::<SpriteTag>();
+        for entity_id in self.storage.fetch_entities(&query) {
+            let Some(texture_data) = self.texture_data(entity_id) else {
+                continue;
+            };
+            let Some(sprite_pos) = self.storage.get::<Position>(entity_id).map(|x| x.0) else {
+                return Err(EngineError::ComponentNotFound("Position".to_string()));
+            };
+            let sprite_scale = self
+                .storage
+                .get::<ScaleRatio>(entity_id)
+                .map(|x| x.0)
+                .unwrap_or(1.0);
+            let sprite_height_shift = self
+                .storage
+                .get::<HeightShift>(entity_id)
+                .map(|x| x.0)
+                .unwrap_or(1.0);
+            let vector = sprite_pos - player_pos;
+            let delta = {
+                let Vec2f { x: dx, y: dy } = vector;
+                let theta = dy.atan2(dx);
+                let value = theta - player_angle;
+                if dx > 0.0 && player_angle > PI || dx < 0.0 && dy < 0.0 {
+                    value + 2.0 * PI
+                } else {
+                    value
+                }
+            };
+            let delta_rays = delta / self.ray_angle_step;
+            let x = ((self.rays_count >> 1) as Float + delta_rays) * self.scale;
+            let norm_distance = vector.hypotenuse() * delta.cos();
+            let Size {
+                width: w,
+                height: h,
+            } = texture_data.size;
+            let skip_rendering = {
+                let half_width = (w >> 1) as Float;
+                x < -half_width
+                    || x > self.window_size.width as Float + half_width
+                    || norm_distance < 0.5
+            };
+            if skip_rendering {
+                continue;
+            }
+            let ratio = w as Float / h as Float;
+            let proj = self.screen_distance / norm_distance * sprite_scale;
+            let (proj_width, proj_height) = (proj * ratio, proj);
+            let sprite_half_width = 0.5 * proj_width;
+            let height_shift = proj_height * sprite_height_shift;
+            let sx = x - sprite_half_width;
+            let sy = (self.window_size.height as Float - proj_height) * 0.5 + height_shift;
+            let task = TextureRendererTask {
+                texture: texture_data.texture,
+                source: texture_data.source,
+                destination: Rect::new(sx as i32, sy as i32, proj_width as u32, proj_height as u32),
+                depth: norm_distance,
+            };
+            self.tasks.push(task);
+        }
+        Ok(())
     }
 
+    fn texture_data(&mut self, entity_id: EntityID) -> Option<TextureData<'a>> {
+        if let Some(true) = self
+            .storage
+            .get::<AnimationData>(entity_id)
+            .map(|x| x.frame_counter >= x.target_frames)
+        {
+            self.storage.set::<AnimationData>(entity_id, None);
+        }
+        if let Some(mut animation_data) = self.storage.get_mut::<AnimationData>(entity_id) {
+            let params = self.assets.animation(&animation_data.animation_id)?;
+            let texture = self.assets.texture(&params.texture_id)?;
+            let size = texture_size(texture);
+            let frame_size = Size {
+                width: size.width / params.frames_count as u32,
+                height: size.height,
+            };
+            let index =
+                (animation_data.frame_counter / params.duration as usize) % params.frames_count;
+            let source = Rect::new(
+                frame_size.width as i32 * index as i32,
+                0,
+                frame_size.width,
+                frame_size.height,
+            );
+            animation_data.borrow_mut().frame_counter += 1;
+            return Some(TextureData {
+                size: frame_size,
+                source,
+                texture,
+            });
+        }
+        if let Some(texture_id_component) = self.storage.get::<TextureID>(entity_id) {
+            let texture = self.assets.texture(&texture_id_component.0)?;
+            let size = texture_size(texture);
+            let source = Rect::new(0, 0, size.width, size.height);
+            return Some(TextureData {
+                size,
+                source,
+                texture,
+            });
+        }
+        None
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    fn render_walls(&mut self) -> EngineResult<()> {
+        let Some(pos) = self.player_position else {
+            return Err(EngineError::ComponentNotFound("Position".to_string()));
+        };
+        let Some(angle) = self.player_angle else {
+            return Err(EngineError::ComponentNotFound("Angle".to_string()));
+        };
+        let Some(component_maze) = self.storage.get::<Maze>(self.maze_id) else {
+            return Err(EngineError::ComponentNotFound("Maze".to_string()));
+        };
+        // dims
+        let height = self.window_size.height as Float;
+        // ray
+        let mut ray_angle = angle - HALF_FIELD_OF_VIEW;
+        let image_width = self.scale as u32;
+
+        let check = |point: Vec2f| wall_texture(point, &component_maze.0);
+        for ray in 0..self.rays_count {
+            let result = ray_cast(pos, ray_angle, &check);
+            let Some(texture) = result.value.and_then(|key| self.assets.texture(key)) else {
+                continue;
+            };
+            // get rid of fishbowl effect
+            let depth = result.depth * (angle - ray_angle).cos();
+            let projected_height = self.screen_distance / (depth + RAY_CASTER_TOL);
+
+            let x = (ray as Float * self.scale) as i32;
+            let y = (0.5 * (height - projected_height)) as i32;
+
+            let dst = Rect::new(x, y, image_width, projected_height as u32);
+            let Size {
+                width: w,
+                height: h,
+            } = texture_size(texture);
+            let src = Rect::new(
+                (result.offset * (w as Float - image_width as Float)) as i32,
+                0,
+                image_width,
+                h,
+            );
+            let task = TextureRendererTask {
+                texture,
+                source: src,
+                destination: dst,
+                depth,
+            };
+            self.tasks.push(task);
+
+            ray_angle += self.ray_angle_step;
+        }
+        Ok(())
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     fn render_background(&mut self) -> EngineResult<()> {
         self.render_sky()?;
         self.render_floor()?;
@@ -232,5 +352,86 @@ impl<'a> Renderer<'a> {
             });
         }
         Ok(())
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    fn render_minimap(&mut self) -> EngineResult<()> {
+        self.render_maze()?;
+        self.render_maze_player()
+    }
+
+    fn render_maze(&mut self) -> EngineResult<()> {
+        let Some(maze_comp) = self.storage.get::<Maze>(self.maze_id) else {
+            return Ok(());
+        };
+        let maze = &maze_comp.0;
+        let canvas = self.engine.canvas();
+        canvas.set_draw_color(Color::WHITE);
+        for (row, vector) in maze.iter().enumerate() {
+            for (col, value) in vector.iter().enumerate() {
+                if *value == 0 {
+                    continue;
+                }
+                let rect = Rect::new(
+                    col as i32 * MAP_SCALE as i32,
+                    row as i32 * MAP_SCALE as i32,
+                    MAP_SCALE,
+                    MAP_SCALE,
+                );
+                canvas
+                    .fill_rect(rect)
+                    .map_err(|e| EngineError::Sdl(e.to_string()))?
+            }
+        }
+        Ok(())
+    }
+
+    fn render_maze_player(&mut self) -> EngineResult<()> {
+        let Some(pos) = self.player_position else {
+            return Err(EngineError::ComponentNotFound("Position".to_string()));
+        };
+        let Some(angle) = self.player_angle else {
+            return Err(EngineError::ComponentNotFound("Angle".to_string()));
+        };
+        let (x, y) = (
+            (pos.x * MAP_SCALE as Float) as i32,
+            (pos.y * MAP_SCALE as Float) as i32,
+        );
+
+        let canvas = self.engine.canvas();
+        let size = MAP_SCALE - 1;
+        let rect = Rect::new(x - (size >> 1) as i32, y - (size >> 1) as i32, size, size);
+        canvas.set_draw_color(Color::RED);
+        canvas
+            .fill_rect(rect)
+            .map_err(|e| EngineError::Sdl(e.to_string()))?;
+
+        let length = 1.5 * MAP_SCALE as Float;
+        canvas
+            .draw_line(
+                Point::new(x, y),
+                Point::new(
+                    x + (length * angle.cos()) as i32,
+                    y + (length * angle.sin()) as i32,
+                ),
+            )
+            .map_err(|e| EngineError::Sdl(e.to_string()))
+    }
+}
+
+fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<&str> {
+    let Vec2f { x, y } = point;
+    if x < 0.0 || y < 0.0 {
+        return None;
+    }
+    let (col, row) = (point.x as usize, point.y as usize);
+    let value = maze.get(row).and_then(|x| x.get(col))?;
+    match value {
+        1 => Some("wall1"),
+        2 => Some("wall2"),
+        3 => Some("wall3"),
+        4 => Some("wall4"),
+        5 => Some("wall5"),
+        _ => None,
     }
 }
