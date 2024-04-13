@@ -10,9 +10,8 @@ use sdl2::{
 use crate::{EngineError, EngineResult, Float};
 
 pub struct Animation {
-    pub duration: usize, // duration in frames
-    pub rows: usize,
-    pub cols: usize,
+    pub duration: u32, // duration in frames
+    pub frames_count: usize,
     pub texture_id: String,
 }
 
@@ -94,27 +93,21 @@ impl<'a> AssetManager<'a> {
                     textures.insert(name.to_string(), texture);
                 }
                 "animation" => {
-                    let Some(rows) = tokens.get(3).and_then(|&val| val.parse::<usize>().ok())
+                    let Some(frames_count) =
+                        tokens.get(3).and_then(|&val| val.parse::<usize>().ok())
                     else {
                         return Err(EngineError::ResourceParseError(format!(
-                            "Failed to parse rows count in '{value}'"
+                            "Failed to parse frames count in '{value}'"
                         )));
                     };
-                    let Some(cols) = tokens.get(4).and_then(|&val| val.parse::<usize>().ok())
-                    else {
-                        return Err(EngineError::ResourceParseError(format!(
-                            "Failed to parse cols count in '{value}'"
-                        )));
-                    };
-                    let Some(duration) = tokens.get(5).and_then(|&val| val.parse::<usize>().ok())
+                    let Some(duration) = tokens.get(4).and_then(|&val| val.parse::<u32>().ok())
                     else {
                         return Err(EngineError::ResourceParseError(format!(
                             "Failed to parse animation duration in '{value}'"
                         )));
                     };
                     let animation = Animation {
-                        rows,
-                        cols,
+                        frames_count,
                         duration,
                         texture_id: value.to_string(),
                     };

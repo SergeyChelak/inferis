@@ -1,8 +1,17 @@
-use std::f32::consts::PI;
+use std::{
+    borrow::BorrowMut,
+    cell::{Ref, RefMut},
+    f32::consts::PI,
+};
 
-use engine::{rect::Rect, texture_size, EngineError, EngineResult, Float, Query, Size, Vec2f};
+use engine::{
+    rect::Rect, render::Texture, texture_size, EngineError, EngineResult, EntityID, Float, Query,
+    Size, SizeU32, Vec2f,
+};
 
-use crate::gameplay::{Angle, HeightShift, Position, ScaleRatio, SpriteTag, TextureID};
+use crate::gameplay::{
+    Angle, AnimationData, HeightShift, Position, ScaleRatio, SpriteTag, TextureID,
+};
 
 use super::{RendererContext, TextureRendererTask};
 
@@ -30,10 +39,7 @@ pub fn render_sprites<'a>(
     let screen_distance = context.screen_distance();
     let query = Query::new().with_component::<SpriteTag>();
     for entity_id in storage.fetch_entities(&query) {
-        let Some(texture_id_component) = storage.get::<TextureID>(entity_id) else {
-            return Err(EngineError::ComponentNotFound("TextureID".to_string()));
-        };
-        let Some(texture) = context.assets.texture(&texture_id_component.0) else {
+        let Some(texture_data) = TextureData::new(context, entity_id) else {
             continue;
         };
         let Some(sprite_pos) = storage.get::<Position>(entity_id).map(|x| x.0) else {
@@ -64,7 +70,7 @@ pub fn render_sprites<'a>(
         let Size {
             width: w,
             height: h,
-        } = texture_size(texture);
+        } = texture_data.size;
         let skip_rendering = {
             let half_width = (w >> 1) as Float;
             x < -half_width
@@ -82,12 +88,75 @@ pub fn render_sprites<'a>(
         let sx = x - sprite_half_width;
         let sy = (context.window_size.height as Float - proj_height) * 0.5 + height_shift;
         let task = TextureRendererTask {
-            texture,
-            source: Rect::new(0, 0, w, h),
+            texture: texture_data.texture,
+            source: texture_data.source,
             destination: Rect::new(sx as i32, sy as i32, proj_width as u32, proj_height as u32),
             depth: norm_distance,
         };
         tasks.push(task);
     }
     Ok(())
+}
+
+struct TextureData<'a> {
+    size: SizeU32,
+    source: Rect,
+    texture: &'a Texture<'a>,
+}
+
+impl<'a> TextureData<'a> {
+    fn new(context: &mut RendererContext<'a>, entity_id: EntityID) -> Option<Self> {
+        let storage = context.storage;
+        if let Some(mut animation_data) = storage.get_mut::<AnimationData>(entity_id) {
+            if animation_data.frame_counter >= animation_data.target_frames {
+                // TODO: refactor render implementation to delete animation from entity
+                return None;
+            }
+            Self::with_animation(context, &mut animation_data)
+        } else if let Some(texture_id_component) = storage.get::<TextureID>(entity_id) {
+            Self::with_texture(context, texture_id_component)
+        } else {
+            None
+        }
+    }
+
+    fn with_animation(
+        context: &mut RendererContext<'a>,
+        animation_data: &mut RefMut<AnimationData>,
+    ) -> Option<Self> {
+        let params = context.assets.animation(&animation_data.animation_id)?;
+        let texture = context.assets.texture(&params.texture_id)?;
+        let size = texture_size(texture);
+        let frame_size = Size {
+            width: size.width / params.frames_count as u32,
+            height: size.height,
+        };
+        let index = (animation_data.frame_counter / params.duration as usize) % params.frames_count;
+        let source = Rect::new(
+            frame_size.width as i32 * index as i32,
+            0,
+            frame_size.width,
+            frame_size.height,
+        );
+        animation_data.borrow_mut().frame_counter += 1;
+        Some(Self {
+            size: frame_size,
+            source,
+            texture,
+        })
+    }
+
+    fn with_texture(
+        context: &mut RendererContext<'a>,
+        texture_id_component: Ref<TextureID>,
+    ) -> Option<Self> {
+        let texture = context.assets.texture(&texture_id_component.0)?;
+        let size = texture_size(texture);
+        let source = Rect::new(0, 0, size.width, size.height);
+        Some(Self {
+            size,
+            source,
+            texture,
+        })
+    }
 }

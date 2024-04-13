@@ -16,5 +16,5 @@ color                   black               0,0,0
 vertical_gradient       floor_grad          0,0,0-35,35,35               450
 
 # animation is refers to the texure resource
-animation               deco_1              anim_cand_red         1       4       200
-animation               deco_2              anim_cand_green       1       4       200
+animation               deco_1              anim_cand_red         4       10
+animation               deco_2              anim_cand_green       4       10

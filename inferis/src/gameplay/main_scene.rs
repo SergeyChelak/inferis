@@ -42,6 +42,32 @@ impl GameScene {
                 .put(SpriteTag);
             storage.add_from_bundle(&bundle);
         }
+        {
+            let bundle = EntityBundle::new()
+                .put(AnimationData {
+                    frame_counter: 0,
+                    target_frames: usize::MAX,
+                    animation_id: "deco_2".to_string(),
+                })
+                .put(Position(Vec2f::new(8.0, 10.0)))
+                .put(ScaleRatio(0.7))
+                .put(HeightShift(0.27))
+                .put(SpriteTag);
+            storage.add_from_bundle(&bundle);
+        }
+        {
+            let bundle = EntityBundle::new()
+                .put(AnimationData {
+                    frame_counter: 30,
+                    target_frames: usize::MAX,
+                    animation_id: "deco_1".to_string(),
+                })
+                .put(Position(Vec2f::new(6.0, 8.0)))
+                .put(ScaleRatio(0.7))
+                .put(HeightShift(0.27))
+                .put(SpriteTag);
+            storage.add_from_bundle(&bundle);
+        }
         Ok(Self {
             storage,
             controller: ControllerState::default(),
@@ -74,7 +100,7 @@ impl Scene for GameScene {
         Ok(())
     }
 
-    fn render_scene(&self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()> {
+    fn render_scene(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()> {
         render_scene(&self.storage, engine, assets, self.player_id, self.maze_id)?;
         Ok(())
     }

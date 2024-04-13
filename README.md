@@ -10,5 +10,7 @@
 - [ECS tutorial & resources](doc/references.md)
 
 ## Current State
-- March 2024 designed MVP of simple ECS
-- April 2024 rendering walls, sky
+- Designed MVP of simple ECS
+- Rendering walls, sky
+- Rendering sprites
+- Animated sprites

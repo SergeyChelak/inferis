@@ -35,6 +35,12 @@ pub struct ScaleRatio(pub Float);
 
 pub struct HeightShift(pub Float);
 
+pub struct AnimationData {
+    pub frame_counter: usize,
+    pub animation_id: String,
+    pub target_frames: usize,
+}
+
 pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     let mut storage = ComponentStorage::new();
     storage.register_component::<SpriteTag>()?;
@@ -50,5 +56,6 @@ pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<TextureID>()?;
     storage.register_component::<ScaleRatio>()?;
     storage.register_component::<HeightShift>()?;
+    storage.register_component::<AnimationData>()?;
     Ok(storage)
 }
