@@ -41,7 +41,7 @@ impl<'a> AssetManager<'a> {
         let mut colors: HashMap<String, Color> = HashMap::default();
         let mut animations: HashMap<String, Animation> = HashMap::default();
         for item in items {
-            if item.starts_with('#') {
+            if item.is_empty() || item.starts_with('#') {
                 continue;
             }
             let tokens = item.split_whitespace().collect::<Vec<&str>>();
