@@ -83,6 +83,7 @@ impl<'a> Renderer<'a> {
         self.render_background()?;
         self.render_sprites()?;
         self.render_walls()?;
+        self.render_player_view()?;
         self.tasks
             .sort_by(|a, b| b.depth.partial_cmp(&a.depth).unwrap_or(Ordering::Equal));
         let canvas = self.engine.canvas();
@@ -349,6 +350,37 @@ impl<'a> Renderer<'a> {
                 depth: Float::MAX,
             });
         }
+        Ok(())
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    fn render_player_view(&mut self) -> EngineResult<()> {
+        let Some(texture_data) = self.texture_data(self.player_id) else {
+            return Ok(());
+        };
+        let Size { width, height } = texture_data.size;
+
+        let Size {
+            width: window_width,
+            height: window_height,
+        } = self.window_size;
+        let ratio = height as Float / width as Float;
+        let w = (window_width as Float * 0.3) as u32;
+        let h = (w as Float * ratio) as u32;
+
+        let destination = Rect::new(
+            ((window_width - w) >> 1) as i32,
+            (window_height - h) as i32,
+            w,
+            h,
+        );
+        let task = TextureRendererTask {
+            texture: texture_data.texture,
+            source: texture_data.source,
+            destination,
+            depth: 0.001,
+        };
+        self.tasks.push(task);
         Ok(())
     }
 

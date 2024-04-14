@@ -6,6 +6,7 @@ pub mod main_scene;
 mod maze_generator;
 mod ray_caster;
 mod renderer;
+mod shot;
 mod transform;
 
 pub struct Health(pub u32);

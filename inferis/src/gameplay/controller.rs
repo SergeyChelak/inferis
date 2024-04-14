@@ -2,6 +2,7 @@ use engine::{keyboard::Keycode, world::InputEvent};
 
 #[derive(Default)]
 pub struct ControllerState {
+    pub shot_pressed: bool,
     pub forward_pressed: bool,
     pub backward_pressed: bool,
     pub left_pressed: bool,
@@ -37,6 +38,7 @@ impl ControllerState {
             D => self.right_pressed = pressed,
             Left => self.rotate_left_pressed = pressed,
             Right => self.rotate_right_pressed = pressed,
+            X => self.shot_pressed = pressed,
             _ => {
                 // println!("Key {code} pressed {pressed}")
             }

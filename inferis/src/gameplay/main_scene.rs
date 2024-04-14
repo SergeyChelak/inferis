@@ -1,5 +1,7 @@
 use engine::*;
 
+use self::shot::perform_shots;
+
 use super::{
     collider::run_collider, controller::ControllerState, maze_generator::MazeGenerator,
     renderer::*, transform::transform_position, *,
@@ -24,7 +26,8 @@ impl GameScene {
                 .put(RotationSpeed(2.5))
                 .put(Position(position))
                 .put(PrevPosition(position))
-                .put(Angle(0.0));
+                .put(Angle(0.0))
+                .put(TextureID("player_shotgun".to_string()));
             storage.add_from_bundle(&bundle)
         };
         let maze_id = {
@@ -95,6 +98,7 @@ impl Scene for GameScene {
             &self.controller,
             delta_time,
         )?;
+        perform_shots(&mut self.storage, self.player_id, &self.controller)?;
         // TODO: update NPC position
         run_collider(&mut self.storage, self.player_id, self.maze_id)?;
         Ok(())
