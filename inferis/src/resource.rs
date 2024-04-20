@@ -1,3 +1,6 @@
+// scenes
+pub const SCENE_GAME_PLAY: &str = &"game_scene";
+
 // world
 pub const WORLD_WALL1: &str = &"wall1";
 pub const WORLD_WALL2: &str = &"wall2";

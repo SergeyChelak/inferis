@@ -7,7 +7,7 @@ use crate::{assets::AssetManager, EngineResult, SizeU32};
 
 pub mod game_world;
 
-type SceneID = String;
+pub type SceneID = &'static str;
 pub trait Engine {
     fn change_scene(&mut self, scene_id: SceneID);
     fn terminate(&mut self);
