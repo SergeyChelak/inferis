@@ -6,7 +6,7 @@ texture                 wall3               assets/walls/3.png
 texture                 wall4               assets/walls/4.png
 texture                 wall5               assets/walls/5.png
 texture                 sky                 assets/sky.png
-texture                 candelabra          assets/c1.png
+texture                 candelabra          assets/candelabra.png
 ##########################################################################################################
 
 

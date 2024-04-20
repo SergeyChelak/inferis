@@ -9,44 +9,6 @@ mod renderer;
 mod shot;
 mod transform;
 
-mod resource {
-    use engine::Vec2f;
-
-    use super::MazeData;
-
-    // world
-    const WORLD_WALL1: &str = &"wall1";
-    const WORLD_WALL2: &str = &"wall2";
-    const WORLD_WALL3: &str = &"wall3";
-    const WORLD_WALL4: &str = &"wall4";
-    const WORLD_WALL5: &str = &"wall5";
-    pub const WORLD_SKY: &str = "sky";
-    pub const WORLD_TORCH_RED_ANIM: &str = "anim_torch_red";
-    pub const WORLD_TORCH_GREEN_ANIM: &str = "anim_torch_green";
-    pub const WORLD_CANDELABRA: &str = "candelabra";
-
-    // player
-    pub const PLAYER_SHOTGUN: &str = &"player_shotgun";
-    pub const PLAYER_ANIM_SHOTGUN_SHOT: &str = &"anim_shotgun_shot";
-
-    pub fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<&str> {
-        let Vec2f { x, y } = point;
-        if x < 0.0 || y < 0.0 {
-            return None;
-        }
-        let (col, row) = (point.x as usize, point.y as usize);
-        let value = maze.get(row).and_then(|x| x.get(col))?;
-        match value {
-            1 => Some(WORLD_WALL1),
-            2 => Some(WORLD_WALL2),
-            3 => Some(WORLD_WALL3),
-            4 => Some(WORLD_WALL4),
-            5 => Some(WORLD_WALL5),
-            _ => None,
-        }
-    }
-}
-
 pub struct Health(pub u32);
 
 pub struct PlayerTag;

@@ -1,6 +1,8 @@
 use engine::{ComponentStorage, EngineResult, EntityID};
 
-use super::{controller::ControllerState, resource::PLAYER_ANIM_SHOTGUN_SHOT, AnimationData};
+use crate::resource::PLAYER_ANIM_SHOTGUN_SHOT;
+
+use super::{controller::ControllerState, AnimationData};
 
 pub fn perform_shots(
     storage: &mut ComponentStorage,

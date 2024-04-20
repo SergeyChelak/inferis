@@ -1,9 +1,10 @@
 use std::{borrow::BorrowMut, cmp::Ordering, f32::consts::PI};
 
+use crate::resource::*;
+
 use super::{
     ray_caster::{ray_cast, RAY_CASTER_TOL},
-    resource::{wall_texture, WORLD_SKY},
-    Angle, AnimationData, HeightShift, Maze, Position, ScaleRatio, SpriteTag, TextureID,
+    Angle, AnimationData, HeightShift, Maze, MazeData, Position, ScaleRatio, SpriteTag, TextureID,
 };
 use engine::{
     pixels::Color,
@@ -447,5 +448,22 @@ impl<'a> Renderer<'a> {
                 ),
             )
             .map_err(|e| EngineError::Sdl(e.to_string()))
+    }
+}
+
+fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<&str> {
+    let Vec2f { x, y } = point;
+    if x < 0.0 || y < 0.0 {
+        return None;
+    }
+    let (col, row) = (point.x as usize, point.y as usize);
+    let value = maze.get(row).and_then(|x| x.get(col))?;
+    match value {
+        1 => Some(WORLD_WALL1),
+        2 => Some(WORLD_WALL2),
+        3 => Some(WORLD_WALL3),
+        4 => Some(WORLD_WALL4),
+        5 => Some(WORLD_WALL5),
+        _ => None,
     }
 }

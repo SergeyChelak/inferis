@@ -1,6 +1,8 @@
 use engine::*;
 
-use self::{resource::*, shot::perform_shots};
+use crate::resource::*;
+
+use self::shot::perform_shots;
 
 use super::{
     collider::run_collider, controller::ControllerState, maze_generator::MazeGenerator,
