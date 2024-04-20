@@ -1,6 +1,6 @@
 use engine::*;
 
-use self::shot::perform_shots;
+use self::{resource::*, shot::perform_shots};
 
 use super::{
     collider::run_collider, controller::ControllerState, maze_generator::MazeGenerator,
@@ -27,7 +27,7 @@ impl GameScene {
                 .put(Position(position))
                 .put(PrevPosition(position))
                 .put(Angle(0.0))
-                .put(TextureID("player_shotgun".to_string()));
+                .put(TextureID(PLAYER_SHOTGUN.to_string()));
             storage.add_from_bundle(&bundle)
         };
         let maze_id = {
@@ -38,7 +38,7 @@ impl GameScene {
         };
         {
             let bundle = EntityBundle::new()
-                .put(TextureID("candelabra".to_string()))
+                .put(TextureID(WORLD_CANDELABRA.to_string()))
                 .put(Position(Vec2f::new(6.0, 6.0)))
                 .put(ScaleRatio(0.7))
                 .put(HeightShift(0.27))
@@ -50,7 +50,7 @@ impl GameScene {
                 .put(AnimationData {
                     frame_counter: 0,
                     target_frames: usize::MAX,
-                    animation_id: "anim_fire_green".to_string(),
+                    animation_id: WORLD_TORCH_GREEN_ANIM.to_string(),
                 })
                 .put(Position(Vec2f::new(8.0, 10.0)))
                 .put(ScaleRatio(0.7))
@@ -63,7 +63,7 @@ impl GameScene {
                 .put(AnimationData {
                     frame_counter: 30,
                     target_frames: usize::MAX,
-                    animation_id: "anim_fire_red".to_string(),
+                    animation_id: WORLD_TORCH_RED_ANIM.to_string(),
                 })
                 .put(Position(Vec2f::new(6.0, 8.0)))
                 .put(ScaleRatio(0.7))

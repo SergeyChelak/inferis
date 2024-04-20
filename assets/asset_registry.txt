@@ -13,9 +13,9 @@ texture                 candelabra          assets/c1.png
 ##########################################################################################################
 # player view
 texture                 player_shotgun           assets/shotgun/shotgun.png
-texture                 player_shotgun_shot      assets/shotgun/shotgun_animation_shot.png
+texture                 shotgun_shot             assets/shotgun/shotgun_animation_shot.png
 # player shotgun animation
-animation               shotgun_shot             player_shotgun_shot     6       10
+animation               anim_shotgun_shot        shotgun_shot     6       10
 ##########################################################################################################
 
 
@@ -40,8 +40,8 @@ animation               anim_soldier_walk       soldier_walk            4       
 texture                 fire_red                assets/animation/fire_red.png
 texture                 fire_green              assets/animation/fire_green.png
 # animations
-animation               anim_fire_red              fire_red           4       10
-animation               anim_fire_green            fire_green         4       10
+animation               anim_torch_red          fire_red           4       10
+animation               anim_torch_green        fire_green         4       10
 ##########################################################################################################
 
 

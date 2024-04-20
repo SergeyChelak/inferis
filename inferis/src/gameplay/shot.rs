@@ -1,6 +1,6 @@
 use engine::{ComponentStorage, EngineResult, EntityID};
 
-use super::{controller::ControllerState, AnimationData};
+use super::{controller::ControllerState, resource::PLAYER_ANIM_SHOTGUN_SHOT, AnimationData};
 
 pub fn perform_shots(
     storage: &mut ComponentStorage,
@@ -21,7 +21,7 @@ fn handle_player_shot(storage: &mut ComponentStorage, player_id: EntityID) -> En
     let data = AnimationData {
         frame_counter: 0,
         target_frames: 60,
-        animation_id: "shotgun_shot".to_string(),
+        animation_id: PLAYER_ANIM_SHOTGUN_SHOT.to_string(),
     };
     storage.set(player_id, Some(data));
     Ok(())

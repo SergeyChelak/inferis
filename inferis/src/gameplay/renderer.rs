@@ -2,7 +2,7 @@ use std::{borrow::BorrowMut, cmp::Ordering, f32::consts::PI};
 
 use super::{
     ray_caster::{ray_cast, RAY_CASTER_TOL},
-    resource::{wall_texture, SKY},
+    resource::{wall_texture, WORLD_SKY},
     Angle, AnimationData, HeightShift, Maze, Position, ScaleRatio, SpriteTag, TextureID,
 };
 use engine::{
@@ -313,7 +313,7 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_sky(&mut self) -> EngineResult<()> {
-        let Some(texture) = self.assets.texture(SKY) else {
+        let Some(texture) = self.assets.texture(WORLD_SKY) else {
             return Ok(());
         };
         let Some(angle) = self.player_angle else {
