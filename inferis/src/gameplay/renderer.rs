@@ -295,7 +295,7 @@ impl<'a> Renderer<'a> {
         let half_height = self.window_size.height >> 1;
         let destination = Rect::new(0, half_height as i32, self.window_size.width, half_height);
         // gradient floor
-        let Some(texture) = self.assets.texture("floor_grad") else {
+        let Some(texture) = self.assets.texture(WORLD_FLOOR_GRADIENT) else {
             return Ok(());
         };
         let source = {
