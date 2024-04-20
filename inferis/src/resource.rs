@@ -16,3 +16,10 @@ pub const WORLD_CANDELABRA: &str = "candelabra";
 // player
 pub const PLAYER_SHOTGUN: &str = &"player_shotgun";
 pub const PLAYER_SHOTGUN_SHOT_ANIM: &str = &"anim_shotgun_shot";
+
+// npc soldier
+pub const NPC_SOLDIER_IDLE: &str = &"anim_soldier_idle";
+pub const NPC_SOLDIER_ATTACK: &str = &"anim_soldier_attack";
+pub const NPC_SOLDIER_DEATH: &str = &"anim_soldier_death";
+pub const NPC_SOLDIER_DAMAGE: &str = &"anim_soldier_pain";
+pub const NPC_SOLDIER_WALK: &str = &"anim_soldier_walk";

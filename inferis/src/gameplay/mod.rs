@@ -3,6 +3,7 @@ use engine::{ComponentStorage, EngineResult, Float, Vec2f};
 mod collider;
 mod controller;
 pub mod main_scene;
+mod npc;
 mod ray_caster;
 mod renderer;
 mod shot;
@@ -17,6 +18,8 @@ pub struct Position(pub Vec2f);
 pub struct PrevPosition(pub Vec2f);
 
 pub struct NpcTag;
+
+pub struct NpcDisplayMode(pub npc::State);
 
 pub struct Velocity(pub Float);
 
@@ -47,6 +50,7 @@ pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<SpriteTag>()?;
     storage.register_component::<PlayerTag>()?;
     storage.register_component::<NpcTag>()?;
+    storage.register_component::<NpcDisplayMode>()?;
     storage.register_component::<Health>()?;
     storage.register_component::<Position>()?;
     storage.register_component::<Velocity>()?;

@@ -2,7 +2,7 @@ use engine::*;
 
 use crate::{pbm::PBMImage, resource::*};
 
-use self::shot::perform_shots;
+use self::{npc::npc_update, shot::perform_shots};
 
 use super::{
     collider::run_collider, controller::ControllerState, renderer::*,
@@ -19,13 +19,15 @@ pub struct GameScene {
 impl GameScene {
     pub fn new() -> EngineResult<Self> {
         let mut storage = game_play_component_storage()?;
-        let player_id = storage.add_from_bundle(&bundle_player());
+        let player_id = storage.add_from_bundle(&bundle_player(Vec2f::new(5.0, 10.0)));
         let maze_id = storage.add_from_bundle(&bundle_maze()?);
         // decorations
         storage.add_from_bundle(&bundle_torch(TorchStyle::Green, Vec2f::new(1.2, 12.9)));
         storage.add_from_bundle(&bundle_torch(TorchStyle::Green, Vec2f::new(1.2, 4.1)));
         storage.add_from_bundle(&bundle_torch(TorchStyle::Red, Vec2f::new(1.2, 9.0)));
         storage.add_from_bundle(&bundle_sprite(WORLD_CANDELABRA, Vec2f::new(8.8, 2.8)));
+        // npc
+        storage.add_from_bundle(&bundle_npc_soldier(Vec2f::new(8.0, 10.0)));
         Ok(Self {
             storage,
             controller: ControllerState::default(),
@@ -54,7 +56,7 @@ impl Scene for GameScene {
             delta_time,
         )?;
         perform_shots(&mut self.storage, self.player_id, &self.controller)?;
-        // TODO: update NPC position
+        npc_update(&mut self.storage)?;
         run_collider(&mut self.storage, self.player_id, self.maze_id)?;
         Ok(())
     }
@@ -72,8 +74,7 @@ impl Scene for GameScene {
 }
 
 // temporary producer functions
-fn bundle_player() -> EntityBundle {
-    let position = Vec2f::new(5.0, 10.0);
+fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
         .put(Health(100))
@@ -122,4 +123,14 @@ fn bundle_sprite(texture_id: &str, position: Vec2f) -> EntityBundle {
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
         .put(SpriteTag)
+}
+
+fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
+    EntityBundle::new()
+        .put(SpriteTag)
+        .put(Position(position))
+        .put(NpcTag)
+        .put(NpcDisplayMode(npc::State::Idle))
+        .put(ScaleRatio(0.7))
+        .put(HeightShift(0.27))
 }
