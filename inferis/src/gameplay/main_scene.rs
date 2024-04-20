@@ -5,7 +5,7 @@ use crate::resource::*;
 use self::shot::perform_shots;
 
 use super::{
-    collider::run_collider, controller::ControllerState, maze_generator::MazeGenerator,
+    collider::run_collider, controller::ControllerState, level_generator::MazeGenerator,
     renderer::*, transform::transform_position, *,
 };
 
@@ -40,8 +40,12 @@ impl GameScene {
         };
         {
             let bundle = EntityBundle::new()
-                .put(TextureID(WORLD_CANDELABRA.to_string()))
-                .put(Position(Vec2f::new(6.0, 6.0)))
+                .put(AnimationData {
+                    frame_counter: 0,
+                    target_frames: usize::MAX,
+                    animation_id: WORLD_TORCH_GREEN_ANIM.to_string(),
+                })
+                .put(Position(Vec2f::new(1.2, 12.9)))
                 .put(ScaleRatio(0.7))
                 .put(HeightShift(0.27))
                 .put(SpriteTag);
@@ -54,7 +58,7 @@ impl GameScene {
                     target_frames: usize::MAX,
                     animation_id: WORLD_TORCH_GREEN_ANIM.to_string(),
                 })
-                .put(Position(Vec2f::new(8.0, 10.0)))
+                .put(Position(Vec2f::new(1.2, 4.1)))
                 .put(ScaleRatio(0.7))
                 .put(HeightShift(0.27))
                 .put(SpriteTag);
@@ -67,7 +71,7 @@ impl GameScene {
                     target_frames: usize::MAX,
                     animation_id: WORLD_TORCH_RED_ANIM.to_string(),
                 })
-                .put(Position(Vec2f::new(6.0, 8.0)))
+                .put(Position(Vec2f::new(1.2, 9.0)))
                 .put(ScaleRatio(0.7))
                 .put(HeightShift(0.27))
                 .put(SpriteTag);

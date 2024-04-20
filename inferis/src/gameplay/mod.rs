@@ -2,8 +2,8 @@ use engine::{ComponentStorage, EngineResult, Float, Vec2f};
 
 mod collider;
 mod controller;
+mod level_generator;
 pub mod main_scene;
-mod maze_generator;
 mod ray_caster;
 mod renderer;
 mod shot;
