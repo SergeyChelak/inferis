@@ -50,7 +50,7 @@ impl GameScene {
                 .put(AnimationData {
                     frame_counter: 0,
                     target_frames: usize::MAX,
-                    animation_id: "deco_2".to_string(),
+                    animation_id: "anim_fire_green".to_string(),
                 })
                 .put(Position(Vec2f::new(8.0, 10.0)))
                 .put(ScaleRatio(0.7))
@@ -63,7 +63,7 @@ impl GameScene {
                 .put(AnimationData {
                     frame_counter: 30,
                     target_frames: usize::MAX,
-                    animation_id: "deco_1".to_string(),
+                    animation_id: "anim_fire_red".to_string(),
                 })
                 .put(Position(Vec2f::new(6.0, 8.0)))
                 .put(ScaleRatio(0.7))

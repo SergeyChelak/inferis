@@ -1,6 +1,5 @@
-#####################################################
+##########################################################################################################
 # world
-#####################################################
 texture                 wall1               assets/1.png
 texture                 wall2               assets/2.png
 texture                 wall3               assets/3.png
@@ -8,30 +7,46 @@ texture                 wall4               assets/4.png
 texture                 wall5               assets/5.png
 texture                 sky                 assets/sky.png
 texture                 candelabra          assets/c1.png
+##########################################################################################################
 
-#####################################################
+##########################################################################################################
 # player view
-#####################################################
 texture                 player_shotgun           assets/shotgun/shotgun.png
 texture                 player_shotgun_shot      assets/shotgun/shotgun_animation_shot.png
+# player shotgun animation
+animation               shotgun_shot             player_shotgun_shot     6       10
+##########################################################################################################
 
-#####################################################
+
+##########################################################################################################
+# NPC soldier textures
+texture                 soldier_idle            assets/soldier/idle.png
+texture                 soldier_attack          assets/soldier/attack.png
+texture                 soldier_death           assets/soldier/death.png
+texture                 soldier_pain            assets/soldier/pain.png
+texture                 soldier_walk            assets/soldier/walk.png
+# NPC soldier animations
+animation               anim_soldier_idle       soldier_idle            8       10
+animation               anim_soldier_attack     soldier_attack          2       10
+animation               anim_soldier_death      soldier_death           9       10
+animation               anim_soldier_pain       soldier_pain            1       10
+animation               anim_soldier_walk       soldier_walk            4       10
+##########################################################################################################
+
+
+##########################################################################################################
 # decorations
-# animation textures must be declared first
-#####################################################
-texture                 anim_cand_red       assets/anim_deco_1.png
-texture                 anim_cand_green     assets/anim_deco_2.png
-
-#####################################################
+texture                 fire_red                assets/animation/fire_red.png
+texture                 fire_green              assets/animation/fire_green.png
 # animation is refers to the texture resource
-#####################################################
-animation               deco_1              anim_cand_red           4       10
-animation               deco_2              anim_cand_green         4       10
-animation               shotgun_shot        player_shotgun_shot     6       10
+animation               anim_fire_red              fire_red           4       10
+animation               anim_fire_green            fire_green         4       10
+##########################################################################################################
 
-#####################################################
+
+##########################################################################################################
 # other resources
-#####################################################
 color                   floor               30,30,30
 color                   black               0,0,0
 vertical_gradient       floor_grad          0,0,0-35,35,35               450
+##########################################################################################################
