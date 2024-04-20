@@ -133,4 +133,5 @@ fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
         .put(NpcDisplayMode(npc::State::Idle))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
+        .put(BoundingBox(SizeFloat::new(1.0, 1.0)))
 }

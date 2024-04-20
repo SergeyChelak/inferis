@@ -45,17 +45,11 @@ fn update_animation(storage: &mut ComponentStorage, entity_id: EntityID) -> Engi
 
 fn animation_data(state: State) -> AnimationData {
     use State::*;
-    let animation_id = match state {
-        Idle => NPC_SOLDIER_IDLE,
-        Death => NPC_SOLDIER_DEATH,
-        Attack => NPC_SOLDIER_ATTACK,
-        Walk => NPC_SOLDIER_WALK,
-        Damage => NPC_SOLDIER_DAMAGE,
-    }
-    .to_string();
-    AnimationData {
-        frame_counter: 0,
-        target_frames: usize::MAX,
-        animation_id,
+    match state {
+        Idle => AnimationData::endless(NPC_SOLDIER_IDLE),
+        Death => AnimationData::new(NPC_SOLDIER_DEATH, 90),
+        Attack => AnimationData::endless(NPC_SOLDIER_ATTACK),
+        Walk => AnimationData::endless(NPC_SOLDIER_WALK),
+        Damage => AnimationData::new(NPC_SOLDIER_DAMAGE, 10),
     }
 }
