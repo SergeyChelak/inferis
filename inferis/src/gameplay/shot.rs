@@ -1,6 +1,6 @@
 use engine::{ComponentStorage, EngineResult, EntityID};
 
-use crate::resource::PLAYER_ANIM_SHOTGUN_SHOT;
+use crate::resource::PLAYER_SHOTGUN_SHOT_ANIM;
 
 use super::{controller::ControllerState, AnimationData};
 
@@ -23,7 +23,7 @@ fn handle_player_shot(storage: &mut ComponentStorage, player_id: EntityID) -> En
     let data = AnimationData {
         frame_counter: 0,
         target_frames: 60,
-        animation_id: PLAYER_ANIM_SHOTGUN_SHOT.to_string(),
+        animation_id: PLAYER_SHOTGUN_SHOT_ANIM.to_string(),
     };
     storage.set(player_id, Some(data));
     Ok(())

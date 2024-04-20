@@ -11,4 +11,4 @@ pub const WORLD_CANDELABRA: &str = "candelabra";
 
 // player
 pub const PLAYER_SHOTGUN: &str = &"player_shotgun";
-pub const PLAYER_ANIM_SHOTGUN_SHOT: &str = &"anim_shotgun_shot";
+pub const PLAYER_SHOTGUN_SHOT_ANIM: &str = &"anim_shotgun_shot";
