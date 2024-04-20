@@ -1,13 +1,14 @@
 ##########################################################################################################
 # world
-texture                 wall1               assets/1.png
-texture                 wall2               assets/2.png
-texture                 wall3               assets/3.png
-texture                 wall4               assets/4.png
-texture                 wall5               assets/5.png
+texture                 wall1               assets/walls/1.png
+texture                 wall2               assets/walls/2.png
+texture                 wall3               assets/walls/3.png
+texture                 wall4               assets/walls/4.png
+texture                 wall5               assets/walls/5.png
 texture                 sky                 assets/sky.png
 texture                 candelabra          assets/c1.png
 ##########################################################################################################
+
 
 ##########################################################################################################
 # player view
@@ -38,7 +39,7 @@ animation               anim_soldier_walk       soldier_walk            4       
 # decorations
 texture                 fire_red                assets/animation/fire_red.png
 texture                 fire_green              assets/animation/fire_green.png
-# animation is refers to the texture resource
+# animations
 animation               anim_fire_red              fire_red           4       10
 animation               anim_fire_green            fire_green         4       10
 ##########################################################################################################

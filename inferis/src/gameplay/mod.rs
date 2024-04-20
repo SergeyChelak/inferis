@@ -9,6 +9,38 @@ mod renderer;
 mod shot;
 mod transform;
 
+mod resource {
+    use engine::Vec2f;
+
+    use super::MazeData;
+
+    // world
+    const WALL1: &str = &"wall1";
+    const WALL2: &str = &"wall2";
+    const WALL3: &str = &"wall3";
+    const WALL4: &str = &"wall4";
+    const WALL5: &str = &"wall5";
+
+    pub const SKY: &str = "sky";
+
+    pub fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<&str> {
+        let Vec2f { x, y } = point;
+        if x < 0.0 || y < 0.0 {
+            return None;
+        }
+        let (col, row) = (point.x as usize, point.y as usize);
+        let value = maze.get(row).and_then(|x| x.get(col))?;
+        match value {
+            1 => Some(WALL1),
+            2 => Some(WALL2),
+            3 => Some(WALL3),
+            4 => Some(WALL4),
+            5 => Some(WALL5),
+            _ => None,
+        }
+    }
+}
+
 pub struct Health(pub u32);
 
 pub struct PlayerTag;

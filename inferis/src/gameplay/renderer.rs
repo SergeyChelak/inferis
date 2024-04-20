@@ -2,7 +2,8 @@ use std::{borrow::BorrowMut, cmp::Ordering, f32::consts::PI};
 
 use super::{
     ray_caster::{ray_cast, RAY_CASTER_TOL},
-    Angle, AnimationData, HeightShift, Maze, MazeData, Position, ScaleRatio, SpriteTag, TextureID,
+    resource::{wall_texture, SKY},
+    Angle, AnimationData, HeightShift, Maze, Position, ScaleRatio, SpriteTag, TextureID,
 };
 use engine::{
     pixels::Color,
@@ -312,7 +313,7 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_sky(&mut self) -> EngineResult<()> {
-        let Some(texture) = self.assets.texture("sky") else {
+        let Some(texture) = self.assets.texture(SKY) else {
             return Ok(());
         };
         let Some(angle) = self.player_angle else {
@@ -446,22 +447,5 @@ impl<'a> Renderer<'a> {
                 ),
             )
             .map_err(|e| EngineError::Sdl(e.to_string()))
-    }
-}
-
-fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<&str> {
-    let Vec2f { x, y } = point;
-    if x < 0.0 || y < 0.0 {
-        return None;
-    }
-    let (col, row) = (point.x as usize, point.y as usize);
-    let value = maze.get(row).and_then(|x| x.get(col))?;
-    match value {
-        1 => Some("wall1"),
-        2 => Some("wall2"),
-        3 => Some("wall3"),
-        4 => Some("wall4"),
-        5 => Some("wall5"),
-        _ => None,
     }
 }
