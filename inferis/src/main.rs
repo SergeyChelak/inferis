@@ -7,7 +7,7 @@ const WINDOW_TITLE: &str = "INFERIS";
 
 fn main() -> EngineResult<()> {
     let settings = EngineSettings {
-        asset_path: "assets/asset_registry.txt".to_string(),
+        asset_path: "asset_registry.txt".to_string(),
         window: WindowSettings {
             title: WINDOW_TITLE.to_owned(),
             size: SizeU32 {
