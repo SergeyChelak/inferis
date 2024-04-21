@@ -55,7 +55,12 @@ impl Scene for GameScene {
             &self.controller,
             delta_time,
         )?;
-        perform_shots(&mut self.storage, self.player_id, &self.controller)?;
+        perform_shots(
+            &mut self.storage,
+            &self.controller,
+            self.player_id,
+            self.maze_id,
+        )?;
         npc_update(&mut self.storage)?;
         run_collider(&mut self.storage, self.player_id, self.maze_id)?;
         Ok(())
@@ -130,7 +135,7 @@ fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
         .put(SpriteTag)
         .put(Position(position))
         .put(NpcTag)
-        .put(NpcDisplayMode(npc::State::Idle))
+        .put(NpcState::Idle)
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
         .put(BoundingBox(SizeFloat::new(1.0, 1.0)))

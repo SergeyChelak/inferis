@@ -1,5 +1,7 @@
 use engine::{ComponentStorage, EngineResult, Float, SizeFloat, Vec2f};
 
+use crate::resource::*;
+
 mod collider;
 mod controller;
 pub mod main_scene;
@@ -19,7 +21,14 @@ pub struct PrevPosition(pub Vec2f);
 
 pub struct NpcTag;
 
-pub struct NpcDisplayMode(pub npc::State);
+#[derive(Clone, Copy, Debug)]
+pub enum NpcState {
+    Idle,
+    Death,
+    Attack,
+    Walk,
+    Damage,
+}
 
 pub struct Velocity(pub Float);
 
@@ -45,6 +54,32 @@ pub struct AnimationData {
     pub target_frames: usize,
 }
 
+pub struct BoundingBox(pub SizeFloat);
+
+pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
+    let mut storage = ComponentStorage::new();
+    storage.register_component::<SpriteTag>()?;
+    storage.register_component::<PlayerTag>()?;
+    storage.register_component::<NpcTag>()?;
+    storage.register_component::<NpcState>()?;
+    storage.register_component::<Health>()?;
+    storage.register_component::<Position>()?;
+    storage.register_component::<Velocity>()?;
+    storage.register_component::<RotationSpeed>()?;
+    storage.register_component::<Maze>()?;
+    storage.register_component::<Angle>()?;
+    storage.register_component::<PrevPosition>()?;
+    storage.register_component::<TextureID>()?;
+    storage.register_component::<ScaleRatio>()?;
+    storage.register_component::<HeightShift>()?;
+    storage.register_component::<AnimationData>()?;
+    storage.register_component::<BoundingBox>()?;
+    Ok(storage)
+}
+
+// the step back was done for AnimationData and Maze in philosophy of ECS
+// there is no big difference if this implementation will be done with pure functions
+// but just for convenience I decided to keep this code this way
 impl AnimationData {
     pub fn new(animation_id: impl Into<String>, target_frames: usize) -> Self {
         Self {
@@ -59,25 +94,31 @@ impl AnimationData {
     }
 }
 
-pub struct BoundingBox(pub SizeFloat);
+impl Maze {
+    pub fn wall_texture(&self, point: Vec2f) -> Option<&str> {
+        match self.value_at(point)? {
+            1 => Some(WORLD_WALL1),
+            2 => Some(WORLD_WALL2),
+            3 => Some(WORLD_WALL3),
+            4 => Some(WORLD_WALL4),
+            5 => Some(WORLD_WALL5),
+            _ => None,
+        }
+    }
 
-pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
-    let mut storage = ComponentStorage::new();
-    storage.register_component::<SpriteTag>()?;
-    storage.register_component::<PlayerTag>()?;
-    storage.register_component::<NpcTag>()?;
-    storage.register_component::<NpcDisplayMode>()?;
-    storage.register_component::<Health>()?;
-    storage.register_component::<Position>()?;
-    storage.register_component::<Velocity>()?;
-    storage.register_component::<RotationSpeed>()?;
-    storage.register_component::<Maze>()?;
-    storage.register_component::<Angle>()?;
-    storage.register_component::<PrevPosition>()?;
-    storage.register_component::<TextureID>()?;
-    storage.register_component::<ScaleRatio>()?;
-    storage.register_component::<HeightShift>()?;
-    storage.register_component::<AnimationData>()?;
-    storage.register_component::<BoundingBox>()?;
-    Ok(storage)
+    pub fn value_at(&self, point: Vec2f) -> Option<&i32> {
+        let Vec2f { x, y } = point;
+        if x < 0.0 || y < 0.0 {
+            return None;
+        }
+        let (col, row) = (point.x as usize, point.y as usize);
+        self.0.get(row).and_then(|x| x.get(col))
+    }
+
+    pub fn is_wall(&self, point: Vec2f) -> bool {
+        let Some(val) = self.value_at(point) else {
+            return false;
+        };
+        *val != 0
+    }
 }

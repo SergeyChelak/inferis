@@ -2,16 +2,7 @@ use engine::{ComponentStorage, EngineResult, EntityID, Query};
 
 use crate::resource::*;
 
-use super::{AnimationData, NpcDisplayMode, NpcTag};
-
-#[derive(Clone, Copy, Debug)]
-pub enum State {
-    Idle,
-    Death,
-    Attack,
-    Walk,
-    Damage,
-}
+use super::{AnimationData, NpcState, NpcTag};
 
 pub fn npc_update(storage: &mut ComponentStorage) -> EngineResult<()> {
     let query: Query = Query::new().with_component::<NpcTag>();
@@ -22,7 +13,7 @@ pub fn npc_update(storage: &mut ComponentStorage) -> EngineResult<()> {
 }
 
 fn update_animation(storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult<()> {
-    let Some(state) = storage.get::<NpcDisplayMode>(entity_id).map(|x| x.0) else {
+    let Some(state) = storage.get::<NpcState>(entity_id).map(|x| x.to_owned()) else {
         storage.set::<AnimationData>(entity_id, None);
         return Ok(());
     };
@@ -43,8 +34,8 @@ fn update_animation(storage: &mut ComponentStorage, entity_id: EntityID) -> Engi
     Ok(())
 }
 
-fn animation_data(state: State) -> AnimationData {
-    use State::*;
+fn animation_data(state: NpcState) -> AnimationData {
+    use NpcState::*;
     match state {
         Idle => AnimationData::endless(NPC_SOLDIER_IDLE),
         Death => AnimationData::new(NPC_SOLDIER_DEATH, 90),

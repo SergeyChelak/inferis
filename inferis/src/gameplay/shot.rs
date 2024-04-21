@@ -3,24 +3,27 @@ use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Query, Recta
 use crate::resource::PLAYER_SHOTGUN_SHOT_ANIM;
 
 use super::{
-    controller::ControllerState,
-    npc::{self, State},
-    ray_caster::ray_cast,
-    Angle, AnimationData, BoundingBox, NpcDisplayMode, NpcTag, Position,
+    controller::ControllerState, ray_caster::ray_cast, Angle, AnimationData, BoundingBox, Maze,
+    NpcState, NpcTag, Position,
 };
 
 pub fn perform_shots(
     storage: &mut ComponentStorage,
-    player_id: EntityID,
     controller: &ControllerState,
+    player_id: EntityID,
+    maze_id: EntityID,
 ) -> EngineResult<()> {
     if controller.shot_pressed {
-        handle_player_shot(storage, player_id)?;
+        handle_player_shot(storage, player_id, maze_id)?;
     }
     Ok(())
 }
 
-fn handle_player_shot(storage: &mut ComponentStorage, player_id: EntityID) -> EngineResult<()> {
+fn handle_player_shot(
+    storage: &mut ComponentStorage,
+    player_id: EntityID,
+    maze_id: EntityID,
+) -> EngineResult<()> {
     // TODO: is it smart enough?
     if storage.get::<AnimationData>(player_id).is_some() {
         return Ok(());
@@ -31,7 +34,7 @@ fn handle_player_shot(storage: &mut ComponentStorage, player_id: EntityID) -> En
         animation_id: PLAYER_SHOTGUN_SHOT_ANIM.to_string(),
     };
     storage.set(player_id, Some(data));
-    cast_shoot(storage, player_id)
+    cast_shoot(storage, player_id, maze_id)
 }
 
 #[derive(Debug)]
@@ -40,17 +43,17 @@ enum CastItem {
     Enemy(EntityID),
 }
 
-fn cast_shoot(storage: &mut ComponentStorage, player_id: EntityID) -> EngineResult<()> {
+fn cast_shoot(
+    storage: &mut ComponentStorage,
+    player_id: EntityID,
+    maze_id: EntityID,
+) -> EngineResult<()> {
     let Some(player_pos) = storage.get::<Position>(player_id).map(|x| x.0) else {
         return Err(EngineError::ComponentNotFound("Position".to_string()));
     };
     let Some(player_angle) = storage.get::<Angle>(player_id).map(|x| x.0) else {
         return Err(EngineError::ComponentNotFound("Angle".to_string()));
     };
-    // let Some(maze_comp) = self.storage.get::<Maze>(self.maze_id) else {
-    //     return Ok(());
-    // };
-    // let maze = &maze_comp.0;
     let query: Query = Query::new()
         .with_component::<NpcTag>()
         .with_component::<BoundingBox>();
@@ -69,14 +72,17 @@ fn cast_shoot(storage: &mut ComponentStorage, player_id: EntityID) -> EngineResu
                 return Some(CastItem::Enemy(*entity_id));
             }
         }
-        // TODO: check for the walls
+        if let Some(true) = storage.get::<Maze>(maze_id).map(|x| x.is_wall(point)) {
+            println!("[cast_shoot] shoot in the wall");
+            return Some(CastItem::Wall);
+        };
         None
     };
     let item = ray_cast(player_pos, player_angle, &check);
     match item.value {
         Some(CastItem::Enemy(id)) => {
             println!("[shot] id {} updated with damage", id.index());
-            storage.set::<NpcDisplayMode>(id, Some(NpcDisplayMode(State::Damage)));
+            storage.set::<NpcState>(id, Some(NpcState::Damage));
         }
         _ => {
             println!("Result value: {:?}", item.value);

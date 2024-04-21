@@ -4,7 +4,7 @@ use crate::resource::*;
 
 use super::{
     ray_caster::{ray_cast, RAY_CASTER_TOL},
-    Angle, AnimationData, HeightShift, Maze, MazeData, Position, ScaleRatio, SpriteTag, TextureID,
+    Angle, AnimationData, HeightShift, Maze, Position, ScaleRatio, SpriteTag, TextureID,
 };
 use engine::{
     pixels::Color,
@@ -248,7 +248,7 @@ impl<'a> Renderer<'a> {
         let mut ray_angle = angle - HALF_FIELD_OF_VIEW;
         let image_width = self.scale as u32;
 
-        let check = |point: Vec2f| wall_texture(point, &component_maze.0);
+        let check = |point: Vec2f| component_maze.wall_texture(point);
         for ray in 0..self.rays_count {
             let result = ray_cast(pos, ray_angle, &check);
             let Some(texture) = result.value.and_then(|key| self.assets.texture(key)) else {
@@ -448,22 +448,5 @@ impl<'a> Renderer<'a> {
                 ),
             )
             .map_err(|e| EngineError::Sdl(e.to_string()))
-    }
-}
-
-fn wall_texture(point: Vec2f, maze: &MazeData) -> Option<&str> {
-    let Vec2f { x, y } = point;
-    if x < 0.0 || y < 0.0 {
-        return None;
-    }
-    let (col, row) = (point.x as usize, point.y as usize);
-    let value = maze.get(row).and_then(|x| x.get(col))?;
-    match value {
-        1 => Some(WORLD_WALL1),
-        2 => Some(WORLD_WALL2),
-        3 => Some(WORLD_WALL3),
-        4 => Some(WORLD_WALL4),
-        5 => Some(WORLD_WALL5),
-        _ => None,
     }
 }
