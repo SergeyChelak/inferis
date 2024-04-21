@@ -6,10 +6,9 @@ mod collider;
 mod controller;
 pub mod main_scene;
 mod npc;
+mod player;
 mod ray_caster;
 mod renderer;
-mod shot;
-mod transform;
 
 pub struct Health(pub u32);
 

@@ -1,25 +1,91 @@
-use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Query, Rectangle, Vec2f};
-
-use crate::resource::PLAYER_SHOTGUN_SHOT_ANIM;
-
-use super::{
-    controller::ControllerState, ray_caster::ray_cast, Angle, AnimationData, BoundingBox, Maze,
-    NpcState, NpcTag, Position,
+use std::{
+    borrow::{Borrow, BorrowMut},
+    f32::consts::PI,
 };
 
-pub fn perform_shots(
+use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Query, Rectangle};
+
+use self::ray_caster::ray_cast;
+
+use super::{controller::ControllerState, *};
+
+pub fn player_update(
     storage: &mut ComponentStorage,
     controller: &ControllerState,
+    delta_time: f32,
     player_id: EntityID,
     maze_id: EntityID,
 ) -> EngineResult<()> {
+    transform_position(storage, player_id, controller, delta_time)?;
     if controller.shot_pressed {
-        handle_player_shot(storage, player_id, maze_id)?;
+        perform_shots(storage, player_id, maze_id)?;
     }
+    return Ok(());
+}
+
+fn transform_position(
+    storage: &mut ComponentStorage,
+    id: EntityID,
+    controller: &ControllerState,
+    delta_time: f32,
+) -> EngineResult<()> {
+    let Some(vel_comp) = storage.get::<Velocity>(id) else {
+        return Err(EngineError::ComponentNotFound("Velocity".to_string()));
+    };
+    let Some(mut angle_comp) = storage.get_mut::<Angle>(id) else {
+        return Err(EngineError::ComponentNotFound("Angle".to_string()));
+    };
+    let Some(mut pos_comp) = storage.get_mut::<Position>(id) else {
+        return Err(EngineError::ComponentNotFound("Position".to_string()));
+    };
+    let Some(rot_speed_comp) = storage.get::<RotationSpeed>(id) else {
+        return Err(EngineError::ComponentNotFound("RotationSpeed".to_string()));
+    };
+    let angle = angle_comp.borrow().0;
+    let sin_a = angle.sin();
+    let cos_a = angle.cos();
+
+    let velocity = vel_comp.0;
+    let dist = velocity * delta_time;
+    let dist_cos = dist * cos_a;
+    let dist_sin = dist * sin_a;
+
+    let (mut dx, mut dy) = (0.0, 0.0);
+
+    if controller.forward_pressed {
+        dx += dist_cos;
+        dy += dist_sin;
+    }
+    if controller.backward_pressed {
+        dx += -dist_cos;
+        dy += -dist_sin;
+    }
+    if controller.left_pressed {
+        dx += dist_sin;
+        dy += -dist_cos;
+    }
+    if controller.right_pressed {
+        dx += -dist_sin;
+        dy += dist_cos;
+    }
+
+    let position = pos_comp.borrow_mut();
+    position.0.x += dx;
+    position.0.y += dy;
+    // rotation
+    let rotation_speed = rot_speed_comp.0;
+    let angle = angle_comp.borrow_mut();
+    if controller.rotate_left_pressed {
+        angle.0 -= rotation_speed * delta_time;
+    }
+    if controller.rotate_right_pressed {
+        angle.0 += rotation_speed * delta_time;
+    }
+    angle.0 %= 2.0 * PI;
     Ok(())
 }
 
-fn handle_player_shot(
+fn perform_shots(
     storage: &mut ComponentStorage,
     player_id: EntityID,
     maze_id: EntityID,
@@ -54,7 +120,7 @@ fn cast_shoot(
     let Some(player_angle) = storage.get::<Angle>(player_id).map(|x| x.0) else {
         return Err(EngineError::ComponentNotFound("Angle".to_string()));
     };
-    let query: Query = Query::new()
+    let query = Query::new()
         .with_component::<NpcTag>()
         .with_component::<BoundingBox>();
     let enemies = storage.fetch_entities(&query);

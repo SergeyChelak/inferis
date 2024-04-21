@@ -2,12 +2,9 @@ use engine::*;
 
 use crate::{pbm::PBMImage, resource::*};
 
-use self::{npc::npc_update, shot::perform_shots};
+use self::npc::npc_update;
 
-use super::{
-    collider::run_collider, controller::ControllerState, renderer::*,
-    transform::transform_position, *,
-};
+use super::{collider::run_collider, controller::ControllerState, player::*, renderer::*, *};
 
 pub struct GameScene {
     storage: ComponentStorage,
@@ -49,15 +46,10 @@ impl Scene for GameScene {
 
     fn run_systems(&mut self, engine: &mut dyn Engine) -> EngineResult<()> {
         let delta_time = engine.delta_time();
-        transform_position(
+        player_update(
             &mut self.storage,
-            self.player_id,
             &self.controller,
             delta_time,
-        )?;
-        perform_shots(
-            &mut self.storage,
-            &self.controller,
             self.player_id,
             self.maze_id,
         )?;
