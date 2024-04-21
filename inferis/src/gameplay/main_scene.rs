@@ -25,6 +25,8 @@ impl GameScene {
         storage.add_from_bundle(&bundle_sprite(WORLD_CANDELABRA, Vec2f::new(8.8, 2.8)));
         // npc
         storage.add_from_bundle(&bundle_npc_soldier(Vec2f::new(8.0, 10.0)));
+        storage.add_from_bundle(&bundle_npc_soldier(Vec2f::new(27.0, 13.8)));
+        storage.add_from_bundle(&bundle_npc_soldier(Vec2f::new(40.0, 8.0)));
         Ok(Self {
             storage,
             controller: ControllerState::default(),
@@ -127,5 +129,5 @@ fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
         .put(NpcState::Idle(ProgressModel::infinite()))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
-        .put(BoundingBox(SizeFloat::new(1.0, 1.0)))
+        .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
 }
