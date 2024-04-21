@@ -94,7 +94,10 @@ fn perform_shots(
     if let Some(PlayerState::Shooting(_)) = storage.get::<PlayerState>(player_id).map(|x| *x) {
         return Ok(());
     };
-    storage.set(player_id, Some(PlayerState::Shooting(60)));
+    storage.set(
+        player_id,
+        Some(PlayerState::Shooting(ProgressModel::new(60))),
+    );
     cast_shoot(storage, player_id, maze_id)
 }
 
@@ -143,7 +146,7 @@ fn cast_shoot(
     match item.value {
         Some(CastItem::Enemy(id)) => {
             println!("[shot] id {} updated with damage", id.index());
-            storage.set::<NpcState>(id, Some(NpcState::Damage));
+            storage.set::<NpcState>(id, Some(NpcState::Damage(ProgressModel::new(30))));
         }
         _ => {
             println!("Result value: {:?}", item.value);
@@ -161,15 +164,16 @@ fn update_state(storage: &mut ComponentStorage, player_id: EntityID) -> EngineRe
         Normal => {
             storage.set::<AnimationData>(player_id, None);
         }
-        Shooting(0) => {
-            storage.set(player_id, Some(Normal));
-        }
-        Shooting(frames) => {
-            storage.set(player_id, Some(Shooting(frames - 1)));
-            // TODO: maybe it's better to check if exactly the same animation is playing
-            if storage.get::<AnimationData>(player_id).is_none() {
-                let data = AnimationData::new(PLAYER_SHOTGUN_SHOT_ANIM);
-                storage.set(player_id, Some(data));
+        Shooting(mut progress) => {
+            if progress.is_completed() {
+                storage.set(player_id, Some(Normal));
+            } else {
+                if !progress.is_performing() {
+                    let data = AnimationData::new(PLAYER_SHOTGUN_SHOT_ANIM);
+                    storage.set(player_id, Some(data));
+                }
+                progress.teak();
+                storage.set(player_id, Some(Shooting(progress)));
             }
         }
     }
