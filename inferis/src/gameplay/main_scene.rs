@@ -55,7 +55,7 @@ impl Scene for GameScene {
             self.player_id,
             self.maze_id,
         )?;
-        npc_update(&mut self.storage)?;
+        npc_update(&mut self.storage, delta_time, self.player_id, self.maze_id)?;
         run_collider(&mut self.storage, self.player_id, self.maze_id)?;
         Ok(())
     }

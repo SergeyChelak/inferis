@@ -1,63 +1,137 @@
-use engine::{ComponentStorage, EngineResult, EntityID, ProgressModel, Query};
+use engine::{ComponentStorage, EngineError, EngineResult, EntityID, ProgressModel, Query, Vec2f};
 
 use crate::resource::*;
 
-use super::{AnimationData, CharacterState, NpcTag};
+use super::{AnimationData, CharacterState, Maze, NpcTag, Position};
 
-pub fn npc_update(storage: &mut ComponentStorage) -> EngineResult<()> {
-    let query: Query = Query::new().with_component::<NpcTag>();
-    for entity_id in storage.fetch_entities(&query) {
-        update_character(storage, entity_id)?;
-    }
-    Ok(())
+pub fn npc_update(
+    storage: &mut ComponentStorage,
+    delta_time: f32,
+    player_id: EntityID,
+    maze_id: EntityID,
+) -> EngineResult<()> {
+    let mut npc = Npc::new(storage, delta_time, player_id, maze_id)?;
+    npc.update()
 }
 
-fn update_character(storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult<()> {
-    let Some(state) = storage.get::<CharacterState>(entity_id).map(|x| *x) else {
-        return Err(engine::EngineError::ComponentNotFound(
-            "NpcState".to_string(),
-        ));
-    };
-    use CharacterState::*;
-    match state {
-        Idle(mut progress) => {
-            if !progress.is_performing() {
-                let data = AnimationData::new(NPC_SOLDIER_IDLE);
-                storage.set(entity_id, Some(data));
-            }
-            progress.teak();
-            storage.set(entity_id, Some(Damage(progress)));
-        }
-        Death(mut progress) => {
-            if progress.is_completed() {
-                storage.remove_entity(entity_id);
-            } else {
-                if !progress.is_performing() {
-                    let data = AnimationData::new(NPC_SOLDIER_DEATH);
-                    storage.set(entity_id, Some(data));
-                }
-                progress.teak();
-                storage.set(entity_id, Some(Death(progress)));
-            }
-        }
-        Attack(mut progress) => {
-            // NPC_SOLDIER_ATTACK
-        }
-        Walk(mut progress) => {
-            // NPC_SOLDIER_WALK
-        }
-        Damage(mut progress) => {
-            if progress.is_completed() {
-                storage.set(entity_id, Some(Idle(ProgressModel::infinite())));
-            } else {
-                if !progress.is_performing() {
-                    let data = AnimationData::new(NPC_SOLDIER_DAMAGE);
-                    storage.set(entity_id, Some(data));
-                }
-                progress.teak();
-                storage.set(entity_id, Some(Damage(progress)));
-            }
-        }
+struct Npc<'a> {
+    storage: &'a mut ComponentStorage,
+    delta_time: f32,
+    player_id: EntityID,
+    maze_id: EntityID,
+    player_pos: Vec2f,
+}
+
+impl<'a> Npc<'a> {
+    pub fn new(
+        storage: &'a mut ComponentStorage,
+        delta_time: f32,
+        player_id: EntityID,
+        maze_id: EntityID,
+    ) -> EngineResult<Self> {
+        let Some(player_pos) = storage.get::<Position>(player_id).map(|x| x.0) else {
+            return Err(EngineError::ComponentNotFound("Position".to_string()));
+        };
+        Ok(Self {
+            storage,
+            delta_time,
+            player_id,
+            maze_id,
+            player_pos,
+        })
     }
-    Ok(())
+
+    pub fn update(&mut self) -> EngineResult<()> {
+        let query: Query = Query::new().with_component::<NpcTag>();
+        for entity_id in self.storage.fetch_entities(&query) {
+            self.update_character(entity_id)?;
+        }
+        Ok(())
+    }
+
+    fn update_character(&mut self, entity_id: EntityID) -> EngineResult<()> {
+        let Some(state) = self.storage.get::<CharacterState>(entity_id).map(|x| *x) else {
+            return Err(engine::EngineError::ComponentNotFound(
+                "CharacterState".to_string(),
+            ));
+        };
+        use CharacterState::*;
+        match state {
+            Idle(mut progress) => {
+                self.update_animation(entity_id, NPC_SOLDIER_IDLE, &mut progress, |p| Idle(p));
+            }
+            Death(mut progress) => {
+                if progress.is_completed() {
+                    self.storage.remove_entity(entity_id);
+                } else {
+                    self.update_animation(entity_id, NPC_SOLDIER_DEATH, &mut progress, |p| {
+                        Death(p)
+                    });
+                }
+            }
+            Attack(mut progress) => {
+                self.update_animation(entity_id, NPC_SOLDIER_ATTACK, &mut progress, |p| Attack(p));
+            }
+            Walk(mut progress) => {
+                // NPC_SOLDIER_WALK
+            }
+            Damage(mut progress) => {
+                if progress.is_completed() {
+                    self.storage
+                        .set(entity_id, Some(Idle(ProgressModel::infinite())));
+                } else {
+                    self.update_animation(entity_id, NPC_SOLDIER_DAMAGE, &mut progress, |p| {
+                        Damage(p)
+                    });
+                }
+            }
+        }
+        self.search_target(entity_id)?;
+        Ok(())
+    }
+
+    fn update_animation(
+        &mut self,
+        entity_id: EntityID,
+        animation_id: &str,
+        progress: &mut ProgressModel,
+        prod: impl FnOnce(ProgressModel) -> CharacterState,
+    ) {
+        if !progress.is_performing() {
+            let data = AnimationData::new(animation_id);
+            self.storage.set(entity_id, Some(data));
+        }
+        progress.teak();
+        self.storage.set(entity_id, Some(prod(*progress)));
+    }
+
+    fn search_target(&mut self, entity_id: EntityID) -> EngineResult<()> {
+        let Some(pos) = self.storage.get::<Position>(entity_id).map(|x| x.0) else {
+            return Ok(());
+        };
+        let is_idle = if let Some(CharacterState::Idle(_)) =
+            self.storage.get::<CharacterState>(entity_id).map(|x| *x)
+        {
+            true
+        } else {
+            false
+        };
+        let is_close = (pos - self.player_pos).hypotenuse() < 5.0;
+        match (is_idle, is_close) {
+            (true, true) => {
+                self.storage.set(
+                    entity_id,
+                    Some(CharacterState::Attack(ProgressModel::infinite())),
+                );
+            }
+            (false, false) => {
+                self.storage.set(
+                    entity_id,
+                    Some(CharacterState::Idle(ProgressModel::infinite())),
+                );
+            }
+            _ => {}
+        }
+        Ok(())
+    }
 }
