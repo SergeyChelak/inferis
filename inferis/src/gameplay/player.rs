@@ -94,11 +94,7 @@ fn perform_shots(
     if storage.get::<AnimationData>(player_id).is_some() {
         return Ok(());
     };
-    let data = AnimationData {
-        frame_counter: 0,
-        target_frames: 60,
-        animation_id: PLAYER_SHOTGUN_SHOT_ANIM.to_string(),
-    };
+    let data = AnimationData::new(PLAYER_SHOTGUN_SHOT_ANIM, 60);
     storage.set(player_id, Some(data));
     cast_shoot(storage, player_id, maze_id)
 }

@@ -102,11 +102,7 @@ fn bundle_torch(style: TorchStyle, position: Vec2f) -> EntityBundle {
     }
     .to_string();
     EntityBundle::new()
-        .put(AnimationData {
-            frame_counter: 0,
-            target_frames: usize::MAX,
-            animation_id,
-        })
+        .put(AnimationData::endless(animation_id))
         .put(Position(position))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
