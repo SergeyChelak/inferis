@@ -20,7 +20,7 @@ pub fn player_update(
     if controller.shot_pressed {
         perform_shots(storage, player_id, maze_id)?;
     }
-    return Ok(());
+    update_state(storage, player_id)
 }
 
 fn transform_position(
@@ -90,12 +90,11 @@ fn perform_shots(
     player_id: EntityID,
     maze_id: EntityID,
 ) -> EngineResult<()> {
-    // TODO: is it smart enough?
-    if storage.get::<AnimationData>(player_id).is_some() {
+    // don't allow to shot while previous one isn't performed
+    if let Some(PlayerState::Shooting(_)) = storage.get::<PlayerState>(player_id).map(|x| *x) {
         return Ok(());
     };
-    let data = AnimationData::new(PLAYER_SHOTGUN_SHOT_ANIM, 60);
-    storage.set(player_id, Some(data));
+    storage.set(player_id, Some(PlayerState::Shooting(60)));
     cast_shoot(storage, player_id, maze_id)
 }
 
@@ -148,6 +147,30 @@ fn cast_shoot(
         }
         _ => {
             println!("Result value: {:?}", item.value);
+        }
+    }
+    Ok(())
+}
+
+fn update_state(storage: &mut ComponentStorage, player_id: EntityID) -> EngineResult<()> {
+    let Some(state) = storage.get::<PlayerState>(player_id).map(|x| *x) else {
+        return Err(EngineError::ComponentNotFound("PlayerState".to_string()));
+    };
+    use PlayerState::*;
+    match state {
+        Normal => {
+            storage.set::<AnimationData>(player_id, None);
+        }
+        Shooting(0) => {
+            storage.set(player_id, Some(Normal));
+        }
+        Shooting(frames) => {
+            storage.set(player_id, Some(Shooting(frames - 1)));
+            // TODO: maybe it's better to check if exactly the same animation is playing
+            if storage.get::<AnimationData>(player_id).is_none() {
+                let data = AnimationData::new(PLAYER_SHOTGUN_SHOT_ANIM);
+                storage.set(player_id, Some(data));
+            }
         }
     }
     Ok(())

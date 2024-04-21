@@ -29,6 +29,12 @@ pub enum NpcState {
     Damage,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum PlayerState {
+    Normal,
+    Shooting(usize), // frames duration
+}
+
 pub struct Velocity(pub Float);
 
 pub struct RotationSpeed(pub Float);
@@ -50,7 +56,6 @@ pub struct HeightShift(pub Float);
 pub struct AnimationData {
     pub frame_counter: usize,
     pub animation_id: String,
-    pub target_frames: usize,
 }
 
 pub struct BoundingBox(pub SizeFloat);
@@ -73,6 +78,7 @@ pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<HeightShift>()?;
     storage.register_component::<AnimationData>()?;
     storage.register_component::<BoundingBox>()?;
+    storage.register_component::<PlayerState>()?;
     Ok(storage)
 }
 
@@ -80,16 +86,11 @@ pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
 // there is no big difference if this implementation will be done with pure functions
 // but just for convenience I decided to keep this code this way
 impl AnimationData {
-    pub fn new(animation_id: impl Into<String>, target_frames: usize) -> Self {
+    pub fn new(animation_id: impl Into<String>) -> Self {
         Self {
             frame_counter: 0,
             animation_id: animation_id.into(),
-            target_frames,
         }
-    }
-
-    pub fn endless(animation_id: impl Into<String>) -> Self {
-        Self::new(animation_id, usize::MAX)
     }
 }
 

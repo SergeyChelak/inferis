@@ -74,6 +74,7 @@ impl Scene for GameScene {
 fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
+        .put(PlayerState::Normal)
         .put(Health(100))
         .put(Velocity(7.0))
         .put(RotationSpeed(2.5))
@@ -102,7 +103,7 @@ fn bundle_torch(style: TorchStyle, position: Vec2f) -> EntityBundle {
     }
     .to_string();
     EntityBundle::new()
-        .put(AnimationData::endless(animation_id))
+        .put(AnimationData::new(animation_id))
         .put(Position(position))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))

@@ -29,6 +29,16 @@ impl Footprint {
     }
 
     pub fn max_items() -> usize {
-        mem::size_of::<Representation>()
+        8 * mem::size_of::<Representation>()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn footprint_max_items() {
+        assert_eq!(Footprint::max_items(), 128);
     }
 }

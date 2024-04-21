@@ -188,13 +188,7 @@ impl<'a> Renderer<'a> {
     }
 
     fn texture_data(&mut self, entity_id: EntityID) -> Option<TextureData<'a>> {
-        if let Some(true) = self
-            .storage
-            .get::<AnimationData>(entity_id)
-            .map(|x| x.frame_counter >= x.target_frames)
-        {
-            self.storage.set::<AnimationData>(entity_id, None);
-        }
+        // animation texture is preferable
         if let Some(mut animation_data) = self.storage.get_mut::<AnimationData>(entity_id) {
             let params = self.assets.animation(&animation_data.animation_id)?;
             let texture = self.assets.texture(&params.texture_id)?;
