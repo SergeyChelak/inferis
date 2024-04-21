@@ -16,17 +16,17 @@ pub struct GameScene {
 impl GameScene {
     pub fn new() -> EngineResult<Self> {
         let mut storage = game_play_component_storage()?;
-        let player_id = storage.add_from_bundle(&bundle_player(Vec2f::new(5.0, 10.0)));
-        let maze_id = storage.add_from_bundle(&bundle_maze()?);
+        let player_id = storage.append(&bundle_player(Vec2f::new(5.0, 10.0)));
+        let maze_id = storage.append(&bundle_maze()?);
         // decorations
-        storage.add_from_bundle(&bundle_torch(TorchStyle::Green, Vec2f::new(1.2, 12.9)));
-        storage.add_from_bundle(&bundle_torch(TorchStyle::Green, Vec2f::new(1.2, 4.1)));
-        storage.add_from_bundle(&bundle_torch(TorchStyle::Red, Vec2f::new(1.2, 9.0)));
-        storage.add_from_bundle(&bundle_sprite(WORLD_CANDELABRA, Vec2f::new(8.8, 2.8)));
+        storage.append(&bundle_torch(TorchStyle::Green, Vec2f::new(1.2, 12.9)));
+        storage.append(&bundle_torch(TorchStyle::Green, Vec2f::new(1.2, 4.1)));
+        storage.append(&bundle_torch(TorchStyle::Red, Vec2f::new(1.2, 9.0)));
+        storage.append(&bundle_sprite(WORLD_CANDELABRA, Vec2f::new(8.8, 2.8)));
         // npc
-        storage.add_from_bundle(&bundle_npc_soldier(Vec2f::new(8.0, 10.0)));
-        storage.add_from_bundle(&bundle_npc_soldier(Vec2f::new(27.0, 13.8)));
-        storage.add_from_bundle(&bundle_npc_soldier(Vec2f::new(40.0, 8.0)));
+        storage.append(&bundle_npc_soldier(Vec2f::new(8.0, 10.0)));
+        storage.append(&bundle_npc_soldier(Vec2f::new(27.0, 13.8)));
+        storage.append(&bundle_npc_soldier(Vec2f::new(40.0, 8.0)));
         Ok(Self {
             storage,
             controller: ControllerState::default(),

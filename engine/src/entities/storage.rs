@@ -130,7 +130,7 @@ impl ComponentStorage {
         entity_id
     }
 
-    pub fn add_from_bundle(&mut self, bundle: &EntityBundle) -> EntityID {
+    pub fn append(&mut self, bundle: &EntityBundle) -> EntityID {
         let id = self.add_entity();
         for (key, value) in bundle.raw.iter() {
             let Some(row) = self.raw.get_mut(key) else {
