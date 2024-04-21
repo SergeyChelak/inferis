@@ -1,3 +1,5 @@
+use crate::gameplay::HealthType;
+
 // scenes
 pub const SCENE_GAME_PLAY: &str = &"game_scene";
 
@@ -16,6 +18,7 @@ pub const WORLD_CANDELABRA: &str = "candelabra";
 // player
 pub const PLAYER_SHOTGUN: &str = &"player_shotgun";
 pub const PLAYER_SHOTGUN_SHOT_ANIM: &str = &"anim_shotgun_shot";
+pub const PLAYER_DAMAGE: HealthType = 27;
 
 // npc soldier
 pub const NPC_SOLDIER_IDLE: &str = &"anim_soldier_idle";

@@ -2,7 +2,7 @@ use engine::{ComponentStorage, EngineResult, EntityID, ProgressModel, Query};
 
 use crate::resource::*;
 
-use super::{AnimationData, NpcState, NpcTag};
+use super::{AnimationData, CharacterState, NpcTag};
 
 pub fn npc_update(storage: &mut ComponentStorage) -> EngineResult<()> {
     let query: Query = Query::new().with_component::<NpcTag>();
@@ -13,12 +13,12 @@ pub fn npc_update(storage: &mut ComponentStorage) -> EngineResult<()> {
 }
 
 fn update_character(storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult<()> {
-    let Some(state) = storage.get::<NpcState>(entity_id).map(|x| *x) else {
+    let Some(state) = storage.get::<CharacterState>(entity_id).map(|x| *x) else {
         return Err(engine::EngineError::ComponentNotFound(
             "NpcState".to_string(),
         ));
     };
-    use NpcState::*;
+    use CharacterState::*;
     match state {
         Idle(mut progress) => {
             if !progress.is_performing() {
@@ -29,7 +29,16 @@ fn update_character(storage: &mut ComponentStorage, entity_id: EntityID) -> Engi
             storage.set(entity_id, Some(Damage(progress)));
         }
         Death(mut progress) => {
-            // NPC_SOLDIER_DEATH
+            if progress.is_completed() {
+                storage.remove_entity(entity_id);
+            } else {
+                if !progress.is_performing() {
+                    let data = AnimationData::new(NPC_SOLDIER_DEATH);
+                    storage.set(entity_id, Some(data));
+                }
+                progress.teak();
+                storage.set(entity_id, Some(Death(progress)));
+            }
         }
         Attack(mut progress) => {
             // NPC_SOLDIER_ATTACK

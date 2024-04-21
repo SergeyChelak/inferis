@@ -4,13 +4,15 @@ use crate::resource::*;
 
 mod collider;
 mod controller;
+mod damage;
 pub mod main_scene;
 mod npc;
 mod player;
 mod ray_caster;
 mod renderer;
 
-pub struct Health(pub u32);
+pub type HealthType = u32;
+pub struct Health(pub HealthType);
 
 pub struct PlayerTag;
 
@@ -21,7 +23,7 @@ pub struct PrevPosition(pub Vec2f);
 pub struct NpcTag;
 
 #[derive(Clone, Copy, Debug)]
-pub enum NpcState {
+pub enum CharacterState {
     Idle(ProgressModel),
     Death(ProgressModel),
     Attack(ProgressModel),
@@ -29,11 +31,11 @@ pub enum NpcState {
     Damage(ProgressModel),
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum PlayerState {
-    Normal,
-    Shooting(ProgressModel), // frames duration
-}
+// #[derive(Clone, Copy, Debug)]
+// pub enum PlayerState {
+//     Normal,
+//     Attack(ProgressModel),
+// }
 
 pub struct Velocity(pub Float);
 
@@ -65,7 +67,7 @@ pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<SpriteTag>()?;
     storage.register_component::<PlayerTag>()?;
     storage.register_component::<NpcTag>()?;
-    storage.register_component::<NpcState>()?;
+    storage.register_component::<CharacterState>()?;
     storage.register_component::<Health>()?;
     storage.register_component::<Position>()?;
     storage.register_component::<Velocity>()?;
@@ -78,7 +80,6 @@ pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<HeightShift>()?;
     storage.register_component::<AnimationData>()?;
     storage.register_component::<BoundingBox>()?;
-    storage.register_component::<PlayerState>()?;
     Ok(storage)
 }
 

@@ -76,7 +76,7 @@ impl Scene for GameScene {
 fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
-        .put(PlayerState::Normal)
+        .put(CharacterState::Idle(ProgressModel::infinite()))
         .put(Health(100))
         .put(Velocity(7.0))
         .put(RotationSpeed(2.5))
@@ -126,7 +126,8 @@ fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
         .put(SpriteTag)
         .put(Position(position))
         .put(NpcTag)
-        .put(NpcState::Idle(ProgressModel::infinite()))
+        .put(CharacterState::Idle(ProgressModel::infinite()))
+        .put(Health(100))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
         .put(BoundingBox(SizeFloat::new(0.7, 0.7)))

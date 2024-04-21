@@ -29,7 +29,7 @@ texture                 soldier_walk            assets/soldier/walk.png
 # NPC soldier animations
 animation               anim_soldier_idle       soldier_idle            8       10
 animation               anim_soldier_attack     soldier_attack          2       10
-animation               anim_soldier_death      soldier_death           9       10
+animation               anim_soldier_death      soldier_death           9       7
 animation               anim_soldier_pain       soldier_pain            1       10
 animation               anim_soldier_walk       soldier_walk            4       10
 ##########################################################################################################

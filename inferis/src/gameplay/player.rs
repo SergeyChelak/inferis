@@ -4,6 +4,7 @@ use std::{
 };
 
 use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Query, Rectangle};
+use player::damage::make_damage;
 
 use self::ray_caster::ray_cast;
 
@@ -91,12 +92,12 @@ fn perform_shots(
     maze_id: EntityID,
 ) -> EngineResult<()> {
     // don't allow to shot while previous one isn't performed
-    if let Some(PlayerState::Shooting(_)) = storage.get::<PlayerState>(player_id).map(|x| *x) {
+    if let Some(CharacterState::Attack(_)) = storage.get::<CharacterState>(player_id).map(|x| *x) {
         return Ok(());
     };
     storage.set(
         player_id,
-        Some(PlayerState::Shooting(ProgressModel::new(60))),
+        Some(CharacterState::Attack(ProgressModel::new(60))),
     );
     cast_shoot(storage, player_id, maze_id)
 }
@@ -145,36 +146,40 @@ fn cast_shoot(
     let item = ray_cast(player_pos, player_angle, &check);
     match item.value {
         Some(CastItem::Enemy(id)) => {
-            println!("[shot] id {} updated with damage", id.index());
-            storage.set::<NpcState>(id, Some(NpcState::Damage(ProgressModel::new(30))));
+            println!("[cast_shoot] id {} updated with damage", id.index());
+            //storage.set::<CharacterState>(id, Some(CharacterState::Damage(ProgressModel::new(30))));
+            make_damage(storage, id, PLAYER_DAMAGE)?;
         }
         _ => {
-            println!("Result value: {:?}", item.value);
+            println!("[cast_shoot] result value: {:?}", item.value);
         }
     }
     Ok(())
 }
 
 fn update_state(storage: &mut ComponentStorage, player_id: EntityID) -> EngineResult<()> {
-    let Some(state) = storage.get::<PlayerState>(player_id).map(|x| *x) else {
+    let Some(state) = storage.get::<CharacterState>(player_id).map(|x| *x) else {
         return Err(EngineError::ComponentNotFound("PlayerState".to_string()));
     };
-    use PlayerState::*;
+    use CharacterState::*;
     match state {
-        Normal => {
+        Idle(_) => {
             storage.set::<AnimationData>(player_id, None);
         }
-        Shooting(mut progress) => {
+        Attack(mut progress) => {
             if progress.is_completed() {
-                storage.set(player_id, Some(Normal));
+                storage.set(player_id, Some(Idle(ProgressModel::infinite())));
             } else {
                 if !progress.is_performing() {
                     let data = AnimationData::new(PLAYER_SHOTGUN_SHOT_ANIM);
                     storage.set(player_id, Some(data));
                 }
                 progress.teak();
-                storage.set(player_id, Some(Shooting(progress)));
+                storage.set(player_id, Some(Attack(progress)));
             }
+        }
+        _ => {
+            println!("[player_state] {:?} not implemented for player", state)
         }
     }
     Ok(())
