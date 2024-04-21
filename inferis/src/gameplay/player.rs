@@ -147,7 +147,6 @@ fn cast_shoot(
     match item.value {
         Some(CastItem::Enemy(id)) => {
             println!("[cast_shoot] id {} updated with damage", id.index());
-            //storage.set::<CharacterState>(id, Some(CharacterState::Damage(ProgressModel::new(30))));
             make_damage(storage, id, PLAYER_DAMAGE)?;
         }
         _ => {
