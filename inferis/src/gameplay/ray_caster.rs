@@ -19,8 +19,7 @@ pub fn ray_cast<T>(
     let tile = pos.floor();
     let (h_val, h_depth, h_vec) = cast_horizontal(pos, tile, sin, cos, check);
     let (v_val, v_depth, v_vec) = cast_vertical(pos, tile, sin, cos, check);
-
-    if v_depth < h_depth {
+    let vertical_result = {
         let vertical_y = v_vec.y % 1.0;
         let offset = if cos > 0.0 {
             vertical_y
@@ -32,7 +31,8 @@ pub fn ray_cast<T>(
             depth: v_depth,
             offset,
         }
-    } else {
+    };
+    let horizontal_result = {
         let horizontal_x = h_vec.x % 1.0;
         let offset = if sin > 0.0 {
             1.0 - horizontal_x
@@ -44,6 +44,17 @@ pub fn ray_cast<T>(
             depth: h_depth,
             offset,
         }
+    };
+    if sin == 0.0 {
+        return vertical_result;
+    }
+    if cos == 0.0 {
+        return horizontal_result;
+    }
+    if v_depth < h_depth {
+        vertical_result
+    } else {
+        horizontal_result
     }
 }
 
