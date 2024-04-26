@@ -1,7 +1,4 @@
-use std::{
-    borrow::{Borrow, BorrowMut},
-    f32::consts::PI,
-};
+use std::borrow::Borrow;
 
 use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Query, Rectangle};
 use player::damage::make_damage;
@@ -17,11 +14,22 @@ pub fn player_update(
     player_id: EntityID,
     maze_id: EntityID,
 ) -> EngineResult<()> {
-    transform_position(storage, player_id, controller, delta_time)?;
+    handle_movement(storage, player_id, controller, delta_time)?;
     if controller.shot_pressed {
         perform_shots(storage, player_id, maze_id)?;
     }
     update_state(storage, player_id)
+}
+
+fn handle_movement(
+    storage: &mut ComponentStorage,
+    id: EntityID,
+    controller: &ControllerState,
+    delta_time: f32,
+) -> EngineResult<()> {
+    let transform = transform_position(storage, id, controller, delta_time)?;
+    storage.set(id, Some(transform));
+    Ok(())
 }
 
 fn transform_position(
@@ -29,15 +37,12 @@ fn transform_position(
     id: EntityID,
     controller: &ControllerState,
     delta_time: f32,
-) -> EngineResult<()> {
+) -> EngineResult<Transform> {
     let Some(vel_comp) = storage.get::<Velocity>(id) else {
         return Err(EngineError::component_not_found("Velocity"));
     };
-    let Some(mut angle_comp) = storage.get_mut::<Angle>(id) else {
+    let Some(angle_comp) = storage.get_mut::<Angle>(id) else {
         return Err(EngineError::component_not_found("Angle"));
-    };
-    let Some(mut pos_comp) = storage.get_mut::<Position>(id) else {
-        return Err(EngineError::component_not_found("Position"));
     };
     let Some(rot_speed_comp) = storage.get::<RotationSpeed>(id) else {
         return Err(EngineError::component_not_found("RotationSpeed"));
@@ -69,21 +74,20 @@ fn transform_position(
         dx += -dist_sin;
         dy += dist_cos;
     }
-
-    let position = pos_comp.borrow_mut();
-    position.0.x += dx;
-    position.0.y += dy;
     // rotation
     let rotation_speed = rot_speed_comp.0;
-    let angle = angle_comp.borrow_mut();
+    let mut rotation = 0.0;
     if controller.rotate_left_pressed {
-        angle.0 -= rotation_speed * delta_time;
+        rotation = -rotation_speed * delta_time;
     }
     if controller.rotate_right_pressed {
-        angle.0 += rotation_speed * delta_time;
+        rotation = rotation_speed * delta_time;
     }
-    angle.0 %= 2.0 * PI;
-    Ok(())
+    Ok(Transform {
+        relative_x: dx,
+        relative_y: dy,
+        relative_angle: rotation,
+    })
 }
 
 fn perform_shots(

@@ -2,7 +2,6 @@ use engine::{ComponentStorage, EngineResult, Float, ProgressModel, SizeFloat, Ve
 
 use crate::resource::*;
 
-mod collider;
 mod controller;
 mod damage;
 pub mod main_scene;
@@ -10,6 +9,7 @@ mod npc;
 mod player;
 mod ray_caster;
 mod renderer;
+mod transform;
 
 pub type HealthType = u32;
 pub struct Health(pub HealthType);
@@ -17,8 +17,6 @@ pub struct Health(pub HealthType);
 pub struct PlayerTag;
 
 pub struct Position(pub Vec2f);
-
-pub struct PrevPosition(pub Vec2f);
 
 pub struct NpcTag;
 
@@ -31,11 +29,12 @@ pub enum CharacterState {
     Damage(ProgressModel),
 }
 
-// #[derive(Clone, Copy, Debug)]
-// pub enum PlayerState {
-//     Normal,
-//     Attack(ProgressModel),
-// }
+#[derive(Clone, Copy, Default, Debug)]
+pub struct Transform {
+    pub relative_x: Float,
+    pub relative_y: Float,
+    pub relative_angle: Float,
+}
 
 pub struct Velocity(pub Float);
 
@@ -74,12 +73,12 @@ pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<RotationSpeed>()?;
     storage.register_component::<Maze>()?;
     storage.register_component::<Angle>()?;
-    storage.register_component::<PrevPosition>()?;
     storage.register_component::<TextureID>()?;
     storage.register_component::<ScaleRatio>()?;
     storage.register_component::<HeightShift>()?;
     storage.register_component::<AnimationData>()?;
     storage.register_component::<BoundingBox>()?;
+    storage.register_component::<Transform>()?;
     Ok(storage)
 }
 

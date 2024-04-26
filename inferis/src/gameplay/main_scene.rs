@@ -2,9 +2,9 @@ use engine::*;
 
 use crate::{pbm::PBMImage, resource::*};
 
-use self::npc::npc_update;
+use self::{npc::npc_update, transform::transform_entities};
 
-use super::{collider::run_collider, controller::ControllerState, player::*, renderer::*, *};
+use super::{controller::ControllerState, player::*, renderer::*, *};
 
 pub struct GameScene {
     storage: ComponentStorage,
@@ -55,8 +55,8 @@ impl Scene for GameScene {
             self.player_id,
             self.maze_id,
         )?;
+        transform_entities(&mut self.storage)?;
         npc_update(&mut self.storage, delta_time, self.player_id, self.maze_id)?;
-        run_collider(&mut self.storage, self.player_id, self.maze_id)?;
         Ok(())
     }
 
@@ -81,7 +81,6 @@ fn bundle_player(position: Vec2f) -> EntityBundle {
         .put(Velocity(7.0))
         .put(RotationSpeed(2.5))
         .put(Position(position))
-        .put(PrevPosition(position))
         .put(Angle(0.0))
         .put(TextureID(PLAYER_SHOTGUN.to_string()))
 }
