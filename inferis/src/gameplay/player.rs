@@ -31,16 +31,16 @@ fn transform_position(
     delta_time: f32,
 ) -> EngineResult<()> {
     let Some(vel_comp) = storage.get::<Velocity>(id) else {
-        return Err(EngineError::ComponentNotFound("Velocity".to_string()));
+        return Err(EngineError::component_not_found("Velocity"));
     };
     let Some(mut angle_comp) = storage.get_mut::<Angle>(id) else {
-        return Err(EngineError::ComponentNotFound("Angle".to_string()));
+        return Err(EngineError::component_not_found("Angle"));
     };
     let Some(mut pos_comp) = storage.get_mut::<Position>(id) else {
-        return Err(EngineError::ComponentNotFound("Position".to_string()));
+        return Err(EngineError::component_not_found("Position"));
     };
     let Some(rot_speed_comp) = storage.get::<RotationSpeed>(id) else {
-        return Err(EngineError::ComponentNotFound("RotationSpeed".to_string()));
+        return Err(EngineError::component_not_found("RotationSpeed"));
     };
     let angle = angle_comp.borrow().0;
     let sin_a = angle.sin();
@@ -114,10 +114,10 @@ fn cast_shoot(
     maze_id: EntityID,
 ) -> EngineResult<()> {
     let Some(player_pos) = storage.get::<Position>(player_id).map(|x| x.0) else {
-        return Err(EngineError::ComponentNotFound("Position".to_string()));
+        return Err(EngineError::component_not_found("Position"));
     };
     let Some(player_angle) = storage.get::<Angle>(player_id).map(|x| x.0) else {
-        return Err(EngineError::ComponentNotFound("Angle".to_string()));
+        return Err(EngineError::component_not_found("Angle"));
     };
     let query = Query::new()
         .with_component::<NpcTag>()
@@ -158,7 +158,7 @@ fn cast_shoot(
 
 fn update_state(storage: &mut ComponentStorage, player_id: EntityID) -> EngineResult<()> {
     let Some(state) = storage.get::<CharacterState>(player_id).map(|x| *x) else {
-        return Err(EngineError::ComponentNotFound("PlayerState".to_string()));
+        return Err(EngineError::component_not_found("PlayerState"));
     };
     use CharacterState::*;
     match state {

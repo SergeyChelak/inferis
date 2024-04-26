@@ -92,7 +92,7 @@ impl<'a> Renderer<'a> {
         for task in self.tasks.iter() {
             canvas
                 .copy(task.texture, task.source, task.destination)
-                .map_err(|e| EngineError::Sdl(e.to_string()))?;
+                .map_err(|e| EngineError::sdl(e))?;
         }
         self.render_minimap()?;
         Ok(())
@@ -100,7 +100,7 @@ impl<'a> Renderer<'a> {
 
     fn fetch_common_info(&mut self) -> EngineResult<()> {
         let Some(player_pos) = self.storage.get::<Position>(self.player_id).map(|x| x.0) else {
-            return Err(EngineError::ComponentNotFound("Position".to_string()));
+            return Err(EngineError::component_not_found("Position"));
         };
         // player angle must be positive
         let Some(player_angle) = self
@@ -109,7 +109,7 @@ impl<'a> Renderer<'a> {
             .map(|x| x.0)
             .map(|x| if x < 0.0 { x + 2.0 * PI } else { x })
         else {
-            return Err(EngineError::ComponentNotFound("Angle".to_string()));
+            return Err(EngineError::component_not_found("Angle"));
         };
         self.player_position = Some(player_pos);
         self.player_angle = Some(player_angle);
@@ -404,9 +404,7 @@ impl<'a> Renderer<'a> {
                     MAP_SCALE,
                     MAP_SCALE,
                 );
-                canvas
-                    .fill_rect(rect)
-                    .map_err(|e| EngineError::Sdl(e.to_string()))?
+                canvas.fill_rect(rect).map_err(|e| EngineError::sdl(e))?
             }
         }
         Ok(())
@@ -428,9 +426,7 @@ impl<'a> Renderer<'a> {
         let size = MAP_SCALE - 1;
         let rect = Rect::new(x - (size >> 1) as i32, y - (size >> 1) as i32, size, size);
         canvas.set_draw_color(Color::RED);
-        canvas
-            .fill_rect(rect)
-            .map_err(|e| EngineError::Sdl(e.to_string()))?;
+        canvas.fill_rect(rect).map_err(|e| EngineError::sdl(e))?;
 
         let length = 1.5 * MAP_SCALE as Float;
         canvas
@@ -441,6 +437,6 @@ impl<'a> Renderer<'a> {
                     y + (length * angle.sin()) as i32,
                 ),
             )
-            .map_err(|e| EngineError::Sdl(e.to_string()))
+            .map_err(|e| EngineError::sdl(e))
     }
 }

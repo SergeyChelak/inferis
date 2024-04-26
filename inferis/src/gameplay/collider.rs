@@ -19,24 +19,24 @@ fn check_wall_collisions(
     maze_id: EntityID,
 ) -> EngineResult<()> {
     let Some(maze) = storage.get::<Maze>(maze_id) else {
-        return Err(EngineError::ComponentNotFound("Maze".to_string()));
+        return Err(EngineError::component_not_found("Maze"));
     };
     let Some(pos) = storage.get::<Position>(player_id).map(|x| x.0) else {
-        return Err(EngineError::ComponentNotFound("Position".to_string()));
+        return Err(EngineError::component_not_found("Position"));
     };
     let Some(prev_pos) = storage.get::<PrevPosition>(player_id).map(|x| x.0) else {
-        return Err(EngineError::ComponentNotFound("PrevPosition".to_string()));
+        return Err(EngineError::component_not_found("PrevPosition"));
     };
     if maze.is_wall(pos) {
         // restore last valid position
         let Some(mut pos) = storage.get_mut::<Position>(player_id) else {
-            return Err(EngineError::ComponentNotFound("Position".to_string()));
+            return Err(EngineError::component_not_found("Position"));
         };
         pos.borrow_mut().0 = prev_pos;
     } else {
         // update with last valid position
         let Some(mut prev_pos) = storage.get_mut::<PrevPosition>(player_id) else {
-            return Err(EngineError::ComponentNotFound("PrevPosition".to_string()));
+            return Err(EngineError::component_not_found("PrevPosition"));
         };
         prev_pos.borrow_mut().0 = pos;
     }

@@ -29,4 +29,14 @@ pub enum EngineError {
     MazeGenerationFailed(String),
 }
 
+impl EngineError {
+    pub fn component_not_found(name: impl Into<String>) -> EngineError {
+        Self::ComponentNotFound(name.into())
+    }
+
+    pub fn sdl(name: impl Into<String>) -> EngineError {
+        Self::Sdl(name.into())
+    }
+}
+
 pub type EngineResult<T> = Result<T, EngineError>;

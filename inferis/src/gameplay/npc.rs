@@ -30,7 +30,7 @@ impl<'a> Npc<'a> {
         maze_id: EntityID,
     ) -> EngineResult<Self> {
         let Some(player_pos) = storage.get::<Position>(player_id).map(|x| x.0) else {
-            return Err(EngineError::ComponentNotFound("Position".to_string()));
+            return Err(EngineError::component_not_found("Position"));
         };
         Ok(Self {
             storage,
@@ -51,9 +51,7 @@ impl<'a> Npc<'a> {
 
     fn update_character(&mut self, entity_id: EntityID) -> EngineResult<()> {
         let Some(state) = self.storage.get::<CharacterState>(entity_id).map(|x| *x) else {
-            return Err(engine::EngineError::ComponentNotFound(
-                "CharacterState".to_string(),
-            ));
+            return Err(engine::EngineError::component_not_found("CharacterState"));
         };
         use CharacterState::*;
         match state {
