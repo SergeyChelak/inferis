@@ -1,59 +1,74 @@
 use std::borrow::BorrowMut;
 
-use engine::{ComponentStorage, EngineResult, EntityID, FrameDuration, Query, Rectangle, Vec2f};
+use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Query, Rectangle, Vec2f};
 
 use super::{
-    ray_caster::ray_cast, BoundingBox, Damage, Health, Maze, Position, Recharge, RechargeTime, Shot,
+    ray_caster::ray_cast, BoundingBox, Health, Maze, Position, ReceivedDamage, Shot, ShotState,
+    Weapon, WeaponState,
 };
 
 pub fn attack_system(storage: &mut ComponentStorage) -> EngineResult<()> {
-    let query = Query::new().with_component::<Shot>();
+    process_shorts(storage)?;
+    refresh_weapon_state(storage)?;
+    Ok(())
+}
+
+fn refresh_weapon_state(storage: &mut ComponentStorage) -> EngineResult<()> {
+    let query = Query::new().with_component::<Weapon>();
     let entities = storage.fetch_entities(&query);
-    for id in entities {
-        if is_recharged(storage, id) {
-            process_shot(storage, id)?;
-        } else {
-            println!("[attack] shot discarded due recharge");
-        }
-        storage.set::<Shot>(id, None);
+    for entity_id in entities {
+        // TODO: check if weapon recharge time is out
     }
     Ok(())
 }
 
-fn is_recharged(storage: &mut ComponentStorage, entity_id: EntityID) -> bool {
-    let is_ready = if let Some(mut comp) = storage.get_mut::<Recharge>(entity_id) {
-        comp.0.teak();
-        comp.0.is_completed()
-    } else {
-        true
-    };
-    if is_ready {
-        storage.set::<Recharge>(entity_id, None);
+fn process_shorts(storage: &mut ComponentStorage) -> EngineResult<()> {
+    let query = Query::new().with_component::<Shot>();
+    let entities = storage.fetch_entities(&query);
+    for entity_id in entities {
+        let Some(true) = storage
+            .get::<Shot>(entity_id)
+            .map(|x| matches!(x.state, ShotState::Initial))
+        else {
+            continue;
+        };
+        let new_state = if try_shot(storage, entity_id)? {
+            ShotState::Accepted
+        } else {
+            ShotState::Cancelled
+        };
+        let Some(mut shot) = storage.get_mut::<Shot>(entity_id) else {
+            return Err(EngineError::component_not_found("Shot"));
+        };
+        shot.borrow_mut().state = new_state;
     }
-    is_ready
+    Ok(())
 }
 
-fn process_shot(storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult<()> {
-    let Some(damage) = storage.get::<Damage>(entity_id).map(|x| x.0) else {
-        println!(
-            "[attack] skipped shot for entity {} without damage component",
-            entity_id.index()
-        );
-        return Ok(());
+fn try_shot(storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult<bool> {
+    let Some(weapon) = storage.get::<Weapon>(entity_id).map(|x| *x) else {
+        return Err(EngineError::component_not_found("Weapon"));
     };
-    if let Some(duration) = storage.get::<RechargeTime>(entity_id).map(|x| x.0) {
-        let value = Recharge(FrameDuration::new(duration));
-        storage.set(entity_id, Some(value));
+    if weapon.ammo_count == 0 || matches!(weapon.state, WeaponState::Recharge) {
+        println!("[attack] shot discarded due recharge or empty clip");
+        return Ok(false);
     }
     let Ok(Some(target_id)) = ray_cast_shot(storage, entity_id) else {
         println!("[attack] no target reached");
-        return Ok(());
+        return Ok(true);
     };
-    if let Some(mut comp) = storage.get_mut::<Health>(target_id) {
-        let health = comp.borrow_mut();
-        health.0 = health.0.saturating_sub(damage);
-    }
-    Ok(())
+    let total_damage = weapon.damage
+        + storage
+            .get::<ReceivedDamage>(target_id)
+            .map(|x| x.0)
+            .unwrap_or_default();
+    storage.set::<ReceivedDamage>(entity_id, Some(ReceivedDamage(total_damage)));
+    if let Some(mut comp) = storage.get_mut::<Weapon>(entity_id) {
+        let w = comp.borrow_mut();
+        w.ammo_count = weapon.ammo_count.saturating_sub(1);
+        w.state = WeaponState::Recharge;
+    };
+    Ok(true)
 }
 
 fn ray_cast_shot(
@@ -101,6 +116,6 @@ fn ray_cast_shot(
         }
         None
     };
-    let result = ray_cast(shot.from, shot.angle, &check);
+    let result = ray_cast(shot.position, shot.angle, &check);
     Ok(result.value)
 }

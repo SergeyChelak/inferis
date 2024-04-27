@@ -28,7 +28,11 @@ fn handle_shot(
     let Some(angle) = storage.get::<Angle>(id).map(|x| x.0) else {
         return Ok(());
     };
-    let shot = Shot { from, angle };
+    let shot = Shot {
+        position: from,
+        angle,
+        state: ShotState::Initial,
+    };
     storage.set(id, Some(shot));
     Ok(())
 }

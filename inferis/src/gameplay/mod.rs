@@ -9,6 +9,7 @@ pub mod main_scene;
 mod npc;
 mod ray_caster;
 mod renderer;
+mod state;
 mod transform;
 
 pub type HealthType = u32;
@@ -42,15 +43,36 @@ pub struct RotationSpeed(pub Float);
 
 pub struct Angle(pub Float);
 
+#[derive(Clone, Copy)]
+
 pub struct Shot {
-    from: Vec2f,
+    position: Vec2f,
     angle: Float,
+    state: ShotState,
 }
 
-pub struct Damage(pub HealthType);
+#[derive(Clone, Copy)]
+pub enum ShotState {
+    Initial,
+    Accepted,
+    Cancelled,
+}
 
-pub struct RechargeTime(pub usize);
-pub struct Recharge(pub FrameDuration);
+#[derive(Clone, Copy)]
+pub struct Weapon {
+    pub damage: HealthType,
+    pub recharge_time: usize,
+    pub ammo_count: usize,
+    pub state: WeaponState,
+}
+
+#[derive(Clone, Copy)]
+pub enum WeaponState {
+    Ready,
+    Recharge,
+}
+
+pub struct ReceivedDamage(pub HealthType);
 
 pub type MazeData = Vec<Vec<i32>>;
 pub struct Maze(pub MazeData);
@@ -89,11 +111,9 @@ pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<AnimationData>()?;
     storage.register_component::<BoundingBox>()?;
     storage.register_component::<Transform>()?;
-
+    storage.register_component::<ReceivedDamage>()?;
     storage.register_component::<Shot>()?;
-    storage.register_component::<Recharge>()?;
-    storage.register_component::<RechargeTime>()?;
-    storage.register_component::<Damage>()?;
+    storage.register_component::<Weapon>()?;
 
     Ok(storage)
 }

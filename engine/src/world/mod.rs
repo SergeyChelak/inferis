@@ -5,6 +5,7 @@ use sdl2::{
 
 use crate::{assets::AssetManager, EngineResult, SizeU32};
 
+pub mod frame_counter;
 pub mod game_world;
 
 pub type SceneID = &'static str;

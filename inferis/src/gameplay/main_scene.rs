@@ -2,7 +2,9 @@ use engine::*;
 
 use crate::{pbm::PBMImage, resource::*};
 
-use self::{attack::attack_system, npc::npc_update, transform::transform_entities};
+use self::{
+    attack::attack_system, npc::npc_update, state::state_system, transform::transform_entities,
+};
 
 use super::{controller::ControllerState, input::*, renderer::*, *};
 
@@ -57,6 +59,7 @@ impl Scene for GameScene {
         npc_update(&mut self.storage, delta_time, self.player_id, self.maze_id)?;
         transform_entities(&mut self.storage)?;
         attack_system(&mut self.storage)?;
+        state_system(&mut self.storage)?;
         Ok(())
     }
 
@@ -76,8 +79,7 @@ impl Scene for GameScene {
 fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
-        .put(Damage(27))
-        .put(RechargeTime(20))
+        .put(weapon(27, 20, 100))
         .put(CharacterState::Idle(FrameDuration::infinite()))
         .put(Health(100))
         .put(Velocity(7.0))
@@ -125,8 +127,7 @@ fn bundle_sprite(texture_id: &str, position: Vec2f) -> EntityBundle {
 fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(SpriteTag)
-        .put(Damage(10))
-        .put(RechargeTime(20))
+        .put(weapon(10, 20, usize::MAX))
         .put(Position(position))
         .put(NpcTag)
         .put(CharacterState::Idle(FrameDuration::infinite()))
@@ -134,4 +135,13 @@ fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
         .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
+}
+
+fn weapon(damage: HealthType, recharge_time: usize, ammo_count: usize) -> Weapon {
+    Weapon {
+        damage,
+        recharge_time,
+        state: WeaponState::Ready,
+        ammo_count,
+    }
 }
