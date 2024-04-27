@@ -1,21 +1,59 @@
-use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Float, Query};
+use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Float, Query, Vec2f};
 
-use super::{common::ray_cast_with_entity, CharacterState, NpcTag, Position};
+use super::{common::ray_cast_with_entity, CharacterState, NpcTag, Position, Transform, Velocity};
 
-pub fn ai_system(storage: &mut ComponentStorage, player_id: EntityID) -> EngineResult<()> {
+struct NpcData {
+    player_id: EntityID,
+    npc_id: EntityID,
+    npc_position: Vec2f,
+    delta_time: f32,
+    angle: Float,
+    vector: Vec2f,
+}
+
+impl NpcData {
+    fn new(
+        npc_id: EntityID,
+        npc_position: Vec2f,
+        player_id: EntityID,
+        player_position: Vec2f,
+        delta_time: f32,
+    ) -> Self {
+        let vector = player_position - npc_position;
+        let angle = vector.y.atan2(vector.x);
+        Self {
+            npc_id,
+            npc_position,
+            player_id,
+            delta_time,
+            angle,
+            vector,
+        }
+    }
+}
+
+pub fn ai_system(
+    storage: &mut ComponentStorage,
+    player_id: EntityID,
+    delta_time: f32,
+) -> EngineResult<()> {
+    let Some(player_position) = storage.get::<Position>(player_id).map(|x| x.0) else {
+        return Ok(());
+    };
     let query = Query::new().with_component::<NpcTag>();
     let entities = storage.fetch_entities(&query);
     for npc_id in entities {
-        npc_behavior(storage, npc_id, player_id)?;
+        let Some(npc_position) = storage.get::<Position>(npc_id).map(|x| x.0) else {
+            continue;
+        };
+        let data = NpcData::new(npc_id, npc_position, player_id, player_position, delta_time);
+        npc_behavior(storage, &data)?;
     }
     Ok(())
 }
 
-fn npc_behavior(
-    storage: &mut ComponentStorage,
-    npc_id: EntityID,
-    player_id: EntityID,
-) -> EngineResult<()> {
+fn npc_behavior(storage: &mut ComponentStorage, data: &NpcData) -> EngineResult<()> {
+    let npc_id = data.npc_id;
     let Some(state) = storage.get::<CharacterState>(npc_id).map(|x| *x) else {
         return Err(EngineError::component_not_found("CharacterState"));
     };
@@ -23,33 +61,57 @@ fn npc_behavior(
     if matches!(state, Death | Damage) {
         return Ok(());
     }
-    if let Some(distance) = vision(storage, npc_id, player_id) {
-        let state = if distance < 10.0 { Attack } else { Walk };
-        storage.set(npc_id, Some(state));
+    if let Some(distance) = vision(storage, data) {
+        let new_state = if distance < 7.0 { Attack } else { Walk };
+        storage.set(npc_id, Some(new_state));
+    };
+    // TODO: move to function
+    let Some(state) = storage.get::<CharacterState>(npc_id).map(|x| *x) else {
+        return Err(EngineError::component_not_found("CharacterState"));
+    };
+    match state {
+        Walk => {
+            movement(storage, data);
+        }
+        Attack => {
+            attack(storage, data);
+        }
+        _ => {
+            // no op
+        }
     }
-    // else {
-    //     storage.set(npc_id, Some(Idle));
-    // }
     Ok(())
 }
 
-fn vision(storage: &mut ComponentStorage, npc_id: EntityID, player_id: EntityID) -> Option<Float> {
-    let Some(npc_position) = storage.get_mut::<Position>(npc_id).map(|x| x.0) else {
-        return None;
-    };
-    let Some(player_position) = storage.get_mut::<Position>(player_id).map(|x| x.0) else {
-        return None;
-    };
-    let vector = player_position - npc_position;
-    let angle = vector.y.atan2(vector.x);
-    let Some(entity_id) = ray_cast_with_entity(storage, npc_id, npc_position, angle)
+fn vision(storage: &mut ComponentStorage, data: &NpcData) -> Option<Float> {
+    let Some(entity_id) = ray_cast_with_entity(storage, data.npc_id, data.npc_position, data.angle)
         .ok()
         .and_then(|x| x)
     else {
         return None;
     };
-    if entity_id != player_id {
+    if entity_id != data.player_id {
         return None;
     }
-    Some(vector.hypotenuse())
+    Some(data.vector.hypotenuse())
+}
+
+fn movement(storage: &mut ComponentStorage, data: &NpcData) {
+    let Some(velocity) = storage.get::<Velocity>(data.npc_id).map(|x| x.0) else {
+        return;
+    };
+    let angle = data.angle;
+    let sin_a = angle.sin();
+    let cos_a = angle.cos();
+    let dist = velocity * data.delta_time;
+    let transform = Transform {
+        relative_x: dist * cos_a,
+        relative_y: dist * sin_a,
+        relative_angle: 0.0,
+    };
+    storage.set(data.npc_id, Some(transform));
+}
+
+fn attack(storage: &mut ComponentStorage, data: &NpcData) {
+    //
 }

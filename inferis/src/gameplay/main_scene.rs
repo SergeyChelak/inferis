@@ -58,7 +58,7 @@ impl Scene for GameScene {
             delta_time,
             self.player_id,
         )?;
-        ai_system(&mut self.storage, self.player_id)?;
+        ai_system(&mut self.storage, self.player_id, delta_time)?;
         transform_entities(&mut self.storage)?;
         attack_system(&mut self.storage, &mut self.frame_counter)?;
         state_system(&mut self.storage, &mut self.frame_counter)?;
@@ -137,6 +137,7 @@ fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
         .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
+        .put(Velocity(5.3))
 }
 
 fn weapon(damage: HealthType, recharge_time: usize, ammo_count: usize) -> Weapon {

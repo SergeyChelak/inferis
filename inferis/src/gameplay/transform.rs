@@ -9,7 +9,6 @@ pub fn transform_entities(storage: &mut ComponentStorage) -> EngineResult<()> {
     let entities = storage.fetch_entities(&query);
     for entity_id in entities {
         transform_entity(storage, entity_id)?;
-        storage.set::<Transform>(entity_id, None);
     }
     Ok(())
 }
