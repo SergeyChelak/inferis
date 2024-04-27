@@ -47,10 +47,7 @@ fn update_npc(
     let Some(state) = storage.get::<CharacterState>(entity_id).map(|x| *x) else {
         return Err(EngineError::component_not_found("CharacterState"));
     };
-    let is_completed = frame_counter
-        .state(&key)
-        .map(|x| matches!(x, FrameCounterState::Completed))
-        .unwrap_or(false);
+    let is_completed = frame_counter.is_completed(&key);
     if is_completed {
         frame_counter.remove(&key);
     }

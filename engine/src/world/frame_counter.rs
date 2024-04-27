@@ -17,7 +17,7 @@ impl FrameCounterService {
         })
     }
 
-    pub fn state(&mut self, counter_id: &str) -> Option<FrameCounterState> {
+    pub fn state(&self, counter_id: &str) -> Option<FrameCounterState> {
         let counter = self.map.get(counter_id)?;
         use FrameCounterState::*;
         if counter.is_completed() {
@@ -27,6 +27,12 @@ impl FrameCounterService {
             return Some(InProgress(counter.progress));
         }
         Some(Ready)
+    }
+
+    pub fn is_completed(&self, counter_id: &str) -> bool {
+        self.state(counter_id)
+            .map(|x| matches!(x, FrameCounterState::Completed))
+            .unwrap_or(false)
     }
 
     pub fn remove(&mut self, counter_id: &str) -> bool {

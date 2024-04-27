@@ -1,9 +1,8 @@
 use std::borrow::BorrowMut;
 
 use engine::{
-    frame_counter::{FrameCounterService, FrameCounterState},
-    ray_caster::ray_cast,
-    ComponentStorage, EngineError, EngineResult, EntityID, Query, Rectangle, Vec2f,
+    frame_counter::FrameCounterService, ray_caster::ray_cast, ComponentStorage, EngineError,
+    EngineResult, EntityID, Query, Rectangle, Vec2f,
 };
 
 use super::{
@@ -26,11 +25,7 @@ fn refresh_weapon_state(
     let query = Query::new().with_component::<Weapon>();
     let entities = storage.fetch_entities(&query);
     for entity_id in entities {
-        let Some(true) = frame_counter
-            .state(&frame_counter_key(entity_id))
-            // .inspect(|x| println!("{} @ {x:?}", entity_id.id_key()))
-            .map(|x| matches!(x, FrameCounterState::Completed))
-        else {
+        if !frame_counter.is_completed(&frame_counter_key(entity_id)) {
             continue;
         };
         let Some(mut comp) = storage.get_mut::<Weapon>(entity_id) else {
