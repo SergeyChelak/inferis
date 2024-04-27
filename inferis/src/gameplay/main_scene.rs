@@ -53,7 +53,6 @@ impl Scene for GameScene {
             &self.controller,
             delta_time,
             self.player_id,
-            self.maze_id,
         )?;
         npc_update(&mut self.storage, delta_time, self.player_id, self.maze_id)?;
         transform_entities(&mut self.storage)?;

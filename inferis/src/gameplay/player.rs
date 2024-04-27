@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 
-use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Query, Rectangle};
+use engine::{ComponentStorage, EngineError, EngineResult, EntityID};
 
 use super::{controller::ControllerState, *};
 
@@ -9,7 +9,6 @@ pub fn player_update(
     controller: &ControllerState,
     delta_time: f32,
     player_id: EntityID,
-    maze_id: EntityID,
 ) -> EngineResult<()> {
     handle_movement(storage, player_id, controller, delta_time)?;
     handle_shot(storage, controller, player_id)?;
