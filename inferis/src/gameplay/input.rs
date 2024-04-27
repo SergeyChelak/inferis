@@ -4,15 +4,14 @@ use engine::{ComponentStorage, EngineError, EngineResult, EntityID};
 
 use super::{controller::ControllerState, *};
 
-pub fn player_update(
+pub fn user_input_system(
     storage: &mut ComponentStorage,
     controller: &ControllerState,
     delta_time: f32,
     player_id: EntityID,
 ) -> EngineResult<()> {
     handle_movement(storage, player_id, controller, delta_time)?;
-    handle_shot(storage, controller, player_id)?;
-    update_state(storage, player_id)
+    handle_shot(storage, controller, player_id)
 }
 
 fn handle_shot(
@@ -101,32 +100,4 @@ fn transform_position(
         relative_y: dy,
         relative_angle: rotation,
     })
-}
-
-fn update_state(storage: &mut ComponentStorage, player_id: EntityID) -> EngineResult<()> {
-    let Some(state) = storage.get::<CharacterState>(player_id).map(|x| *x) else {
-        return Err(EngineError::component_not_found("PlayerState"));
-    };
-    use CharacterState::*;
-    match state {
-        Idle(_) => {
-            storage.set::<AnimationData>(player_id, None);
-        }
-        Attack(mut progress) => {
-            if progress.is_completed() {
-                storage.set(player_id, Some(Idle(FrameDuration::infinite())));
-            } else {
-                if !progress.is_performing() {
-                    let data = AnimationData::new(PLAYER_SHOTGUN_SHOT_ANIM);
-                    storage.set(player_id, Some(data));
-                }
-                progress.teak();
-                storage.set(player_id, Some(Attack(progress)));
-            }
-        }
-        _ => {
-            println!("[player_state] {:?} not implemented for player", state)
-        }
-    }
-    Ok(())
 }

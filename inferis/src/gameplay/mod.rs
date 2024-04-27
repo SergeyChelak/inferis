@@ -4,9 +4,9 @@ use crate::resource::*;
 
 mod attack;
 mod controller;
+mod input;
 pub mod main_scene;
 mod npc;
-mod player;
 mod ray_caster;
 mod renderer;
 mod transform;

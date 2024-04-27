@@ -4,7 +4,7 @@ use crate::{pbm::PBMImage, resource::*};
 
 use self::{attack::attack_system, npc::npc_update, transform::transform_entities};
 
-use super::{controller::ControllerState, player::*, renderer::*, *};
+use super::{controller::ControllerState, input::*, renderer::*, *};
 
 pub struct GameScene {
     storage: ComponentStorage,
@@ -48,7 +48,7 @@ impl Scene for GameScene {
 
     fn run_systems(&mut self, engine: &mut dyn Engine) -> EngineResult<()> {
         let delta_time = engine.delta_time();
-        player_update(
+        user_input_system(
             &mut self.storage,
             &self.controller,
             delta_time,
