@@ -1,24 +1,48 @@
-use std::borrow::BorrowMut;
+use std::{any::Any, borrow::BorrowMut};
 
-use engine::{ComponentStorage, EngineError, EngineResult, Query};
+use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Query};
 
 use super::*;
 
 pub fn state_system(storage: &mut ComponentStorage) -> EngineResult<()> {
-    update_player_weapon(storage)?;
-    cleanup_shots(storage)?;
+    process_damages(storage)?;
+    update_player(storage)?;
+    cleanup(storage)?;
     Ok(())
 }
 
-fn update_player_weapon(storage: &mut ComponentStorage) -> EngineResult<()> {
+fn process_damages(storage: &mut ComponentStorage) -> EngineResult<()> {
     let query = Query::new()
-        .with_component::<Weapon>()
-        .with_component::<PlayerTag>();
+        .with_component::<ReceivedDamage>()
+        .with_component::<Health>();
+    let entities = storage.fetch_entities(&query);
+    for entity_id in entities {
+        let Some(damage) = storage.get::<ReceivedDamage>(entity_id).map(|x| x.0) else {
+            return Err(EngineError::component_not_found("ReceivedDamage"));
+        };
+        let Some(mut comp) = storage.get_mut::<Health>(entity_id) else {
+            return Err(EngineError::component_not_found("Health"));
+        };
+        let health = comp.borrow_mut();
+        health.0 = health.0.saturating_sub(damage);
+        println!("entity {} health {}", entity_id.id_key(), health.0);
+    }
+    Ok(())
+}
+
+fn update_player(storage: &mut ComponentStorage) -> EngineResult<()> {
+    let query = Query::new().with_component::<PlayerTag>();
     let Some(&player_id) = storage.fetch_entities(&query).first() else {
         return Err(EngineError::unexpected_state(
-            "Query {PlayerTag; Weapon} returned nothing",
+            "Failed to query entity id with player tag",
         ));
     };
+    // TODO: check player is alive
+    update_player_weapon(storage, player_id)?;
+    Ok(())
+}
+
+fn update_player_weapon(storage: &mut ComponentStorage, player_id: EntityID) -> EngineResult<()> {
     let Some(weapon) = storage.get::<Weapon>(player_id).map(|x| *x) else {
         return Err(EngineError::component_not_found("Weapon"));
     };
@@ -38,11 +62,17 @@ fn update_player_weapon(storage: &mut ComponentStorage) -> EngineResult<()> {
     Ok(())
 }
 
-fn cleanup_shots(storage: &mut ComponentStorage) -> EngineResult<()> {
-    let query = Query::new().with_component::<Shot>();
+fn cleanup(storage: &mut ComponentStorage) -> EngineResult<()> {
+    cleanup_component::<Shot>(storage)?;
+    cleanup_component::<ReceivedDamage>(storage)?;
+    Ok(())
+}
+
+fn cleanup_component<T: Any>(storage: &mut ComponentStorage) -> EngineResult<()> {
+    let query = Query::new().with_component::<T>();
     let entities = storage.fetch_entities(&query);
     for id in entities {
-        storage.set::<Shot>(id, None);
+        storage.set::<T>(id, None);
     }
     Ok(())
 }

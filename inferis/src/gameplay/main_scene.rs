@@ -3,7 +3,7 @@ use engine::{frame_counter::FrameCounterService, *};
 use crate::{pbm::PBMImage, resource::*};
 
 use self::{
-    attack::attack_system, npc::npc_update, state::state_system, transform::transform_entities,
+    ai::npc_update, attack::attack_system, state::state_system, transform::transform_entities,
 };
 
 use super::{controller::ControllerState, input::*, renderer::*, *};
@@ -83,7 +83,6 @@ fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
         .put(weapon(PLAYER_SHOTGUN_DAMAGE, 60, 100))
-        .put(CharacterState::Idle(FrameCounter::infinite()))
         .put(Health(100))
         .put(Velocity(7.0))
         .put(RotationSpeed(2.5))

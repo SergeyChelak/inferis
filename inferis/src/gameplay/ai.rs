@@ -4,6 +4,10 @@ use crate::resource::*;
 
 use super::{AnimationData, CharacterState, Maze, NpcTag, Position};
 
+pub fn ai_system() -> EngineResult<()> {
+    Ok(())
+}
+
 pub fn npc_update(
     storage: &mut ComponentStorage,
     delta_time: f32,

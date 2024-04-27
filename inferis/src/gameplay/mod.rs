@@ -2,11 +2,11 @@ use engine::{ComponentStorage, EngineResult, Float, FrameCounter, SizeFloat, Vec
 
 use crate::resource::*;
 
+mod ai;
 mod attack;
 mod controller;
 mod input;
 pub mod main_scene;
-mod npc;
 mod ray_caster;
 mod renderer;
 mod state;
