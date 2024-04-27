@@ -8,6 +8,8 @@ use crate::{assets::AssetManager, EngineResult, SizeU32};
 pub mod frame_counter;
 pub mod game_world;
 
+pub use frame_counter::FrameDuration;
+
 pub type SceneID = &'static str;
 pub trait Engine {
     fn change_scene(&mut self, scene_id: SceneID);
@@ -42,40 +44,5 @@ pub fn texture_size(texture: &Texture) -> SizeU32 {
     SizeU32 {
         width: query.width,
         height: query.height,
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct FrameDuration {
-    duration: usize,
-    progress: usize,
-}
-
-impl FrameDuration {
-    pub fn new(duration: usize) -> Self {
-        Self {
-            duration,
-            progress: 0,
-        }
-    }
-
-    pub fn infinite() -> Self {
-        Self::new(usize::MAX)
-    }
-
-    pub fn teak(&mut self) -> bool {
-        if self.is_completed() {
-            return false;
-        }
-        self.progress += 1;
-        true
-    }
-
-    pub fn is_completed(&self) -> bool {
-        self.duration == self.progress
-    }
-
-    pub fn is_performing(&self) -> bool {
-        self.progress > 0
     }
 }
