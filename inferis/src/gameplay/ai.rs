@@ -24,15 +24,12 @@ fn npc_behavior(
         return Ok(());
     }
     if let Some(distance) = vision(storage, npc_id, player_id) {
-        let state = if distance < 7.0 {
-            CharacterState::Attack
-        } else if distance < 12.0 {
-            CharacterState::Walk
-        } else {
-            CharacterState::Idle
-        };
+        let state = if distance < 10.0 { Attack } else { Walk };
         storage.set(npc_id, Some(state));
     }
+    // else {
+    //     storage.set(npc_id, Some(Idle));
+    // }
     Ok(())
 }
 
