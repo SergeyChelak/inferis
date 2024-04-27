@@ -4,6 +4,7 @@ use crate::resource::*;
 
 mod ai;
 mod attack;
+mod common;
 mod controller;
 mod input;
 pub mod main_scene;
@@ -43,7 +44,6 @@ pub struct RotationSpeed(pub Float);
 pub struct Angle(pub Float);
 
 #[derive(Clone, Copy)]
-
 pub struct Shot {
     position: Vec2f,
     angle: Float,

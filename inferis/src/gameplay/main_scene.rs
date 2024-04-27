@@ -88,6 +88,7 @@ fn bundle_player(position: Vec2f) -> EntityBundle {
         .put(RotationSpeed(2.5))
         .put(Position(position))
         .put(Angle(0.0))
+        .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
 }
 
 fn bundle_maze() -> EngineResult<EntityBundle> {
