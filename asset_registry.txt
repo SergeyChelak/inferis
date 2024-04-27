@@ -16,6 +16,7 @@ texture                 player_shotgun           assets/shotgun/shotgun.png
 texture                 shotgun_shot             assets/shotgun/shotgun_animation_shot.png
 # player shotgun animation
 animation               anim_shotgun_shot        shotgun_shot     6       10
+animation               anim_shotgun_idle        player_shotgun   1       1000
 ##########################################################################################################
 
 

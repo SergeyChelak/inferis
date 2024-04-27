@@ -27,6 +27,7 @@ pub enum EngineError {
     ResourceNotFound(String),
     Sdl(String),
     MazeGenerationFailed(String),
+    UnexpectedState(String),
 }
 
 impl EngineError {
@@ -36,6 +37,10 @@ impl EngineError {
 
     pub fn sdl(name: impl Into<String>) -> EngineError {
         Self::Sdl(name.into())
+    }
+
+    pub fn unexpected_state(message: impl Into<String>) -> EngineError {
+        Self::UnexpectedState(message.into())
     }
 }
 

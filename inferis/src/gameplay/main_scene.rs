@@ -82,14 +82,13 @@ impl Scene for GameScene {
 fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
-        .put(weapon(27, 20, 100))
+        .put(weapon(PLAYER_SHOTGUN_DAMAGE, 60, 100))
         .put(CharacterState::Idle(FrameCounter::infinite()))
         .put(Health(100))
         .put(Velocity(7.0))
         .put(RotationSpeed(2.5))
         .put(Position(position))
         .put(Angle(0.0))
-        .put(TextureID(PLAYER_SHOTGUN.to_string()))
 }
 
 fn bundle_maze() -> EngineResult<EntityBundle> {

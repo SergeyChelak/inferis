@@ -128,6 +128,14 @@ impl AnimationData {
             animation_id: animation_id.into(),
         }
     }
+
+    pub fn replace(&mut self, other_animation_id: &str) {
+        if other_animation_id == self.animation_id {
+            return;
+        }
+        self.animation_id = other_animation_id.to_string();
+        self.frame_counter = 0;
+    }
 }
 
 impl Maze {

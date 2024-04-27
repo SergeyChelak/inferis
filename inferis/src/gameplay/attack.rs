@@ -82,19 +82,17 @@ fn try_shot(
         return Err(EngineError::component_not_found("Weapon"));
     };
     if weapon.ammo_count == 0 || matches!(weapon.state, WeaponState::Recharge) {
-        println!("[attack] shot discarded due recharge or empty clip");
+        // println!("[attack] shot discarded due recharge or empty clip");
         return Ok(false);
     }
-    let Ok(Some(target_id)) = ray_cast_shot(storage, entity_id) else {
-        println!("[attack] no target reached");
-        return Ok(true);
-    };
-    let total_damage = weapon.damage
-        + storage
-            .get::<ReceivedDamage>(target_id)
-            .map(|x| x.0)
-            .unwrap_or_default();
-    storage.set::<ReceivedDamage>(entity_id, Some(ReceivedDamage(total_damage)));
+    if let Ok(Some(target_id)) = ray_cast_shot(storage, entity_id) {
+        let total_damage = weapon.damage
+            + storage
+                .get::<ReceivedDamage>(target_id)
+                .map(|x| x.0)
+                .unwrap_or_default();
+        storage.set::<ReceivedDamage>(target_id, Some(ReceivedDamage(total_damage)));
+    }
     if let Some(mut comp) = storage.get_mut::<Weapon>(entity_id) {
         let w = comp.borrow_mut();
         w.ammo_count = weapon.ammo_count.saturating_sub(1);
@@ -131,7 +129,7 @@ fn ray_cast_shot(
             // --- TEMPORARY
             if let Some(true) = storage.get::<Maze>(maze_id).map(|x| x.is_wall(point)) {
                 println!("[attack] shoot in the wall");
-                return None;
+                return Some(maze_id);
             };
             // ---
 

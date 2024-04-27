@@ -16,9 +16,10 @@ pub const WORLD_TORCH_GREEN_ANIM: &str = "anim_torch_green";
 pub const WORLD_CANDELABRA: &str = "candelabra";
 
 // player
-pub const PLAYER_SHOTGUN: &str = &"player_shotgun";
+// pub const PLAYER_SHOTGUN: &str = &"player_shotgun";
 pub const PLAYER_SHOTGUN_SHOT_ANIM: &str = &"anim_shotgun_shot";
-pub const PLAYER_DAMAGE: HealthType = 27;
+pub const PLAYER_SHOTGUN_IDLE_ANIM: &str = &"anim_shotgun_idle";
+pub const PLAYER_SHOTGUN_DAMAGE: HealthType = 27;
 
 // npc soldier
 pub const NPC_SOLDIER_IDLE: &str = &"anim_soldier_idle";
