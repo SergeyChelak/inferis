@@ -1,4 +1,4 @@
-use engine::{Float, Vec2f};
+use crate::{Float, Vec2f};
 
 pub const RAY_CASTER_TOL: Float = 1e-5;
 const MAX_DEPTH: usize = 50;

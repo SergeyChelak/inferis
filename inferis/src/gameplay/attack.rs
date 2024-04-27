@@ -2,12 +2,12 @@ use std::borrow::BorrowMut;
 
 use engine::{
     frame_counter::{FrameCounterService, FrameCounterState},
+    ray_caster::ray_cast,
     ComponentStorage, EngineError, EngineResult, EntityID, Query, Rectangle, Vec2f,
 };
 
 use super::{
-    ray_caster::ray_cast, BoundingBox, Health, Maze, Position, ReceivedDamage, Shot, ShotState,
-    Weapon, WeaponState,
+    BoundingBox, Health, Maze, Position, ReceivedDamage, Shot, ShotState, Weapon, WeaponState,
 };
 
 pub fn attack_system(

@@ -58,7 +58,7 @@ impl Scene for GameScene {
             delta_time,
             self.player_id,
         )?;
-        ai_system(&mut self.storage)?;
+        ai_system(&mut self.storage, self.player_id)?;
         transform_entities(&mut self.storage)?;
         attack_system(&mut self.storage, &mut self.frame_counter)?;
         state_system(&mut self.storage, &mut self.frame_counter)?;

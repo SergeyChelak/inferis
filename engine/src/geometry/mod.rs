@@ -1,3 +1,4 @@
+pub mod ray_caster;
 mod vec2f;
 mod vector;
 

@@ -7,7 +7,6 @@ mod attack;
 mod controller;
 mod input;
 pub mod main_scene;
-mod ray_caster;
 mod renderer;
 mod state;
 mod transform;

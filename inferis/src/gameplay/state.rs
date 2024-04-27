@@ -51,6 +51,9 @@ fn update_npc(
         .state(&key)
         .map(|x| matches!(x, FrameCounterState::Completed))
         .unwrap_or(false);
+    if is_completed {
+        frame_counter.remove(&key);
+    }
     match (state, is_completed) {
         (Damage, true) => {
             if let Some(true) = storage.get::<Health>(entity_id).map(|x| x.0 > 0) {
@@ -63,7 +66,9 @@ fn update_npc(
         (Death, true) => {
             storage.remove_entity(entity_id);
         }
-        _ => {}
+        _ => {
+            // don't change state
+        }
     }
     update_npc_animation(storage, entity_id)?;
     Ok(())

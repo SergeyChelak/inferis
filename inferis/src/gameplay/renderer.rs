@@ -2,12 +2,10 @@ use std::{borrow::BorrowMut, cmp::Ordering, f32::consts::PI};
 
 use crate::resource::*;
 
-use super::{
-    ray_caster::{ray_cast, RAY_CASTER_TOL},
-    Angle, AnimationData, HeightShift, Maze, Position, ScaleRatio, SpriteTag, TextureID,
-};
+use super::{Angle, AnimationData, HeightShift, Maze, Position, ScaleRatio, SpriteTag, TextureID};
 use engine::{
     pixels::Color,
+    ray_caster::{ray_cast, RAY_CASTER_TOL},
     rect::{Point, Rect},
     render::Texture,
     texture_size, AssetManager, ComponentStorage, Engine, EngineError, EngineResult, EntityID,

@@ -3,11 +3,11 @@
 ## Player detection
 NPC can detect player by applying a ray caster. We can say that NPC can _see_ that player if there is no obstacles crossing segment that connects NPC and player positions. The ray direction could be calculated this way
 ```rust
-let Some(position) = self.storage.get_mut::<Position>(npc_id).map(|x| x.0) else {
+let Some(npc_position) = storage.get_mut::<Position>(npc_id).map(|x| x.0) else {
     panic!("Doesn't matter in the snippet")
 };
-let vector = self.player_pos - position;
-let angle = delta.y.atan2(delta.x);
+let vector = player_pos - npc_position;
+let angle = vector.y.atan2(vector.x);
 ```
 
 ## Pursuit & Attack
