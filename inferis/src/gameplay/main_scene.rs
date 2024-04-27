@@ -2,7 +2,7 @@ use engine::*;
 
 use crate::{pbm::PBMImage, resource::*};
 
-use self::{npc::npc_update, transform::transform_entities};
+use self::{attack::attack_system, npc::npc_update, transform::transform_entities};
 
 use super::{controller::ControllerState, player::*, renderer::*, *};
 
@@ -55,8 +55,9 @@ impl Scene for GameScene {
             self.player_id,
             self.maze_id,
         )?;
-        transform_entities(&mut self.storage)?;
         npc_update(&mut self.storage, delta_time, self.player_id, self.maze_id)?;
+        transform_entities(&mut self.storage)?;
+        attack_system(&mut self.storage)?;
         Ok(())
     }
 
@@ -76,7 +77,9 @@ impl Scene for GameScene {
 fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
-        .put(CharacterState::Idle(ProgressModel::infinite()))
+        .put(Damage(27))
+        .put(RechargeTime(20))
+        .put(CharacterState::Idle(FrameDuration::infinite()))
         .put(Health(100))
         .put(Velocity(7.0))
         .put(RotationSpeed(2.5))
@@ -123,9 +126,11 @@ fn bundle_sprite(texture_id: &str, position: Vec2f) -> EntityBundle {
 fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(SpriteTag)
+        .put(Damage(10))
+        .put(RechargeTime(20))
         .put(Position(position))
         .put(NpcTag)
-        .put(CharacterState::Idle(ProgressModel::infinite()))
+        .put(CharacterState::Idle(FrameDuration::infinite()))
         .put(Health(100))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))

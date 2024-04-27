@@ -1,4 +1,4 @@
-use engine::{ComponentStorage, EngineError, EngineResult, EntityID, ProgressModel, Query, Vec2f};
+use engine::{ComponentStorage, EngineError, EngineResult, EntityID, FrameDuration, Query, Vec2f};
 
 use crate::resource::*;
 
@@ -76,7 +76,7 @@ impl<'a> Npc<'a> {
             Damage(mut progress) => {
                 if progress.is_completed() {
                     self.storage
-                        .set(entity_id, Some(Idle(ProgressModel::infinite())));
+                        .set(entity_id, Some(Idle(FrameDuration::infinite())));
                 } else {
                     self.update_animation(entity_id, NPC_SOLDIER_DAMAGE, &mut progress, |p| {
                         Damage(p)
@@ -92,8 +92,8 @@ impl<'a> Npc<'a> {
         &mut self,
         entity_id: EntityID,
         animation_id: &str,
-        progress: &mut ProgressModel,
-        prod: impl FnOnce(ProgressModel) -> CharacterState,
+        progress: &mut FrameDuration,
+        prod: impl FnOnce(FrameDuration) -> CharacterState,
     ) {
         if !progress.is_performing() {
             let data = AnimationData::new(animation_id);
@@ -119,13 +119,13 @@ impl<'a> Npc<'a> {
             (true, true) => {
                 self.storage.set(
                     entity_id,
-                    Some(CharacterState::Attack(ProgressModel::infinite())),
+                    Some(CharacterState::Attack(FrameDuration::infinite())),
                 );
             }
             (false, false) => {
                 self.storage.set(
                     entity_id,
-                    Some(CharacterState::Idle(ProgressModel::infinite())),
+                    Some(CharacterState::Idle(FrameDuration::infinite())),
                 );
             }
             _ => {}

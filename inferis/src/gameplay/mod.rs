@@ -1,9 +1,9 @@
-use engine::{ComponentStorage, EngineResult, Float, ProgressModel, SizeFloat, Vec2f};
+use engine::{ComponentStorage, EngineResult, Float, FrameDuration, SizeFloat, Vec2f};
 
 use crate::resource::*;
 
+mod attack;
 mod controller;
-mod damage;
 pub mod main_scene;
 mod npc;
 mod player;
@@ -22,11 +22,11 @@ pub struct NpcTag;
 
 #[derive(Clone, Copy, Debug)]
 pub enum CharacterState {
-    Idle(ProgressModel),
-    Death(ProgressModel),
-    Attack(ProgressModel),
-    Walk(ProgressModel),
-    Damage(ProgressModel),
+    Idle(FrameDuration),
+    Death(FrameDuration),
+    Attack(FrameDuration),
+    Walk(FrameDuration),
+    Damage(FrameDuration),
 }
 
 #[derive(Clone, Copy, Default, Debug)]
@@ -41,6 +41,16 @@ pub struct Velocity(pub Float);
 pub struct RotationSpeed(pub Float);
 
 pub struct Angle(pub Float);
+
+pub struct Shot {
+    from: Vec2f,
+    angle: Float,
+}
+
+pub struct Damage(pub HealthType);
+
+pub struct RechargeTime(pub usize);
+pub struct Recharge(pub FrameDuration);
 
 pub type MazeData = Vec<Vec<i32>>;
 pub struct Maze(pub MazeData);
@@ -79,6 +89,12 @@ pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<AnimationData>()?;
     storage.register_component::<BoundingBox>()?;
     storage.register_component::<Transform>()?;
+
+    storage.register_component::<Shot>()?;
+    storage.register_component::<Recharge>()?;
+    storage.register_component::<RechargeTime>()?;
+    storage.register_component::<Damage>()?;
+
     Ok(storage)
 }
 

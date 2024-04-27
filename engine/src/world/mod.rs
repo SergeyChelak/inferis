@@ -45,12 +45,12 @@ pub fn texture_size(texture: &Texture) -> SizeU32 {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ProgressModel {
+pub struct FrameDuration {
     duration: usize,
     progress: usize,
 }
 
-impl ProgressModel {
+impl FrameDuration {
     pub fn new(duration: usize) -> Self {
         Self {
             duration,
