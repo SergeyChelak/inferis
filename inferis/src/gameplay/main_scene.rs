@@ -3,7 +3,7 @@ use engine::{frame_counter::FrameCounterService, *};
 use crate::{pbm::PBMImage, resource::*};
 
 use self::{
-    ai::npc_update, attack::attack_system, state::state_system, transform::transform_entities,
+    ai::ai_system, attack::attack_system, state::state_system, transform::transform_entities,
 };
 
 use super::{controller::ControllerState, input::*, renderer::*, *};
@@ -58,10 +58,10 @@ impl Scene for GameScene {
             delta_time,
             self.player_id,
         )?;
-        npc_update(&mut self.storage, delta_time, self.player_id, self.maze_id)?;
+        ai_system(&mut self.storage)?;
         transform_entities(&mut self.storage)?;
         attack_system(&mut self.storage, &mut self.frame_counter)?;
-        state_system(&mut self.storage)?;
+        state_system(&mut self.storage, &mut self.frame_counter)?;
         self.frame_counter.teak();
         Ok(())
     }
@@ -131,7 +131,7 @@ fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
         .put(weapon(10, 20, usize::MAX))
         .put(Position(position))
         .put(NpcTag)
-        .put(CharacterState::Idle(FrameCounter::infinite()))
+        .put(CharacterState::Idle)
         .put(Health(100))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))

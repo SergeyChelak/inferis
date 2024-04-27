@@ -1,4 +1,4 @@
-use engine::{ComponentStorage, EngineResult, Float, FrameCounter, SizeFloat, Vec2f};
+use engine::{ComponentStorage, EngineResult, Float, SizeFloat, Vec2f};
 
 use crate::resource::*;
 
@@ -23,11 +23,11 @@ pub struct NpcTag;
 
 #[derive(Clone, Copy, Debug)]
 pub enum CharacterState {
-    Idle(FrameCounter),
-    Death(FrameCounter),
-    Attack(FrameCounter),
-    Walk(FrameCounter),
-    Damage(FrameCounter),
+    Idle,
+    Death,
+    Attack,
+    Walk,
+    Damage,
 }
 
 #[derive(Clone, Copy, Default, Debug)]

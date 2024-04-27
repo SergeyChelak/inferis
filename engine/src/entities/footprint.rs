@@ -20,7 +20,7 @@ impl Footprint {
         }
     }
 
-    pub fn _get(&self, pos: usize) -> bool {
+    pub fn get(&self, pos: usize) -> bool {
         self.raw & 1 << pos > 0
     }
 

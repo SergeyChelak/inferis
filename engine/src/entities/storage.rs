@@ -214,6 +214,17 @@ impl ComponentStorage {
         true
     }
 
+    pub fn has_component<T: Any>(&self, entity_id: EntityID) -> bool {
+        let Some(footprint) = self.entity_footprint.get(&entity_id) else {
+            return false;
+        };
+        let key = TypeId::of::<T>();
+        let Some(&position) = self.type_position_map.get(&key) else {
+            return false;
+        };
+        footprint.get(position)
+    }
+
     fn get_component<T: Any>(&self, entity_id: EntityID) -> Option<&ComponentEntry> {
         if !self.is_alive(entity_id) {
             return None;
