@@ -1,10 +1,53 @@
+use std::collections::HashMap;
+
+#[derive(Default)]
+pub struct FrameCounterService {
+    map: HashMap<String, FrameCounter>,
+}
+
+impl FrameCounterService {
+    pub fn add_counter(&mut self, counter_id: impl Into<String>, duration: usize) {
+        let item = FrameCounter::new(duration);
+        self.map.insert(counter_id.into(), item);
+    }
+
+    pub fn teak(&mut self) {
+        self.map.iter_mut().for_each(|(_, val)| {
+            val.teak();
+        })
+    }
+
+    pub fn state(&mut self, counter_id: &str) -> Option<FrameCounterState> {
+        let counter = self.map.get(counter_id)?;
+        use FrameCounterState::*;
+        if counter.is_completed() {
+            return Some(Completed);
+        }
+        if counter.is_performing() {
+            return Some(InProgress(counter.progress));
+        }
+        Some(Ready)
+    }
+
+    pub fn remove(&mut self, counter_id: &str) -> bool {
+        self.map.remove(counter_id).is_some()
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
-pub struct FrameDuration {
+pub enum FrameCounterState {
+    Ready,
+    InProgress(usize),
+    Completed,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct FrameCounter {
     duration: usize,
     progress: usize,
 }
 
-impl FrameDuration {
+impl FrameCounter {
     pub fn new(duration: usize) -> Self {
         Self {
             duration,

@@ -80,6 +80,10 @@ mod allocator {
         pub fn index(&self) -> usize {
             self.index
         }
+
+        pub fn id_key(&self) -> String {
+            format!("{}:{}", self.generation, self.index)
+        }
     }
 }
 

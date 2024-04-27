@@ -1,28 +1,56 @@
 use std::borrow::BorrowMut;
 
-use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Query, Rectangle, Vec2f};
+use engine::{
+    frame_counter::{FrameCounterService, FrameCounterState},
+    ComponentStorage, EngineError, EngineResult, EntityID, Query, Rectangle, Vec2f,
+};
 
 use super::{
     ray_caster::ray_cast, BoundingBox, Health, Maze, Position, ReceivedDamage, Shot, ShotState,
     Weapon, WeaponState,
 };
 
-pub fn attack_system(storage: &mut ComponentStorage) -> EngineResult<()> {
-    process_shorts(storage)?;
-    refresh_weapon_state(storage)?;
+pub fn attack_system(
+    storage: &mut ComponentStorage,
+    frame_counter: &mut FrameCounterService,
+) -> EngineResult<()> {
+    process_shorts(storage, frame_counter)?;
+    refresh_weapon_state(storage, frame_counter)?;
     Ok(())
 }
 
-fn refresh_weapon_state(storage: &mut ComponentStorage) -> EngineResult<()> {
+fn refresh_weapon_state(
+    storage: &mut ComponentStorage,
+    frame_counter: &mut FrameCounterService,
+) -> EngineResult<()> {
     let query = Query::new().with_component::<Weapon>();
     let entities = storage.fetch_entities(&query);
     for entity_id in entities {
-        // TODO: check if weapon recharge time is out
+        let Some(true) = frame_counter
+            .state(&frame_counter_key(entity_id))
+            // .inspect(|x| println!("{} @ {x:?}", entity_id.id_key()))
+            .map(|x| matches!(x, FrameCounterState::Completed))
+        else {
+            continue;
+        };
+        let Some(mut comp) = storage.get_mut::<Weapon>(entity_id) else {
+            continue;
+        };
+        let weapon = comp.borrow_mut();
+        weapon.state = WeaponState::Ready;
+        // println!("[attack] weapon of {} is ready to shot", entity_id.id_key())
     }
     Ok(())
 }
 
-fn process_shorts(storage: &mut ComponentStorage) -> EngineResult<()> {
+fn frame_counter_key(entity_id: EntityID) -> String {
+    format!("WEAPON_{}", entity_id.id_key())
+}
+
+fn process_shorts(
+    storage: &mut ComponentStorage,
+    frame_counter: &mut FrameCounterService,
+) -> EngineResult<()> {
     let query = Query::new().with_component::<Shot>();
     let entities = storage.fetch_entities(&query);
     for entity_id in entities {
@@ -32,7 +60,7 @@ fn process_shorts(storage: &mut ComponentStorage) -> EngineResult<()> {
         else {
             continue;
         };
-        let new_state = if try_shot(storage, entity_id)? {
+        let new_state = if try_shot(storage, frame_counter, entity_id)? {
             ShotState::Accepted
         } else {
             ShotState::Cancelled
@@ -45,7 +73,11 @@ fn process_shorts(storage: &mut ComponentStorage) -> EngineResult<()> {
     Ok(())
 }
 
-fn try_shot(storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult<bool> {
+fn try_shot(
+    storage: &mut ComponentStorage,
+    frame_counter: &mut FrameCounterService,
+    entity_id: EntityID,
+) -> EngineResult<bool> {
     let Some(weapon) = storage.get::<Weapon>(entity_id).map(|x| *x) else {
         return Err(EngineError::component_not_found("Weapon"));
     };
@@ -67,6 +99,7 @@ fn try_shot(storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult
         let w = comp.borrow_mut();
         w.ammo_count = weapon.ammo_count.saturating_sub(1);
         w.state = WeaponState::Recharge;
+        frame_counter.add_counter(frame_counter_key(entity_id), weapon.recharge_time);
     };
     Ok(true)
 }

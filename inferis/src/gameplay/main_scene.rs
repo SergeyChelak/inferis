@@ -1,4 +1,4 @@
-use engine::*;
+use engine::{frame_counter::FrameCounterService, *};
 
 use crate::{pbm::PBMImage, resource::*};
 
@@ -11,6 +11,7 @@ use super::{controller::ControllerState, input::*, renderer::*, *};
 pub struct GameScene {
     storage: ComponentStorage,
     controller: ControllerState,
+    frame_counter: FrameCounterService,
     player_id: EntityID,
     maze_id: EntityID,
 }
@@ -32,6 +33,7 @@ impl GameScene {
         Ok(Self {
             storage,
             controller: ControllerState::default(),
+            frame_counter: FrameCounterService::default(),
             player_id,
             maze_id,
         })
@@ -58,8 +60,9 @@ impl Scene for GameScene {
         )?;
         npc_update(&mut self.storage, delta_time, self.player_id, self.maze_id)?;
         transform_entities(&mut self.storage)?;
-        attack_system(&mut self.storage)?;
+        attack_system(&mut self.storage, &mut self.frame_counter)?;
         state_system(&mut self.storage)?;
+        self.frame_counter.teak();
         Ok(())
     }
 
@@ -80,7 +83,7 @@ fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
         .put(weapon(27, 20, 100))
-        .put(CharacterState::Idle(FrameDuration::infinite()))
+        .put(CharacterState::Idle(FrameCounter::infinite()))
         .put(Health(100))
         .put(Velocity(7.0))
         .put(RotationSpeed(2.5))
@@ -130,7 +133,7 @@ fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
         .put(weapon(10, 20, usize::MAX))
         .put(Position(position))
         .put(NpcTag)
-        .put(CharacterState::Idle(FrameDuration::infinite()))
+        .put(CharacterState::Idle(FrameCounter::infinite()))
         .put(Health(100))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
