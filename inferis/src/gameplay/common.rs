@@ -1,6 +1,4 @@
-use engine::{
-    ray_caster::ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Rectangle, Vec2f,
-};
+use engine::{ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Rectangle, Vec2f};
 
 use super::{BoundingBox, Maze, Position};
 

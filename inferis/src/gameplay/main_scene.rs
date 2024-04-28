@@ -114,6 +114,7 @@ fn bundle_torch(style: TorchStyle, position: Vec2f) -> EntityBundle {
         .put(Position(position))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
+        .put(BoundingBox(SizeFloat::new(0.3, 0.3)))
         .put(SpriteTag)
 }
 

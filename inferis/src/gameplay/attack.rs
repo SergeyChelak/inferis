@@ -1,14 +1,11 @@
 use std::borrow::BorrowMut;
 
 use engine::{
-    frame_counter::FrameCounterService, ray_caster::ray_cast, ComponentStorage, EngineError,
-    EngineResult, EntityID, Query, Rectangle, Vec2f,
+    frame_counter::FrameCounterService, ComponentStorage, EngineError, EngineResult, EntityID,
+    Query,
 };
 
-use super::{
-    common::ray_cast_with_entity, BoundingBox, Health, Maze, Position, ReceivedDamage, Shot,
-    ShotState, Weapon, WeaponState,
-};
+use super::{common::ray_cast_with_entity, ReceivedDamage, Shot, ShotState, Weapon, WeaponState};
 
 pub fn attack_system(
     storage: &mut ComponentStorage,

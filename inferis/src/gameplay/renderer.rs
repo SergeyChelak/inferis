@@ -2,14 +2,15 @@ use std::{borrow::BorrowMut, cmp::Ordering, f32::consts::PI};
 
 use crate::resource::*;
 
-use super::{Angle, AnimationData, HeightShift, Maze, Position, ScaleRatio, SpriteTag, TextureID};
+use super::{
+    Angle, AnimationData, HeightShift, Maze, PlayerTag, Position, ScaleRatio, SpriteTag, TextureID,
+};
 use engine::{
     pixels::Color,
-    ray_caster::{ray_cast, RAY_CASTER_TOL},
     rect::{Point, Rect},
     render::Texture,
     texture_size, AssetManager, ComponentStorage, Engine, EngineError, EngineResult, EntityID,
-    Float, Query, Size, SizeU32, Vec2f,
+    Float, Query, Size, SizeU32, Vec2f, {ray_cast, RAY_CASTER_TOL},
 };
 
 const FIELD_OF_VIEW: Float = PI / 3.0;
@@ -381,7 +382,7 @@ impl<'a> Renderer<'a> {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     fn render_minimap(&mut self) -> EngineResult<()> {
         self.render_maze()?;
-        self.render_maze_player()
+        self.render_characters()
     }
 
     fn render_maze(&mut self) -> EngineResult<()> {
@@ -408,13 +409,25 @@ impl<'a> Renderer<'a> {
         Ok(())
     }
 
-    fn render_maze_player(&mut self) -> EngineResult<()> {
-        let Some(pos) = self.player_position else {
+    fn render_characters(&mut self) -> EngineResult<()> {
+        let query = Query::new()
+            .with_component::<Position>()
+            .with_component::<Angle>();
+        let entities = self.storage.fetch_entities(&query);
+        for entity_id in entities {
+            self.render_maze_player(entity_id)?;
+        }
+        Ok(())
+    }
+
+    fn render_maze_player(&mut self, entity_id: EntityID) -> EngineResult<()> {
+        let Some(pos) = self.storage.get::<Position>(entity_id).map(|x| x.0) else {
             return Ok(());
         };
-        let Some(angle) = self.player_angle else {
+        let Some(angle) = self.storage.get::<Angle>(entity_id).map(|x| x.0) else {
             return Ok(());
         };
+        let is_player = self.storage.has_component::<PlayerTag>(entity_id);
         let (x, y) = (
             (pos.x * MAP_SCALE as Float) as i32,
             (pos.y * MAP_SCALE as Float) as i32,
@@ -423,10 +436,10 @@ impl<'a> Renderer<'a> {
         let canvas = self.engine.canvas();
         let size = MAP_SCALE - 1;
         let rect = Rect::new(x - (size >> 1) as i32, y - (size >> 1) as i32, size, size);
-        canvas.set_draw_color(Color::RED);
+        canvas.set_draw_color(if is_player { Color::RED } else { Color::YELLOW });
         canvas.fill_rect(rect).map_err(|e| EngineError::sdl(e))?;
 
-        let length = 1.5 * MAP_SCALE as Float;
+        let length = 2.5 * MAP_SCALE as Float;
         canvas
             .draw_line(
                 Point::new(x, y),

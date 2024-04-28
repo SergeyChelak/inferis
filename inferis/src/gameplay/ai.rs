@@ -1,6 +1,8 @@
 use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Float, Query, Vec2f};
 
-use super::{common::ray_cast_with_entity, CharacterState, NpcTag, Position, Transform, Velocity};
+use super::{
+    common::ray_cast_with_entity, Angle, CharacterState, NpcTag, Position, Transform, Velocity,
+};
 
 struct NpcData {
     player_id: EntityID,
@@ -47,12 +49,12 @@ pub fn ai_system(
             continue;
         };
         let data = NpcData::new(npc_id, npc_position, player_id, player_position, delta_time);
-        npc_behavior(storage, &data)?;
+        update_npc_behavior(storage, &data)?;
     }
     Ok(())
 }
 
-fn npc_behavior(storage: &mut ComponentStorage, data: &NpcData) -> EngineResult<()> {
+fn update_npc_behavior(storage: &mut ComponentStorage, data: &NpcData) -> EngineResult<()> {
     let npc_id = data.npc_id;
     let Some(state) = storage.get::<CharacterState>(npc_id).map(|x| *x) else {
         return Err(EngineError::component_not_found("CharacterState"));
@@ -62,9 +64,12 @@ fn npc_behavior(storage: &mut ComponentStorage, data: &NpcData) -> EngineResult<
         return Ok(());
     }
     if let Some(distance) = vision(storage, data) {
-        let new_state = if distance < 7.0 { Attack } else { Walk };
+        let new_state = if distance < 5.0 { Attack } else { Walk };
         storage.set(npc_id, Some(new_state));
-    };
+        storage.set(npc_id, Some(Angle(data.angle)));
+    } else {
+        //storage.set(npc_id, Some(Idle));
+    }
     // TODO: move to function
     let Some(state) = storage.get::<CharacterState>(npc_id).map(|x| *x) else {
         return Err(EngineError::component_not_found("CharacterState"));
@@ -84,16 +89,20 @@ fn npc_behavior(storage: &mut ComponentStorage, data: &NpcData) -> EngineResult<
 }
 
 fn vision(storage: &mut ComponentStorage, data: &NpcData) -> Option<Float> {
-    let Some(entity_id) = ray_cast_with_entity(storage, data.npc_id, data.npc_position, data.angle)
-        .ok()
-        .and_then(|x| x)
+    let Ok(result) = ray_cast_with_entity(storage, data.npc_id, data.npc_position, data.angle)
     else {
+        println!("[npc] vision error");
         return None;
     };
-    if entity_id != data.player_id {
-        return None;
+    let mut has_obstacles = false;
+    if let Some(entity_id) = result {
+        has_obstacles = entity_id != data.player_id;
     }
-    Some(data.vector.hypotenuse())
+    if has_obstacles {
+        None
+    } else {
+        Some(data.vector.hypotenuse())
+    }
 }
 
 fn movement(storage: &mut ComponentStorage, data: &NpcData) {
