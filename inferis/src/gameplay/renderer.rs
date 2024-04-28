@@ -91,7 +91,7 @@ impl<'a> Renderer<'a> {
         for task in self.tasks.iter() {
             canvas
                 .copy(task.texture, task.source, task.destination)
-                .map_err(|e| EngineError::sdl(e))?;
+                .map_err(EngineError::sdl)?;
         }
         self.render_minimap()?;
         Ok(())
@@ -403,7 +403,7 @@ impl<'a> Renderer<'a> {
                     MAP_SCALE,
                     MAP_SCALE,
                 );
-                canvas.fill_rect(rect).map_err(|e| EngineError::sdl(e))?
+                canvas.fill_rect(rect).map_err(EngineError::sdl)?
             }
         }
         Ok(())
@@ -437,7 +437,7 @@ impl<'a> Renderer<'a> {
         let size = MAP_SCALE - 1;
         let rect = Rect::new(x - (size >> 1) as i32, y - (size >> 1) as i32, size, size);
         canvas.set_draw_color(if is_player { Color::RED } else { Color::YELLOW });
-        canvas.fill_rect(rect).map_err(|e| EngineError::sdl(e))?;
+        canvas.fill_rect(rect).map_err(EngineError::sdl)?;
 
         let length = 2.5 * MAP_SCALE as Float;
         canvas
@@ -448,6 +448,6 @@ impl<'a> Renderer<'a> {
                     y + (length * angle.sin()) as i32,
                 ),
             )
-            .map_err(|e| EngineError::sdl(e))
+            .map_err(EngineError::sdl)
     }
 }

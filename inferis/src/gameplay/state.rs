@@ -4,8 +4,8 @@ use std::{
 };
 
 use engine::{
-    frame_counter::{FrameCounterService, FrameCounterState},
-    ComponentStorage, EngineError, EngineResult, EntityID, Query,
+    frame_counter::FrameCounterService, ComponentStorage, EngineError, EngineResult, EntityID,
+    Query,
 };
 
 use super::*;

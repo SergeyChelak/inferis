@@ -121,6 +121,6 @@ fn movement(storage: &mut ComponentStorage, data: &NpcData) {
     storage.set(data.npc_id, Some(transform));
 }
 
-fn attack(storage: &mut ComponentStorage, data: &NpcData) {
+fn attack(_storage: &mut ComponentStorage, _data: &NpcData) {
     //
 }

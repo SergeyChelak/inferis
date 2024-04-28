@@ -82,7 +82,7 @@ fn check_collisions(storage: &ComponentStorage, entity_id: EntityID, position: V
     {
         // TEMPORARY: now just check the wall collisions
         let query = Query::new().with_component::<Maze>();
-        let maze_id = *storage.fetch_entities(&query).get(0).unwrap();
+        let maze_id = *storage.fetch_entities(&query).first().unwrap();
         let Some(maze) = storage.get::<Maze>(maze_id) else {
             panic!("[check_collisions] maze not found")
         };

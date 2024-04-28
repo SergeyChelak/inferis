@@ -16,7 +16,7 @@ pub fn ray_cast_with_entity(
     }
     // --- TEMPORARY
     let query = Query::new().with_component::<Maze>();
-    let maze_id = *storage.fetch_entities(&query).get(0).unwrap();
+    let maze_id = *storage.fetch_entities(&query).first().unwrap();
     // ---
     let check = |point: Vec2f| {
         for target_id in &entities {
