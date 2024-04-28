@@ -80,6 +80,8 @@ pub struct TextureID(pub String);
 
 pub struct SpriteTag;
 
+pub struct UserControllableTag;
+
 pub struct ScaleRatio(pub Float);
 
 pub struct HeightShift(pub Float);
@@ -113,7 +115,7 @@ pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<ReceivedDamage>()?;
     storage.register_component::<Shot>()?;
     storage.register_component::<Weapon>()?;
-
+    storage.register_component::<UserControllableTag>()?;
     Ok(storage)
 }
 

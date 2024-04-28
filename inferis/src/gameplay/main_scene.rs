@@ -93,6 +93,7 @@ impl Scene for GameScene {
 fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
+        .put(UserControllableTag)
         .put(weapon(PLAYER_SHOTGUN_DAMAGE, 60, 100))
         .put(Health(100))
         .put(Velocity(7.0))

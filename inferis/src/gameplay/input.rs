@@ -10,6 +10,9 @@ pub fn user_input_system(
     delta_time: f32,
     player_id: EntityID,
 ) -> EngineResult<()> {
+    if !storage.has_component::<UserControllableTag>(player_id) {
+        return Ok(());
+    }
     handle_movement(storage, player_id, controller, delta_time)?;
     handle_shot(storage, controller, player_id)
 }

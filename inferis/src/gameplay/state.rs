@@ -101,7 +101,7 @@ fn process_damages(storage: &mut ComponentStorage) -> EngineResult<()> {
         };
         let health = comp.borrow_mut();
         health.0 = health.0.saturating_sub(damage);
-        println!("[state] entity {} health {}", entity_id.id_key(), health.0);
+        // println!("[state] entity {} health {}", entity_id.id_key(), health.0);
     }
     Ok(())
 }
@@ -113,7 +113,16 @@ fn update_player(storage: &mut ComponentStorage) -> EngineResult<()> {
             "Failed to query entity id with player tag",
         ));
     };
-    // TODO: check player is alive
+    let Some(health) = storage.get::<Health>(player_id).map(|x| x.0) else {
+        return Ok(());
+    };
+    if health == 0 {
+        storage.set::<UserControllableTag>(player_id, None);
+        storage.set::<BoundingBox>(player_id, None);
+        storage.set::<Health>(player_id, None);
+        storage.set::<AnimationData>(player_id, None);
+        return Ok(());
+    }
     update_player_weapon(storage, player_id)?;
     Ok(())
 }
