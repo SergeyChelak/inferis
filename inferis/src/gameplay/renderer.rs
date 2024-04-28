@@ -410,9 +410,7 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_characters(&mut self) -> EngineResult<()> {
-        let query = Query::new()
-            .with_component::<Position>()
-            .with_component::<Angle>();
+        let query = Query::new().with_component::<Position>();
         let entities = self.storage.fetch_entities(&query);
         for entity_id in entities {
             self.render_maze_player(entity_id)?;
@@ -424,21 +422,20 @@ impl<'a> Renderer<'a> {
         let Some(pos) = self.storage.get::<Position>(entity_id).map(|x| x.0) else {
             return Ok(());
         };
-        let Some(angle) = self.storage.get::<Angle>(entity_id).map(|x| x.0) else {
-            return Ok(());
-        };
         let is_player = self.storage.has_component::<PlayerTag>(entity_id);
         let (x, y) = (
             (pos.x * MAP_SCALE as Float) as i32,
             (pos.y * MAP_SCALE as Float) as i32,
         );
-
         let canvas = self.engine.canvas();
         let size = MAP_SCALE - 1;
         let rect = Rect::new(x - (size >> 1) as i32, y - (size >> 1) as i32, size, size);
         canvas.set_draw_color(if is_player { Color::RED } else { Color::YELLOW });
         canvas.fill_rect(rect).map_err(EngineError::sdl)?;
 
+        let Some(angle) = self.storage.get::<Angle>(entity_id).map(|x| x.0) else {
+            return Ok(());
+        };
         let length = 2.5 * MAP_SCALE as Float;
         canvas
             .draw_line(
