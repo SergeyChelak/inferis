@@ -1,7 +1,8 @@
 use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Float, Query, Vec2f};
 
 use super::{
-    common::ray_cast_with_entity, Angle, CharacterState, NpcTag, Position, Transform, Velocity,
+    common::ray_cast_with_entity, Angle, CharacterState, NpcTag, Position, Shot, Transform,
+    Velocity,
 };
 
 struct NpcData {
@@ -49,12 +50,13 @@ pub fn ai_system(
             continue;
         };
         let data = NpcData::new(npc_id, npc_position, player_id, player_position, delta_time);
-        update_npc_behavior(storage, &data)?;
+        update_npc_state(storage, &data)?;
+        perform_npc_action(storage, &data)?;
     }
     Ok(())
 }
 
-fn update_npc_behavior(storage: &mut ComponentStorage, data: &NpcData) -> EngineResult<()> {
+fn update_npc_state(storage: &mut ComponentStorage, data: &NpcData) -> EngineResult<()> {
     let npc_id = data.npc_id;
     let Some(state) = storage.get::<CharacterState>(npc_id).map(|x| *x) else {
         return Err(EngineError::component_not_found("CharacterState"));
@@ -68,17 +70,20 @@ fn update_npc_behavior(storage: &mut ComponentStorage, data: &NpcData) -> Engine
         storage.set(npc_id, Some(new_state));
         storage.set(npc_id, Some(Angle(data.angle)));
     } else {
-        //storage.set(npc_id, Some(Idle));
+        storage.set(npc_id, Some(Idle));
     }
-    // TODO: move to function
-    let Some(state) = storage.get::<CharacterState>(npc_id).map(|x| *x) else {
+    Ok(())
+}
+
+fn perform_npc_action(storage: &mut ComponentStorage, data: &NpcData) -> EngineResult<()> {
+    let Some(state) = storage.get::<CharacterState>(data.npc_id).map(|x| *x) else {
         return Err(EngineError::component_not_found("CharacterState"));
     };
     match state {
-        Walk => {
+        CharacterState::Walk => {
             movement(storage, data);
         }
-        Attack => {
+        CharacterState::Attack => {
             attack(storage, data);
         }
         _ => {
@@ -120,6 +125,7 @@ fn movement(storage: &mut ComponentStorage, data: &NpcData) {
     storage.set(data.npc_id, Some(transform));
 }
 
-fn attack(_storage: &mut ComponentStorage, _data: &NpcData) {
-    //
+fn attack(storage: &mut ComponentStorage, data: &NpcData) {
+    let shot = Shot::new(data.npc_position, data.angle);
+    storage.set(data.npc_id, Some(shot));
 }

@@ -3,14 +3,16 @@ use std::{borrow::BorrowMut, cmp::Ordering, f32::consts::PI};
 use crate::resource::*;
 
 use super::{
-    Angle, AnimationData, HeightShift, Maze, PlayerTag, Position, ScaleRatio, SpriteTag, TextureID,
+    Angle, AnimationData, HeightShift, Maze, PlayerTag, Position, ReceivedDamage, ScaleRatio,
+    SpriteTag, TextureID,
 };
 use engine::{
     pixels::Color,
+    ray_cast,
     rect::{Point, Rect},
-    render::Texture,
+    render::{BlendMode, Texture},
     texture_size, AssetManager, ComponentStorage, Engine, EngineError, EngineResult, EntityID,
-    Float, Query, Size, SizeU32, Vec2f, {ray_cast, RAY_CASTER_TOL},
+    Float, Query, Size, SizeU32, Vec2f, RAY_CASTER_TOL,
 };
 
 const FIELD_OF_VIEW: Float = PI / 3.0;
@@ -84,7 +86,7 @@ impl<'a> Renderer<'a> {
         self.render_background()?;
         self.render_sprites()?;
         self.render_walls()?;
-        self.render_player_view()?;
+        self.render_player_weapon()?;
         self.tasks
             .sort_by(|a, b| b.depth.partial_cmp(&a.depth).unwrap_or(Ordering::Equal));
         let canvas = self.engine.canvas();
@@ -93,6 +95,7 @@ impl<'a> Renderer<'a> {
                 .copy(task.texture, task.source, task.destination)
                 .map_err(EngineError::sdl)?;
         }
+        self.render_player_damage()?;
         self.render_minimap()?;
         Ok(())
     }
@@ -349,7 +352,18 @@ impl<'a> Renderer<'a> {
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    fn render_player_view(&mut self) -> EngineResult<()> {
+    fn render_player_damage(&mut self) -> EngineResult<()> {
+        if !self.storage.has_component::<ReceivedDamage>(self.player_id) {
+            return Ok(());
+        }
+        let rect = Rect::new(0, 0, self.window_size.width, self.window_size.height);
+        let canvas = self.engine.canvas();
+        canvas.set_blend_mode(BlendMode::Blend);
+        canvas.set_draw_color(Color::RGBA(136, 8, 8, 65));
+        canvas.fill_rect(rect).map_err(EngineError::sdl)
+    }
+
+    fn render_player_weapon(&mut self) -> EngineResult<()> {
         let Some(texture_data) = self.texture_data(self.player_id) else {
             return Ok(());
         };

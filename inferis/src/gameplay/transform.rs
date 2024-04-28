@@ -43,13 +43,11 @@ fn transform_entity(storage: &mut ComponentStorage, entity_id: EntityID) -> Engi
     Ok(())
 }
 
-// trivial collision check
-fn check_collisions(storage: &ComponentStorage, _entity_id: EntityID, position: Vec2f) -> bool {
+fn check_collisions(storage: &ComponentStorage, entity_id: EntityID, position: Vec2f) -> bool {
     // TODO: implement these steps for collider:
     // 1) add bounding box for all objects that are obstacles
     // 2) get list of objects with bounding boxes, take into account id of transformable object to avoid check with itself
     // 3) check box collisions
-    /*
     let Some(entity_rect) = storage
         .get::<BoundingBox>(entity_id)
         .map(|x| Rectangle::with_pole(position, x.0))
@@ -75,7 +73,6 @@ fn check_collisions(storage: &ComponentStorage, _entity_id: EntityID, position: 
             return false;
         }
     }
-     */
     {
         // TEMPORARY: now just check the wall collisions
         let query = Query::new().with_component::<Maze>();

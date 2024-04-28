@@ -17,7 +17,6 @@ pub fn state_system(
     process_damages(storage)?;
     update_player(storage)?;
     update_all_npc(storage, frame_counter)?;
-    cleanup(storage)?;
     Ok(())
 }
 
@@ -132,7 +131,7 @@ fn update_player_weapon(storage: &mut ComponentStorage, player_id: EntityID) -> 
     Ok(())
 }
 
-fn cleanup(storage: &mut ComponentStorage) -> EngineResult<()> {
+pub fn cleanup(storage: &mut ComponentStorage) -> EngineResult<()> {
     cleanup_component::<Shot>(storage)?;
     cleanup_component::<ReceivedDamage>(storage)?;
     cleanup_component::<Transform>(storage)?;

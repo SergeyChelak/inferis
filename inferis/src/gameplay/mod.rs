@@ -165,3 +165,13 @@ impl Maze {
         *val != 0
     }
 }
+
+impl Shot {
+    pub fn new(position: Vec2f, angle: Float) -> Self {
+        Self {
+            position,
+            angle,
+            state: ShotState::Initial,
+        }
+    }
+}

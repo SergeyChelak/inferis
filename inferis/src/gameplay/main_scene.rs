@@ -3,7 +3,10 @@ use engine::{frame_counter::FrameCounterService, *};
 use crate::{pbm::PBMImage, resource::*};
 
 use self::{
-    ai::ai_system, attack::attack_system, state::state_system, transform::transform_entities,
+    ai::ai_system,
+    attack::attack_system,
+    state::{cleanup, state_system},
+    transform::transform_entities,
 };
 
 use super::{controller::ControllerState, input::*, renderer::*, *};
@@ -27,9 +30,16 @@ impl GameScene {
         storage.append(&bundle_torch(TorchStyle::Red, Vec2f::new(1.2, 9.0)));
         storage.append(&bundle_sprite(WORLD_CANDELABRA, Vec2f::new(8.8, 2.8)));
         // npc
-        storage.append(&bundle_npc_soldier(Vec2f::new(8.0, 10.0)));
         storage.append(&bundle_npc_soldier(Vec2f::new(27.0, 13.8)));
-        storage.append(&bundle_npc_soldier(Vec2f::new(40.0, 8.0)));
+        // storage.append(&bundle_npc_soldier(Vec2f::new(8.0, 10.0)));
+        // storage.append(&bundle_npc_soldier(Vec2f::new(40.0, 8.0)));
+        // storage.append(&bundle_npc_soldier(Vec2f::new(32.0, 23.0)));
+        // storage.append(&bundle_npc_soldier(Vec2f::new(40.0, 22.5)));
+        // storage.append(&bundle_npc_soldier(Vec2f::new(3.0, 12.5)));
+        // storage.append(&bundle_npc_soldier(Vec2f::new(11.5, 2.5)));
+        // storage.append(&bundle_npc_soldier(Vec2f::new(19.5, 1.5)));
+        // storage.append(&bundle_npc_soldier(Vec2f::new(40.5, 4.5)));
+
         Ok(Self {
             storage,
             controller: ControllerState::default(),
@@ -51,6 +61,7 @@ impl Scene for GameScene {
     }
 
     fn run_systems(&mut self, engine: &mut dyn Engine) -> EngineResult<()> {
+        cleanup(&mut self.storage)?;
         let delta_time = engine.delta_time();
         user_input_system(
             &mut self.storage,
@@ -134,7 +145,7 @@ fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
         .put(Position(position))
         .put(NpcTag)
         .put(CharacterState::Idle)
-        .put(Health(100))
+        .put(Health(1000))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
         .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
