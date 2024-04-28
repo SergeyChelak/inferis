@@ -10,7 +10,16 @@
 - [ECS tutorial & resources](doc/references.md)
 
 ## Current State
-- Designed MVP of simple ECS
-- Rendering walls, sky
-- Rendering sprites
+- Added NPC attack & basic movement
+- Implemented attack, transform and collision systems
 - Animated sprites
+- Rendering sprites
+- Rendering walls, sky
+- Designed MVP of simple ECS
+
+## Backlog
+- Different NPC types
+- Level exit sprite
+- Collider
+- Game menu
+- Level data generator

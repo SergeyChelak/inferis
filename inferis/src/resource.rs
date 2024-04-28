@@ -15,6 +15,7 @@ pub const WORLD_TORCH_RED_ANIM: &str = "anim_torch_red";
 pub const WORLD_TORCH_GREEN_ANIM: &str = "anim_torch_green";
 pub const WORLD_CANDELABRA: &str = "candelabra";
 pub const WORLD_GAME_OVER: &str = "game_over";
+pub const WORLD_LEVEL_FILE: &str = "assets/level_debug.pbm";
 
 // player
 pub const PLAYER_SHOTGUN_SHOT_ANIM: &str = "anim_shotgun_shot";

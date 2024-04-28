@@ -68,7 +68,9 @@ fn update_npc_state(storage: &mut ComponentStorage, data: &NpcData) -> EngineRes
     if let Some(distance) = vision(storage, data) {
         let new_state = if distance < 5.0 { Attack } else { Walk };
         storage.set(npc_id, Some(new_state));
+        // --- TEMPORARY
         storage.set(npc_id, Some(Angle(data.angle)));
+        // ---
     } else {
         storage.set(npc_id, Some(Idle));
     }

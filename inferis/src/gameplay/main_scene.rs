@@ -5,7 +5,7 @@ use crate::{pbm::PBMImage, resource::*};
 use self::{
     ai::ai_system,
     attack::attack_system,
-    state::{cleanup, state_system},
+    state::{cleanup_system, state_system},
     transform::transform_entities,
 };
 
@@ -30,16 +30,21 @@ impl GameScene {
         storage.append(&bundle_torch(TorchStyle::Red, Vec2f::new(1.2, 9.0)));
         storage.append(&bundle_sprite(WORLD_CANDELABRA, Vec2f::new(8.8, 2.8)));
         // npc
-        storage.append(&bundle_npc_soldier(Vec2f::new(27.0, 13.8)));
-        storage.append(&bundle_npc_soldier(Vec2f::new(8.0, 10.0)));
-        storage.append(&bundle_npc_soldier(Vec2f::new(40.0, 8.0)));
-        storage.append(&bundle_npc_soldier(Vec2f::new(32.0, 23.0)));
-        storage.append(&bundle_npc_soldier(Vec2f::new(40.0, 22.5)));
-        storage.append(&bundle_npc_soldier(Vec2f::new(3.0, 12.5)));
-        storage.append(&bundle_npc_soldier(Vec2f::new(11.5, 2.5)));
-        storage.append(&bundle_npc_soldier(Vec2f::new(19.5, 1.5)));
-        storage.append(&bundle_npc_soldier(Vec2f::new(40.5, 4.5)));
-
+        [
+            Vec2f::new(27.0, 13.8),
+            Vec2f::new(8.0, 10.0),
+            Vec2f::new(40.0, 8.0),
+            Vec2f::new(32.0, 23.0),
+            Vec2f::new(40.0, 22.5),
+            Vec2f::new(3.0, 12.5),
+            Vec2f::new(11.5, 2.5),
+            Vec2f::new(19.5, 1.5),
+            Vec2f::new(40.5, 4.5),
+        ]
+        .iter()
+        .for_each(|&v| {
+            storage.append(&bundle_npc_soldier(v));
+        });
         Ok(Self {
             storage,
             controller: ControllerState::default(),
@@ -61,7 +66,7 @@ impl Scene for GameScene {
     }
 
     fn run_systems(&mut self, engine: &mut dyn Engine) -> EngineResult<()> {
-        cleanup(&mut self.storage)?;
+        cleanup_system(&mut self.storage)?;
         let delta_time = engine.delta_time();
         user_input_system(
             &mut self.storage,
@@ -94,9 +99,9 @@ fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
         .put(UserControllableTag)
-        .put(weapon(PLAYER_SHOTGUN_DAMAGE, 60, 100))
-        .put(Health(100))
-        .put(Velocity(7.0))
+        .put(weapon(PLAYER_SHOTGUN_DAMAGE, 60, usize::MAX))
+        .put(Health(500))
+        .put(Velocity(7.5))
         .put(RotationSpeed(2.5))
         .put(Position(position))
         .put(Angle(0.0))
@@ -104,7 +109,7 @@ fn bundle_player(position: Vec2f) -> EntityBundle {
 }
 
 fn bundle_maze() -> EngineResult<EntityBundle> {
-    let image = PBMImage::with_file("assets/level.pbm")
+    let image = PBMImage::with_file(WORLD_LEVEL_FILE)
         .map_err(|err| EngineError::MazeGenerationFailed(err.to_string()))?;
     let array = image.transform_to_array(|x| x as i32);
     Ok(EntityBundle::new().put(Maze(array)))
@@ -142,15 +147,15 @@ fn bundle_sprite(texture_id: &str, position: Vec2f) -> EntityBundle {
 fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(SpriteTag)
-        .put(weapon(10, 20, usize::MAX))
+        .put(weapon(4, 30, usize::MAX))
         .put(Position(position))
         .put(NpcTag)
         .put(CharacterState::Idle)
-        .put(Health(1000))
+        .put(Health(100))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
         .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
-        .put(Velocity(5.3))
+        .put(Velocity(4.3))
 }
 
 fn weapon(damage: HealthType, recharge_time: usize, ammo_count: usize) -> Weapon {

@@ -140,7 +140,7 @@ fn update_player_weapon(storage: &mut ComponentStorage, player_id: EntityID) -> 
     Ok(())
 }
 
-pub fn cleanup(storage: &mut ComponentStorage) -> EngineResult<()> {
+pub fn cleanup_system(storage: &mut ComponentStorage) -> EngineResult<()> {
     cleanup_component::<Shot>(storage)?;
     cleanup_component::<ReceivedDamage>(storage)?;
     cleanup_component::<Transform>(storage)?;
