@@ -91,7 +91,6 @@ fn update_npc_behavior(storage: &mut ComponentStorage, data: &NpcData) -> Engine
 fn vision(storage: &mut ComponentStorage, data: &NpcData) -> Option<Float> {
     let Ok(result) = ray_cast_with_entity(storage, data.npc_id, data.npc_position, data.angle)
     else {
-        println!("[npc] vision error");
         return None;
     };
     let mut has_obstacles = false;

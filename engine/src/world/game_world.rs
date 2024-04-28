@@ -95,8 +95,6 @@ impl GameWorld {
             if suspend_ms > 0 {
                 let duration = Duration::from_millis(suspend_ms as u64);
                 std::thread::sleep(duration);
-            } else {
-                println!("[main] low performance detected")
             }
         }
         Ok(())

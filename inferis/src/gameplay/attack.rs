@@ -31,7 +31,6 @@ fn refresh_weapon_state(
         };
         let weapon = comp.borrow_mut();
         weapon.state = WeaponState::Ready;
-        // println!("[attack] weapon of {} is ready to shot", entity_id.id_key())
     }
     Ok(())
 }
@@ -75,7 +74,6 @@ fn try_shot(
         return Err(EngineError::component_not_found("Weapon"));
     };
     if weapon.ammo_count == 0 || matches!(weapon.state, WeaponState::Recharge) {
-        // println!("[attack] shot discarded due recharge or empty clip");
         return Ok(false);
     }
     if let Ok(Some(target_id)) = ray_cast_shot(storage, entity_id) {

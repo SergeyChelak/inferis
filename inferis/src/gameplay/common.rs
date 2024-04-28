@@ -11,7 +11,6 @@ pub fn ray_cast_with_entity(
     let query = Query::new().with_component::<BoundingBox>();
     let entities = storage.fetch_entities(&query);
     if entities.is_empty() {
-        // println!("[ray_cast] no targets to cast");
         return Ok(None);
     }
     // --- TEMPORARY
@@ -31,16 +30,11 @@ pub fn ray_cast_with_entity(
             };
             let rect = Rectangle::with_pole(pos, bounding_box);
             if rect.contains(point) {
-                // println!(
-                //     "[ray_cast] casted to the enemy with id {}",
-                //     target_id.index()
-                // );
                 return Some(*target_id);
             }
         }
         // --- TEMPORARY
         if let Some(true) = storage.get::<Maze>(maze_id).map(|x| x.is_wall(point)) {
-            // println!("[ray_cast] casted into the wall");
             return Some(maze_id);
         };
         // ---

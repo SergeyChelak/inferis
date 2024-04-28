@@ -71,11 +71,6 @@ fn check_collisions(storage: &ComponentStorage, entity_id: EntityID, position: V
         };
         let other_rect = Rectangle::with_pole(other_position, other_box);
         if entity_rect.has_intersection(&other_rect) {
-            println!(
-                "{}: {entity_rect}, {} {other_rect}",
-                entity_id.id_key(),
-                other_id.id_key()
-            );
             return false;
         }
     }
