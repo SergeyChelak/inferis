@@ -31,14 +31,14 @@ impl GameScene {
         storage.append(&bundle_sprite(WORLD_CANDELABRA, Vec2f::new(8.8, 2.8)));
         // npc
         storage.append(&bundle_npc_soldier(Vec2f::new(27.0, 13.8)));
-        // storage.append(&bundle_npc_soldier(Vec2f::new(8.0, 10.0)));
-        // storage.append(&bundle_npc_soldier(Vec2f::new(40.0, 8.0)));
-        // storage.append(&bundle_npc_soldier(Vec2f::new(32.0, 23.0)));
-        // storage.append(&bundle_npc_soldier(Vec2f::new(40.0, 22.5)));
-        // storage.append(&bundle_npc_soldier(Vec2f::new(3.0, 12.5)));
-        // storage.append(&bundle_npc_soldier(Vec2f::new(11.5, 2.5)));
-        // storage.append(&bundle_npc_soldier(Vec2f::new(19.5, 1.5)));
-        // storage.append(&bundle_npc_soldier(Vec2f::new(40.5, 4.5)));
+        storage.append(&bundle_npc_soldier(Vec2f::new(8.0, 10.0)));
+        storage.append(&bundle_npc_soldier(Vec2f::new(40.0, 8.0)));
+        storage.append(&bundle_npc_soldier(Vec2f::new(32.0, 23.0)));
+        storage.append(&bundle_npc_soldier(Vec2f::new(40.0, 22.5)));
+        storage.append(&bundle_npc_soldier(Vec2f::new(3.0, 12.5)));
+        storage.append(&bundle_npc_soldier(Vec2f::new(11.5, 2.5)));
+        storage.append(&bundle_npc_soldier(Vec2f::new(19.5, 1.5)));
+        storage.append(&bundle_npc_soldier(Vec2f::new(40.5, 4.5)));
 
         Ok(Self {
             storage,

@@ -356,10 +356,13 @@ impl<'a> Renderer<'a> {
         if !self.storage.has_component::<ReceivedDamage>(self.player_id) {
             return Ok(());
         }
+        let Some(color) = self.assets.color(PLAYER_PLAYER_DAMAGE_COLOR) else {
+            return Ok(());
+        };
         let rect = Rect::new(0, 0, self.window_size.width, self.window_size.height);
         let canvas = self.engine.canvas();
         canvas.set_blend_mode(BlendMode::Blend);
-        canvas.set_draw_color(Color::RGBA(136, 8, 8, 65));
+        canvas.set_draw_color(*color);
         canvas.fill_rect(rect).map_err(EngineError::sdl)
     }
 

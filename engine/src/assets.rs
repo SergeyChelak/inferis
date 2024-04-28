@@ -9,6 +9,11 @@ use sdl2::{
 
 use crate::{EngineError, EngineResult, Float};
 
+const ASSET_KEY_TEXTURE: &str = "texture";
+const ASSET_KEY_COLOR: &str = "color";
+const ASSET_KEY_VERTICAL_GRADIENT: &str = "vertical_gradient";
+const ASSET_KEY_ANIMATION: &str = "animation";
+
 pub struct Animation {
     pub duration: u32, // duration in frames
     pub frames_count: usize,
@@ -60,7 +65,7 @@ impl<'a> AssetManager<'a> {
                 )));
             };
             match tag {
-                "texture" => {
+                ASSET_KEY_TEXTURE => {
                     let Ok(texture) = texture_creator.load_texture(value) else {
                         return Err(EngineError::ResourceParseError(format!(
                             "Failed to load texture at '{value}'"
@@ -68,7 +73,7 @@ impl<'a> AssetManager<'a> {
                     };
                     textures.insert(name.to_string(), texture);
                 }
-                "color" => {
+                ASSET_KEY_COLOR => {
                     let Ok(color) = parse_color(value) else {
                         return Err(EngineError::ResourceParseError(format!(
                             "Failed to parse color '{value}'"
@@ -76,7 +81,7 @@ impl<'a> AssetManager<'a> {
                     };
                     colors.insert(name.to_string(), color);
                 }
-                "vertical_gradient" => {
+                ASSET_KEY_VERTICAL_GRADIENT => {
                     let Some(height) = tokens.get(3).and_then(|&val| val.parse::<u32>().ok())
                     else {
                         return Err(EngineError::ResourceParseError(format!(
@@ -92,7 +97,7 @@ impl<'a> AssetManager<'a> {
                     };
                     textures.insert(name.to_string(), texture);
                 }
-                "animation" => {
+                ASSET_KEY_ANIMATION => {
                     let Some(frames_count) =
                         tokens.get(3).and_then(|&val| val.parse::<usize>().ok())
                     else {
