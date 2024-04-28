@@ -3,8 +3,8 @@ use std::{borrow::BorrowMut, cmp::Ordering, f32::consts::PI};
 use crate::resource::*;
 
 use super::{
-    Angle, AnimationData, HeightShift, Maze, PlayerTag, Position, ReceivedDamage, ScaleRatio,
-    SpriteTag, TextureID,
+    Angle, AnimationData, Health, HeightShift, Maze, PlayerTag, Position, ReceivedDamage,
+    ScaleRatio, SpriteTag, TextureID,
 };
 use engine::{
     pixels::Color,
@@ -96,7 +96,7 @@ impl<'a> Renderer<'a> {
                 .map_err(EngineError::sdl)?;
         }
         self.render_player_damage()?;
-        self.render_minimap()?;
+        self.render_overlay()?;
         Ok(())
     }
 
@@ -395,7 +395,33 @@ impl<'a> Renderer<'a> {
         self.tasks.push(task);
         Ok(())
     }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    fn render_overlay(&mut self) -> EngineResult<()> {
+        self.render_minimap()?;
+        self.render_messages()
+    }
 
+    fn render_messages(&mut self) -> EngineResult<()> {
+        if !self.storage.has_component::<Health>(self.player_id) {
+            self.display_texture_at_center(WORLD_GAME_OVER)?;
+        }
+        Ok(())
+    }
+
+    fn display_texture_at_center(&mut self, texture_id: &str) -> EngineResult<()> {
+        let Some(texture) = self.assets.texture(texture_id) else {
+            return Err(EngineError::TextureNotFound(texture_id.to_string()));
+        };
+        let size = texture_size(texture);
+        let source = Rect::new(0, 0, size.width, size.height);
+        let x = (self.window_size.width as i32 - size.width as i32) >> 1;
+        let y = (self.window_size.height as i32 - size.height as i32) >> 1;
+        let destination = Rect::new(x, y, size.width, size.height);
+        let canvas = self.engine.canvas();
+        canvas
+            .copy(texture, source, destination)
+            .map_err(EngineError::sdl)
+    }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     fn render_minimap(&mut self) -> EngineResult<()> {
         self.render_maze()?;

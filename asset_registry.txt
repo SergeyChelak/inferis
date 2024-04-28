@@ -50,4 +50,5 @@ animation               anim_torch_green        fire_green         4       10
 # other resources
 vertical_gradient       floor_grad          0,0,0-35,35,35               450
 color                   player_damage_clr   136,8,8,60
+texture                 game_over           assets/game_over.png
 ##########################################################################################################
