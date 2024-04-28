@@ -25,12 +25,6 @@ pub fn ray_cast_with_entity(
             if *target_id == entity_id {
                 continue;
             }
-            // --- TEMPORARY
-            if let Some(true) = storage.get::<Maze>(maze_id).map(|x| x.is_wall(point)) {
-                // println!("[ray_cast] casted into the wall");
-                return Some(maze_id);
-            };
-            // ---
             let Some(pos) = storage.get::<Position>(*target_id).map(|x| x.0) else {
                 continue;
             };
@@ -46,6 +40,12 @@ pub fn ray_cast_with_entity(
                 return Some(*target_id);
             }
         }
+        // --- TEMPORARY
+        if let Some(true) = storage.get::<Maze>(maze_id).map(|x| x.is_wall(point)) {
+            // println!("[ray_cast] casted into the wall");
+            return Some(maze_id);
+        };
+        // ---
         None
     };
     let result = ray_cast(position, angle, &check);
