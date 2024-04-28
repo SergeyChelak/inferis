@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::Float;
 
 use super::vector::Vec2;
@@ -32,5 +34,11 @@ impl Vec2f {
 
     pub fn hypotenuse(&self) -> Float {
         self.square_dist().sqrt()
+    }
+}
+
+impl Display for Vec2f {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{:5.3}; {:5.3}]", self.x, self.y)
     }
 }

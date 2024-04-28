@@ -4,6 +4,8 @@ mod vector;
 
 pub type Float = f32;
 
+use std::fmt::Display;
+
 pub use vec2f::*;
 
 #[derive(Copy, Clone, Default, PartialEq, Eq, Debug)]
@@ -42,6 +44,13 @@ impl Rectangle {
             && self.position.x + self.size.width >= point.x
             && self.position.y <= point.y
             && self.position.y + self.size.height >= point.y
+    }
+}
+
+impl Display for Rectangle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let end = self.position + Vec2f::new(self.size.width, self.size.height);
+        write!(f, "{} - {}", self.position, end)
     }
 }
 
