@@ -8,14 +8,17 @@ use engine::{
     Query,
 };
 
+use self::generator::LevelData;
+
 use super::*;
 
 pub fn state_system(
     storage: &mut ComponentStorage,
     frame_counter: &mut FrameCounterService,
+    level_data: &LevelData,
 ) -> EngineResult<()> {
     process_damages(storage)?;
-    update_player(storage)?;
+    update_player(storage, level_data)?;
     update_all_npc(storage, frame_counter)?;
     Ok(())
 }
@@ -106,13 +109,8 @@ fn process_damages(storage: &mut ComponentStorage) -> EngineResult<()> {
     Ok(())
 }
 
-fn update_player(storage: &mut ComponentStorage) -> EngineResult<()> {
-    let query = Query::new().with_component::<PlayerTag>();
-    let Some(&player_id) = storage.fetch_entities(&query).first() else {
-        return Err(EngineError::unexpected_state(
-            "Failed to query entity id with player tag",
-        ));
-    };
+fn update_player(storage: &mut ComponentStorage, level_data: &LevelData) -> EngineResult<()> {
+    let player_id = level_data.player_id;
     let Some(health) = storage.get::<Health>(player_id).map(|x| x.0) else {
         return Ok(());
     };

@@ -53,7 +53,7 @@ impl Scene for GameScene {
         ai_system(&mut self.storage, level_data.player_id, delta_time)?;
         transform_entities(&mut self.storage)?;
         attack_system(&mut self.storage, &mut self.frame_counter)?;
-        state_system(&mut self.storage, &mut self.frame_counter)?;
+        state_system(&mut self.storage, &mut self.frame_counter, &level_data)?;
         self.frame_counter.teak();
         self.context = Some(level_data);
         Ok(())
