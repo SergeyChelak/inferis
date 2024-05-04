@@ -9,7 +9,7 @@ pub struct PBMImage {
 }
 
 impl PBMImage {
-    pub fn with_file<P: AsRef<Path>>(path: P) -> Result<Self, String> {
+    pub fn _with_file<P: AsRef<Path>>(path: P) -> Result<Self, String> {
         let content = fs::read_to_string(path).map_err(|err| err.to_string())?;
         Self::from_str(&content)
     }

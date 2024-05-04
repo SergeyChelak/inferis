@@ -85,7 +85,7 @@ impl GameWorld {
             let events = self.input_events();
             scene.process_events(&events)?;
             scene.run_systems(self, &asset_manager)?;
-            // self.canvas.set_draw_color(Color::BLACK);
+            self.canvas.set_draw_color(Color::BLACK);
             self.canvas.clear();
             scene.render_scene(self, &asset_manager)?;
             self.canvas.present();
