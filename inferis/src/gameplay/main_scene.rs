@@ -61,7 +61,7 @@ impl Scene for GameScene {
 
     fn render_scene(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()> {
         let Some(level_data) = &self.context else {
-            panic!()
+            return Err(EngineError::unexpected_state("level data is missing"));
         };
         let mut renderer = Renderer::new(
             &mut self.storage,
