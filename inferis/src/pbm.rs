@@ -14,6 +14,11 @@ impl PBMImage {
         Self::from_str(&content)
     }
 
+    pub fn with_binary(data: Vec<u8>) -> Result<Self, String> {
+        let input = String::from_utf8(data).map_err(|e| e.to_string())?;
+        Self::from_str(&input)
+    }
+
     fn from_str(s: &str) -> Result<Self, String> {
         let Some((header, mut rest)) = s.split_once('\n') else {
             return Err("[PBM] Bad input".to_string());

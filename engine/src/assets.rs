@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fs::read_to_string};
+use std::{
+    collections::HashMap,
+    fs::{read_to_string, File},
+    io::Read,
+};
 
 use sdl2::{
     image::LoadTexture,
@@ -13,6 +17,7 @@ const ASSET_KEY_TEXTURE: &str = "texture";
 const ASSET_KEY_COLOR: &str = "color";
 const ASSET_KEY_VERTICAL_GRADIENT: &str = "vertical_gradient";
 const ASSET_KEY_ANIMATION: &str = "animation";
+const ASSET_KEY_BINARY: &str = "binary";
 
 pub struct Animation {
     pub duration: u32, // duration in frames
@@ -20,10 +25,13 @@ pub struct Animation {
     pub texture_id: String,
 }
 
+pub type Data = Vec<u8>;
+
 pub struct AssetManager<'a> {
     textures: HashMap<String, Texture<'a>>,
     colors: HashMap<String, Color>,
     animations: HashMap<String, Animation>,
+    binaries: HashMap<String, Data>,
 }
 
 impl<'a> AssetManager<'a> {
@@ -43,6 +51,7 @@ impl<'a> AssetManager<'a> {
         let mut textures: HashMap<String, Texture<'a>> = HashMap::default();
         let mut colors: HashMap<String, Color> = HashMap::default();
         let mut animations: HashMap<String, Animation> = HashMap::default();
+        let mut binaries: HashMap<String, Data> = HashMap::default();
         for item in items {
             if item.is_empty() || item.starts_with('#') {
                 continue;
@@ -118,6 +127,14 @@ impl<'a> AssetManager<'a> {
                     };
                     animations.insert(name.to_string(), animation);
                 }
+                ASSET_KEY_BINARY => {
+                    let mut file = File::open(value)
+                        .map_err(|e| EngineError::ResourceParseError(e.to_string()))?;
+                    let mut buffer = Data::new();
+                    file.read_to_end(&mut buffer)
+                        .map_err(|e| EngineError::ResourceParseError(e.to_string()))?;
+                    binaries.insert(name.to_string(), buffer);
+                }
                 _ => {
                     println!("[Assets] skipped '{tag}'")
                 }
@@ -127,6 +144,7 @@ impl<'a> AssetManager<'a> {
             textures,
             colors,
             animations,
+            binaries,
         })
     }
 
