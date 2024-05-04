@@ -21,7 +21,7 @@ pub trait Engine {
 
 pub trait Scene {
     fn process_events(&mut self, events: &[InputEvent]) -> EngineResult<()>;
-    fn run_systems(&mut self, engine: &mut dyn Engine) -> EngineResult<()>;
+    fn run_systems(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()>;
     fn render_scene(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()>;
     fn id(&self) -> SceneID;
 }

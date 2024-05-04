@@ -159,6 +159,10 @@ impl<'a> AssetManager<'a> {
     pub fn animation(&self, key: &str) -> Option<&Animation> {
         self.animations.get(key)
     }
+
+    pub fn binary(&self, key: &str) -> Option<&Data> {
+        self.binaries.get(key)
+    }
 }
 
 fn parse_color(value: &str) -> EngineResult<Color> {

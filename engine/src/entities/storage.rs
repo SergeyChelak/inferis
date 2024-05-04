@@ -152,6 +152,10 @@ impl ComponentStorage {
         id
     }
 
+    pub fn remove_all_entities(&mut self) {
+        println!("[storage] remove_all_entities not implemented")
+    }
+
     pub fn remove_entity(&mut self, entity_id: EntityID) -> bool {
         if !self.is_alive(entity_id) {
             return false;

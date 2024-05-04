@@ -6,20 +6,28 @@ mod ai;
 mod attack;
 mod common;
 mod controller;
+mod generator;
 mod input;
 pub mod main_scene;
 mod renderer;
 mod state;
 mod transform;
 
-pub type HealthType = u32;
-pub struct Health(pub HealthType);
-
 pub struct PlayerTag;
 
-pub struct Position(pub Vec2f);
-
 pub struct NpcTag;
+
+pub struct SpriteTag;
+
+pub struct UserControllableTag;
+
+pub struct InvalidatedTag;
+
+pub type HealthType = u32;
+
+pub struct Health(pub HealthType);
+
+pub struct Position(pub Vec2f);
 
 #[derive(Clone, Copy, Debug)]
 pub enum CharacterState {
@@ -77,10 +85,6 @@ pub type MazeData = Vec<Vec<i32>>;
 pub struct Maze(pub MazeData);
 
 pub struct TextureID(pub String);
-
-pub struct SpriteTag;
-
-pub struct UserControllableTag;
 
 pub struct ScaleRatio(pub Float);
 

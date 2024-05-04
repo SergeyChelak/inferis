@@ -1,10 +1,11 @@
 use engine::{frame_counter::FrameCounterService, *};
 
-use crate::{pbm::PBMImage, resource::*};
+use crate::resource::*;
 
 use self::{
     ai::ai_system,
     attack::attack_system,
+    generator::{generator_system, LevelData},
     state::{cleanup_system, state_system},
     transform::transform_entities,
 };
@@ -15,42 +16,16 @@ pub struct GameScene {
     storage: ComponentStorage,
     controller: ControllerState,
     frame_counter: FrameCounterService,
-    player_id: EntityID,
-    maze_id: EntityID,
+    context: Option<LevelData>,
 }
 
 impl GameScene {
     pub fn new() -> EngineResult<Self> {
-        let mut storage = game_play_component_storage()?;
-        let player_id = storage.append(&bundle_player(Vec2f::new(5.0, 10.0)));
-        let maze_id = storage.append(&bundle_maze()?);
-        // decorations
-        storage.append(&bundle_torch(TorchStyle::Green, Vec2f::new(1.2, 12.9)));
-        storage.append(&bundle_torch(TorchStyle::Green, Vec2f::new(1.2, 4.1)));
-        storage.append(&bundle_torch(TorchStyle::Red, Vec2f::new(1.2, 9.0)));
-        storage.append(&bundle_sprite(WORLD_CANDELABRA, Vec2f::new(8.8, 2.8)));
-        // npc
-        [
-            Vec2f::new(27.0, 13.8),
-            Vec2f::new(8.0, 10.0),
-            Vec2f::new(40.0, 8.0),
-            Vec2f::new(32.0, 23.0),
-            Vec2f::new(40.0, 22.5),
-            Vec2f::new(3.0, 12.5),
-            Vec2f::new(11.5, 2.5),
-            Vec2f::new(19.5, 1.5),
-            Vec2f::new(40.5, 4.5),
-        ]
-        .iter()
-        .for_each(|&v| {
-            storage.append(&bundle_npc_soldier(v));
-        });
         Ok(Self {
-            storage,
+            storage: game_play_component_storage()?,
             controller: ControllerState::default(),
             frame_counter: FrameCounterService::default(),
-            player_id,
-            maze_id,
+            context: Default::default(),
         })
     }
 }
@@ -65,104 +40,36 @@ impl Scene for GameScene {
         Ok(())
     }
 
-    fn run_systems(&mut self, engine: &mut dyn Engine) -> EngineResult<()> {
+    fn run_systems(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()> {
         cleanup_system(&mut self.storage)?;
+        let level_data = generator_system(&mut self.storage, assets)?;
         let delta_time = engine.delta_time();
         user_input_system(
             &mut self.storage,
             &self.controller,
             delta_time,
-            self.player_id,
+            level_data.player_id,
         )?;
-        ai_system(&mut self.storage, self.player_id, delta_time)?;
+        ai_system(&mut self.storage, level_data.player_id, delta_time)?;
         transform_entities(&mut self.storage)?;
         attack_system(&mut self.storage, &mut self.frame_counter)?;
         state_system(&mut self.storage, &mut self.frame_counter)?;
         self.frame_counter.teak();
+        self.context = Some(level_data);
         Ok(())
     }
 
     fn render_scene(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()> {
+        let Some(level_data) = &self.context else {
+            panic!()
+        };
         let mut renderer = Renderer::new(
             &mut self.storage,
             engine,
             assets,
-            self.player_id,
-            self.maze_id,
+            level_data.player_id,
+            level_data.maze_id,
         );
         renderer.render()
-    }
-}
-
-// temporary producer functions
-fn bundle_player(position: Vec2f) -> EntityBundle {
-    EntityBundle::new()
-        .put(PlayerTag)
-        .put(UserControllableTag)
-        .put(weapon(PLAYER_SHOTGUN_DAMAGE, 60, usize::MAX))
-        .put(Health(500))
-        .put(Velocity(7.5))
-        .put(RotationSpeed(2.5))
-        .put(Position(position))
-        .put(Angle(0.0))
-        .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
-}
-
-fn bundle_maze() -> EngineResult<EntityBundle> {
-    let image = PBMImage::with_file(WORLD_LEVEL_FILE)
-        .map_err(|err| EngineError::MazeGenerationFailed(err.to_string()))?;
-    let array = image.transform_to_array(|x| x as i32);
-    Ok(EntityBundle::new().put(Maze(array)))
-}
-
-enum TorchStyle {
-    Green,
-    Red,
-}
-
-fn bundle_torch(style: TorchStyle, position: Vec2f) -> EntityBundle {
-    let animation_id = match style {
-        TorchStyle::Green => WORLD_TORCH_GREEN_ANIM,
-        TorchStyle::Red => WORLD_TORCH_RED_ANIM,
-    }
-    .to_string();
-    EntityBundle::new()
-        .put(AnimationData::new(animation_id))
-        .put(Position(position))
-        .put(ScaleRatio(0.7))
-        .put(HeightShift(0.27))
-        .put(BoundingBox(SizeFloat::new(0.3, 0.3)))
-        .put(SpriteTag)
-}
-
-fn bundle_sprite(texture_id: &str, position: Vec2f) -> EntityBundle {
-    EntityBundle::new()
-        .put(TextureID(texture_id.to_string()))
-        .put(Position(position))
-        .put(ScaleRatio(0.7))
-        .put(HeightShift(0.27))
-        .put(SpriteTag)
-}
-
-fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
-    EntityBundle::new()
-        .put(SpriteTag)
-        .put(weapon(4, 30, usize::MAX))
-        .put(Position(position))
-        .put(NpcTag)
-        .put(CharacterState::Idle)
-        .put(Health(100))
-        .put(ScaleRatio(0.7))
-        .put(HeightShift(0.27))
-        .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
-        .put(Velocity(4.3))
-}
-
-fn weapon(damage: HealthType, recharge_time: usize, ammo_count: usize) -> Weapon {
-    Weapon {
-        damage,
-        recharge_time,
-        state: WeaponState::Ready,
-        ammo_count,
     }
 }
