@@ -153,7 +153,9 @@ impl ComponentStorage {
     }
 
     pub fn remove_all_entities(&mut self) {
-        println!("[storage] remove_all_entities not implemented")
+        for entity_id in self.indices.clone() {
+            self.remove_entity(entity_id);
+        }
     }
 
     pub fn remove_entity(&mut self, entity_id: EntityID) -> bool {
