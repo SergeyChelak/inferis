@@ -1,4 +1,4 @@
-use std::{env, path::Path};
+use std::path::Path;
 
 use engine::{assets::AssetSource, *};
 mod gameplay;

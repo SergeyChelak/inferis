@@ -1,6 +1,7 @@
 mod manager;
 mod text_parser;
 pub use manager::*;
+pub use text_parser::raw_assets_from_text;
 
 pub type Data = Vec<u8>;
 
@@ -30,8 +31,13 @@ impl AssetSource {
     }
 }
 
-mod raw_asset {
+pub mod raw_asset {
     use super::Data;
+
+    pub type AssetTypeID = u8;
+
+    pub const REPRESENTATION_BINARY: AssetTypeID = 0;
+    pub const REPRESENTATION_TEXT: AssetTypeID = 1;
 
     #[derive(Debug)]
     pub enum Representation {
@@ -39,13 +45,28 @@ mod raw_asset {
         Binary { value: Data },
     }
 
-    #[derive(Debug)]
+    impl Representation {
+        pub fn id(&self) -> AssetTypeID {
+            match self {
+                Representation::Binary { .. } => REPRESENTATION_BINARY,
+                Representation::Text { .. } => REPRESENTATION_TEXT,
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug)]
     pub enum Type {
         Texture,
         Animation,
         Binary,
         Color,
         VerticalGradient,
+    }
+
+    impl Type {
+        pub fn id(&self) -> AssetTypeID {
+            *self as AssetTypeID
+        }
     }
 
     #[derive(Debug)]
