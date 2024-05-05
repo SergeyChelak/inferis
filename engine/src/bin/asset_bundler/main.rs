@@ -6,7 +6,7 @@ use std::{
 
 use engine::{
     assets::{
-        raw_asset::{self, AssetTypeID, RawAsset},
+        raw_asset::{self, RawAsset, TypeID},
         raw_assets_from_text,
     },
     EngineError, EngineResult,
@@ -50,7 +50,7 @@ fn write_asset(file: &mut File, asset: &RawAsset) -> io::Result<()> {
     Ok(())
 }
 
-fn write_buffer(file: &mut File, id: AssetTypeID, buffer: &[u8]) -> io::Result<()> {
+fn write_buffer(file: &mut File, id: TypeID, buffer: &[u8]) -> io::Result<()> {
     file.write_all(&id.to_ne_bytes())?;
     let len = buffer.len();
     file.write_all(&len.to_ne_bytes())?;

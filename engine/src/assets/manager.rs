@@ -10,6 +10,7 @@ use sdl2::{
 use crate::{EngineError, EngineResult, Float};
 
 use super::{
+    bundle_parser::raw_assets_from_bundle,
     raw_asset::{RawAsset, Representation, Type},
     text_parser::raw_assets_from_text,
     AssetSource, AssetSourceType, Data,
@@ -178,7 +179,7 @@ impl<'a> AssetManager<'a> {
 fn load_assets(source: &AssetSource) -> EngineResult<Vec<RawAsset>> {
     match source.src_type {
         AssetSourceType::Folder => raw_assets_from_text(&source.value),
-        AssetSourceType::Bundle => panic!("Not implemented"),
+        AssetSourceType::Bundle => raw_assets_from_bundle(&source.value),
     }
 }
 
