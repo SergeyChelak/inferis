@@ -1,5 +1,9 @@
 use crate::gameplay::HealthType;
 
+// files
+pub const FILE_ASSET_REGISTRY: &str = "asset_registry.txt";
+pub const FILE_ASSET_BUNDLE: &str = "inferis.bin";
+
 // scenes
 pub const SCENE_GAME_PLAY: &str = "game_scene";
 

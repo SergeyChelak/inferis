@@ -7,7 +7,7 @@ use crate::{EngineError, EngineResult};
 
 use super::{raw_asset::*, Data};
 
-pub fn raw_assets_debug(path: &str) -> EngineResult<Vec<RawAsset>> {
+pub fn raw_assets_from_text(path: &str) -> EngineResult<Vec<RawAsset>> {
     let (success, failures): (Vec<_>, Vec<_>) = read_to_string(path)
         .map_err(|e| {
             let msg = format!("Failed to read contents of file at {path}. Error: {}", e);
