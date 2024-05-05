@@ -30,9 +30,9 @@ fn main() -> EngineResult<()> {
 }
 
 fn asset_source() -> EngineResult<AssetSource> {
-    // if Path::new(FILE_ASSET_BUNDLE).exists() {
-    //     return Ok(AssetSource::with_bundle(FILE_ASSET_BUNDLE));
-    // }
+    if Path::new(FILE_ASSET_BUNDLE).exists() {
+        return Ok(AssetSource::with_bundle(FILE_ASSET_BUNDLE));
+    }
     if Path::new(FILE_ASSET_REGISTRY).exists() {
         return Ok(AssetSource::with_folder(FILE_ASSET_REGISTRY));
     }
