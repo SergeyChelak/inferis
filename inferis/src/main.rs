@@ -1,4 +1,4 @@
-use engine::*;
+use engine::{assets::AssetSource, *};
 mod gameplay;
 use gameplay::main_scene::*;
 mod pbm;
@@ -8,7 +8,7 @@ const WINDOW_TITLE: &str = "INFERIS";
 
 fn main() -> EngineResult<()> {
     let settings = EngineSettings {
-        asset_path: "asset_registry.txt".to_string(),
+        asset_source: AssetSource::with_folder("asset_registry.txt"),
         window: WindowSettings {
             title: WINDOW_TITLE.to_owned(),
             size: SizeU32 {

@@ -72,7 +72,8 @@ impl GameWorld {
 
     pub fn run(&mut self) -> EngineResult<()> {
         let texture_creator = self.canvas.texture_creator();
-        let asset_manager = AssetManager::new(&self.settings.asset_path, &texture_creator)?;
+        let mut asset_manager = AssetManager::default();
+        asset_manager.setup(&self.settings.asset_source, &texture_creator)?;
         self.is_running = true;
         let target_duration = 1000 / TARGET_FPS;
         self.time = Instant::now();

@@ -57,20 +57,14 @@ fn generate_level(
 }
 
 fn valid_level_data(storage: &mut ComponentStorage) -> Option<LevelData> {
-    let Some(player_id) = valid_id::<PlayerTag>(storage) else {
-        return None;
-    };
-    let Some(maze_id) = valid_id::<Maze>(storage) else {
-        return None;
-    };
+    let player_id = valid_id::<PlayerTag>(storage)?;
+    let maze_id = valid_id::<Maze>(storage)?;
     Some(LevelData { player_id, maze_id })
 }
 
 fn valid_id<T: Any>(storage: &mut ComponentStorage) -> Option<EntityID> {
     let query = Query::new().with_component::<T>();
-    let Some(&entity_id) = storage.fetch_entities(&query).first() else {
-        return None;
-    };
+    let entity_id = *storage.fetch_entities(&query).first()?;
     if storage.has_component::<InvalidatedTag>(entity_id) {
         return None;
     }
