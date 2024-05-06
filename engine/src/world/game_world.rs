@@ -1,7 +1,7 @@
 use sdl2::{
     event::Event,
     keyboard::Keycode,
-    mixer::{Chunk, InitFlag, AUDIO_S16LSB, DEFAULT_CHANNELS},
+    mixer::{Chunk, InitFlag},
     pixels::Color,
     render::WindowCanvas,
     EventPump, Sdl,
