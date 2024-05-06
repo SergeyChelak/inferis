@@ -28,7 +28,7 @@ impl Default for AudioSettings {
             format: sdl2::mixer::AUDIO_S16LSB, // signed 16 bit samples, in little-endian byte order
             channels: sdl2::mixer::DEFAULT_CHANNELS, // Stereo
             chunk_size: 1024,
-            mixing_channels: 10,
+            mixing_channels: 16,
         }
     }
 }

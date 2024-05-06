@@ -60,6 +60,9 @@ fn update_npc(
             } else {
                 storage.set(entity_id, Some(Death));
                 frame_counter.add_counter(key.clone(), 30);
+
+                let sound_fx = SoundFx::once(SOUND_NPC_DEATH);
+                storage.set(entity_id, Some(sound_fx));
             }
         }
         (Death, true) => {
@@ -99,13 +102,24 @@ fn process_damages(storage: &mut ComponentStorage) -> EngineResult<()> {
         let Some(damage) = storage.get::<ReceivedDamage>(entity_id).map(|x| x.0) else {
             return Err(EngineError::component_not_found("ReceivedDamage"));
         };
+        add_damage_sound(storage, entity_id)?;
         let Some(mut comp) = storage.get_mut::<Health>(entity_id) else {
             return Err(EngineError::component_not_found("Health"));
         };
         let health = comp.borrow_mut();
         health.0 = health.0.saturating_sub(damage);
-        // println!("[state] entity {} health {}", entity_id.id_key(), health.0);
     }
+    Ok(())
+}
+
+fn add_damage_sound(storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult<()> {
+    let id = if storage.has_component::<PlayerTag>(entity_id) {
+        SOUND_PLAYER_PAIN
+    } else {
+        SOUND_NPC_PAIN
+    };
+    let sound_fx = SoundFx::once(id);
+    storage.set(entity_id, Some(sound_fx));
     Ok(())
 }
 
