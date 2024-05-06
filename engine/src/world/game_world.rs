@@ -16,7 +16,7 @@ use std::{
 use crate::{
     assets::AssetManager,
     settings::{EngineSettings, WindowSettings},
-    EngineError, EngineResult, SizeU32,
+    AudioSettings, EngineError, EngineResult, SizeU32,
 };
 
 use super::{Engine, InputEvent, Scene, SceneID};
@@ -39,7 +39,7 @@ impl GameWorld {
         let sdl_context = sdl2::init().map_err(EngineError::Sdl)?;
         let canvas = Self::canvas(&sdl_context, &settings.window)?;
         let event_pump = sdl_context.event_pump().map_err(EngineError::Sdl)?;
-        let audio_enabled = Self::setup_audio(&sdl_context)
+        let audio_enabled = Self::setup_audio(&sdl_context, &settings.audio_setting)
             .map_err(EngineError::Sdl)
             .is_ok();
         Ok(Self {
@@ -54,17 +54,16 @@ impl GameWorld {
         })
     }
 
-    fn setup_audio(sdl: &Sdl) -> Result<(), String> {
+    fn setup_audio(sdl: &Sdl, settings: &AudioSettings) -> Result<(), String> {
         _ = sdl.audio()?;
-        let frequency = 44_100;
-        let format = AUDIO_S16LSB; // signed 16 bit samples, in little-endian byte order
-        let channels = DEFAULT_CHANNELS; // Stereo
-        let chunk_size = 1024;
-        sdl2::mixer::open_audio(frequency, format, channels, chunk_size)?;
+        sdl2::mixer::open_audio(
+            settings.frequency,
+            settings.format,
+            settings.channels,
+            settings.chunk_size,
+        )?;
         _ = sdl2::mixer::init(InitFlag::MP3 | InitFlag::FLAC | InitFlag::MOD | InitFlag::OGG)?;
-        // Number of mixing channels available for sound effect `Chunk`s to play
-        // simultaneously.
-        sdl2::mixer::allocate_channels(4);
+        sdl2::mixer::allocate_channels(settings.mixing_channels);
         Ok(())
     }
 

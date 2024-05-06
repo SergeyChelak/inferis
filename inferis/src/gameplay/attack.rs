@@ -7,7 +7,7 @@ use engine::{
 
 use super::{
     common::ray_cast_with_entity, PlayerTag, ReceivedDamage, Shot, ShotState, SoundFx, Weapon,
-    WeaponState, SOUND_SHOTGUN,
+    WeaponState, SOUND_NPC_ATTACK, SOUND_PLAYER_ATTACK,
 };
 
 pub fn attack_system(
@@ -108,9 +108,12 @@ fn ray_cast_shot(
 }
 
 fn add_shoot_sound(storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult<()> {
-    if storage.has_component::<PlayerTag>(entity_id) {
-        let sound_fx = SoundFx::once(SOUND_SHOTGUN);
-        storage.set(entity_id, Some(sound_fx));
-    }
+    let id = if storage.has_component::<PlayerTag>(entity_id) {
+        SOUND_PLAYER_ATTACK
+    } else {
+        SOUND_NPC_ATTACK
+    };
+    let sound_fx = SoundFx::once(id);
+    storage.set(entity_id, Some(sound_fx));
     Ok(())
 }

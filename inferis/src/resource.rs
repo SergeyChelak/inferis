@@ -35,4 +35,8 @@ pub const NPC_SOLDIER_DAMAGE: &str = "anim_soldier_pain";
 pub const NPC_SOLDIER_WALK: &str = "anim_soldier_walk";
 
 // sound
-pub const SOUND_SHOTGUN: &str = "sound_shotgun";
+pub const SOUND_PLAYER_ATTACK: &str = "sound_player_attack";
+pub const SOUND_PLAYER_PAIN: &str = "sound_player_pain";
+pub const SOUND_NPC_ATTACK: &str = "sound_npc_attack";
+pub const SOUND_NPC_DEATH: &str = "sound_npc_death";
+pub const SOUND_NPC_PAIN: &str = "sound_npc_pain";

@@ -19,6 +19,7 @@ fn main() -> EngineResult<()> {
                 height: 900,
             },
         },
+        audio_setting: AudioSettings::default(),
     };
     let mut world = GameWorld::new(settings)?;
 
