@@ -5,7 +5,7 @@ use sdl2::{
     mixer::*,
     pixels::{Color, PixelFormatEnum},
     render::{Texture, TextureCreator},
-    rwops::{self, RWops},
+    rwops::RWops,
     video::WindowContext,
 };
 
