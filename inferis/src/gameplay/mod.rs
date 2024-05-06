@@ -10,6 +10,7 @@ mod generator;
 mod input;
 pub mod main_scene;
 mod renderer;
+mod sound;
 mod state;
 mod transform;
 
@@ -98,6 +99,11 @@ pub struct AnimationData {
 
 pub struct BoundingBox(pub SizeFloat);
 
+pub struct SoundFx {
+    asset_id: String,
+    loops: i32,
+}
+
 pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     let mut storage = ComponentStorage::new();
     storage.register_component::<SpriteTag>()?;
@@ -120,6 +126,7 @@ pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<Shot>()?;
     storage.register_component::<Weapon>()?;
     storage.register_component::<UserControllableTag>()?;
+    storage.register_component::<SoundFx>()?;
     Ok(storage)
 }
 
@@ -178,6 +185,15 @@ impl Shot {
             position,
             angle,
             state: ShotState::Initial,
+        }
+    }
+}
+
+impl SoundFx {
+    pub fn once(id: impl Into<String>) -> Self {
+        Self {
+            asset_id: id.into(),
+            loops: 0,
         }
     }
 }

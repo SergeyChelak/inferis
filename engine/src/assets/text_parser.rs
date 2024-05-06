@@ -40,6 +40,7 @@ const ASSET_KEY_COLOR: &str = "color";
 const ASSET_KEY_VERTICAL_GRADIENT: &str = "vertical_gradient";
 const ASSET_KEY_ANIMATION: &str = "animation";
 const ASSET_KEY_BINARY: &str = "binary";
+const ASSET_KEY_SOUND_CHUNK: &str = "sound";
 
 impl TryFrom<&str> for RawAsset {
     type Error = EngineError;
@@ -55,6 +56,7 @@ impl TryFrom<&str> for RawAsset {
             ASSET_KEY_BINARY => RawAsset::binary(&tokens),
             ASSET_KEY_COLOR => RawAsset::color(&tokens),
             ASSET_KEY_VERTICAL_GRADIENT => RawAsset::vertical_gradient(&tokens),
+            ASSET_KEY_SOUND_CHUNK => RawAsset::sound_chunk(&tokens),
             _ => {
                 let msg = format!("Unknown type {id}");
                 Err(EngineError::ResourceParseError(msg))
@@ -74,6 +76,10 @@ impl RawAsset {
 
     fn binary(tokens: &[&str]) -> EngineResult<Self> {
         Self::raw_binary(tokens, Type::Binary)
+    }
+
+    fn sound_chunk(tokens: &[&str]) -> EngineResult<Self> {
+        Self::raw_binary(tokens, Type::SoundChunk)
     }
 
     fn color(tokens: &[&str]) -> EngineResult<Self> {

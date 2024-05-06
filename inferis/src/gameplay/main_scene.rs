@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use engine::{frame_counter::FrameCounterService, *};
 
 use crate::resource::*;
@@ -6,6 +8,7 @@ use self::{
     ai::ai_system,
     attack::attack_system,
     generator::{generator_system, LevelData},
+    sound::sound_system,
     state::{cleanup_system, state_system},
     transform::transform_entities,
 };
@@ -54,6 +57,9 @@ impl Scene for GameScene {
         transform_entities(&mut self.storage)?;
         attack_system(&mut self.storage, &mut self.frame_counter)?;
         state_system(&mut self.storage, &mut self.frame_counter, &level_data)?;
+        // let mut instant = Instant::now();
+        sound_system(engine, &self.storage, assets)?;
+        // profile(&mut instant, "audio");
         self.frame_counter.teak();
         self.context = Some(level_data);
         Ok(())
@@ -72,4 +78,10 @@ impl Scene for GameScene {
         );
         renderer.render()
     }
+}
+
+fn _profile(instant: &mut Instant, msg: impl Into<String>) {
+    let elapsed = instant.elapsed();
+    println!("{}: @ {} ms", msg.into(), elapsed.as_millis());
+    *instant = Instant::now();
 }

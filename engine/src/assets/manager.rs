@@ -2,8 +2,10 @@ use std::collections::HashMap;
 
 use sdl2::{
     image::LoadTexture,
+    mixer::*,
     pixels::{Color, PixelFormatEnum},
     render::{Texture, TextureCreator},
+    rwops::{self, RWops},
     video::WindowContext,
 };
 
@@ -28,6 +30,7 @@ pub struct AssetManager<'a> {
     colors: HashMap<String, Color>,
     animations: HashMap<String, Animation>,
     binaries: HashMap<String, Data>,
+    audio_chunks: HashMap<String, Chunk>,
 }
 
 impl<'a> AssetManager<'a> {
@@ -44,6 +47,7 @@ impl<'a> AssetManager<'a> {
                 Type::Binary => self.add_binary(asset)?,
                 Type::Color => self.add_color(asset)?,
                 Type::VerticalGradient => self.add_vertical_gradient(asset, texture_creator)?,
+                Type::SoundChunk => self.add_audio_chunk(asset)?,
             }
         }
         Ok(())
@@ -159,6 +163,18 @@ impl<'a> AssetManager<'a> {
         Ok(())
     }
 
+    fn add_audio_chunk(&mut self, raw_asset: &RawAsset) -> EngineResult<()> {
+        let Representation::Binary { value } = &raw_asset.representation else {
+            return Err(EngineError::UnexpectedState(format!(
+                "Audio chunk not found for asset with id '{}'",
+                raw_asset.id
+            )));
+        };
+        let chunk = create_sound_chunk(&value)?;
+        self.audio_chunks.insert(raw_asset.id.clone(), chunk);
+        Ok(())
+    }
+
     pub fn texture(&self, key: &str) -> Option<&Texture> {
         self.textures.get(key)
     }
@@ -173,6 +189,10 @@ impl<'a> AssetManager<'a> {
 
     pub fn binary(&self, key: &str) -> Option<&Data> {
         self.binaries.get(key)
+    }
+
+    pub fn sound_chunk(&self, key: &str) -> Option<&Chunk> {
+        self.audio_chunks.get(key)
     }
 }
 
@@ -253,4 +273,18 @@ fn create_gradient_texture(
         })
         .map_err(|e| EngineError::Sdl(e.to_string()))?;
     Ok(texture)
+}
+
+fn create_sound_chunk(data: &[u8]) -> EngineResult<Chunk> {
+    unsafe {
+        let src = RWops::from_bytes(data).map_err(|e| {
+            let msg = format!("Failed to create sound chunk source: {e}");
+            EngineError::sdl(msg)
+        })?;
+        let raw = sdl2::sys::mixer::Mix_LoadWAV_RW(src.raw(), 0);
+        if raw.is_null() {
+            return Err(EngineError::sdl("Failed to load sound chunk"));
+        }
+        Ok(Chunk { raw, owned: true })
+    }
 }

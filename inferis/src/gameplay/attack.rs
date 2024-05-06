@@ -5,7 +5,10 @@ use engine::{
     Query,
 };
 
-use super::{common::ray_cast_with_entity, ReceivedDamage, Shot, ShotState, Weapon, WeaponState};
+use super::{
+    common::ray_cast_with_entity, PlayerTag, ReceivedDamage, Shot, ShotState, SoundFx, Weapon,
+    WeaponState, SOUND_SHOTGUN,
+};
 
 pub fn attack_system(
     storage: &mut ComponentStorage,
@@ -90,6 +93,7 @@ fn try_shot(
         w.state = WeaponState::Recharge;
         frame_counter.add_counter(frame_counter_key(entity_id), weapon.recharge_time);
     };
+    add_shoot_sound(storage, entity_id)?;
     Ok(true)
 }
 
@@ -101,4 +105,12 @@ fn ray_cast_shot(
         return Err(EngineError::component_not_found("Shot"));
     };
     ray_cast_with_entity(storage, entity_id, shot.position, shot.angle)
+}
+
+fn add_shoot_sound(storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult<()> {
+    if storage.has_component::<PlayerTag>(entity_id) {
+        let sound_fx = SoundFx::once(SOUND_SHOTGUN);
+        storage.set(entity_id, Some(sound_fx));
+    }
+    Ok(())
 }

@@ -142,6 +142,7 @@ pub fn cleanup_system(storage: &mut ComponentStorage) -> EngineResult<()> {
     cleanup_component::<Shot>(storage)?;
     cleanup_component::<ReceivedDamage>(storage)?;
     cleanup_component::<Transform>(storage)?;
+    cleanup_component::<SoundFx>(storage)?;
     Ok(())
 }
 

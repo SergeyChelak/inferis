@@ -47,6 +47,7 @@ pub mod raw_asset {
     pub const TYPE_ID_BINARY: TypeID = 2;
     pub const TYPE_ID_COLOR: TypeID = 3;
     pub const TYPE_ID_VERTICAL_GRADIENT: TypeID = 4;
+    pub const TYPE_ID_SOUND_CHUNK: TypeID = 5;
 
     #[derive(Debug)]
     pub enum Representation {
@@ -70,6 +71,7 @@ pub mod raw_asset {
         Binary,
         Color,
         VerticalGradient,
+        SoundChunk,
     }
 
     impl From<Type> for TypeID {
@@ -81,6 +83,7 @@ pub mod raw_asset {
                 Binary => TYPE_ID_BINARY,
                 Color => TYPE_ID_COLOR,
                 VerticalGradient => TYPE_ID_VERTICAL_GRADIENT,
+                SoundChunk => TYPE_ID_SOUND_CHUNK,
             }
         }
     }
@@ -95,6 +98,7 @@ pub mod raw_asset {
                 TYPE_ID_BINARY => Ok(Self::Binary),
                 TYPE_ID_COLOR => Ok(Self::Color),
                 TYPE_ID_VERTICAL_GRADIENT => Ok(Self::VerticalGradient),
+                TYPE_ID_SOUND_CHUNK => Ok(Self::SoundChunk),
                 _ => {
                     let msg = format!("unexpected asset type {}", value);
                     Err(EngineError::ResourceParseError(msg))

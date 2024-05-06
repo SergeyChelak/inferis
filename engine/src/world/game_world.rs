@@ -59,7 +59,7 @@ impl GameWorld {
         let frequency = 44_100;
         let format = AUDIO_S16LSB; // signed 16 bit samples, in little-endian byte order
         let channels = DEFAULT_CHANNELS; // Stereo
-        let chunk_size = 128;
+        let chunk_size = 1024;
         sdl2::mixer::open_audio(frequency, format, channels, chunk_size)?;
         _ = sdl2::mixer::init(InitFlag::MP3 | InitFlag::FLAC | InitFlag::MOD | InitFlag::OGG)?;
         // Number of mixing channels available for sound effect `Chunk`s to play
