@@ -1,5 +1,6 @@
 use sdl2::{
     keyboard::Keycode,
+    mixer::Chunk,
     render::{Texture, WindowCanvas},
 };
 
@@ -15,6 +16,7 @@ pub trait Engine {
     fn change_scene(&mut self, scene_id: SceneID);
     fn terminate(&mut self);
     fn canvas(&mut self) -> &mut WindowCanvas;
+    fn play_sound(&self, sound_chunk: &Chunk, loops: i32) -> EngineResult<()>;
     fn delta_time(&self) -> f32;
     fn window_size(&self) -> SizeU32;
 }

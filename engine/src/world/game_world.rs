@@ -1,5 +1,9 @@
 use sdl2::{
-    event::Event, keyboard::Keycode, pixels::Color, render::WindowCanvas, AudioSubsystem,
+    event::Event,
+    keyboard::Keycode,
+    mixer::{Chunk, InitFlag, AUDIO_S16LSB, DEFAULT_CHANNELS},
+    pixels::Color,
+    render::WindowCanvas,
     EventPump, Sdl,
 };
 use std::{
@@ -25,17 +29,19 @@ pub struct GameWorld {
     current_scene: SceneID,
     time: Instant,
     event_pump: EventPump,
-    _audio_subsystem: AudioSubsystem,
     canvas: WindowCanvas,
     settings: EngineSettings,
+    audio_enabled: bool,
 }
 
 impl GameWorld {
     pub fn new(settings: EngineSettings) -> EngineResult<Self> {
         let sdl_context = sdl2::init().map_err(EngineError::Sdl)?;
         let canvas = Self::canvas(&sdl_context, &settings.window)?;
-        let audio_subsystem = sdl_context.audio().map_err(EngineError::Sdl)?;
         let event_pump = sdl_context.event_pump().map_err(EngineError::Sdl)?;
+        let audio_enabled = Self::setup_audio(&sdl_context)
+            .map_err(EngineError::Sdl)
+            .is_ok();
         Ok(Self {
             is_running: false,
             scenes: HashMap::default(),
@@ -43,9 +49,23 @@ impl GameWorld {
             time: Instant::now(),
             event_pump,
             canvas,
-            _audio_subsystem: audio_subsystem,
             settings,
+            audio_enabled,
         })
+    }
+
+    fn setup_audio(sdl: &Sdl) -> Result<(), String> {
+        _ = sdl.audio()?;
+        let frequency = 44_100;
+        let format = AUDIO_S16LSB; // signed 16 bit samples, in little-endian byte order
+        let channels = DEFAULT_CHANNELS; // Stereo
+        let chunk_size = 128;
+        sdl2::mixer::open_audio(frequency, format, channels, chunk_size)?;
+        _ = sdl2::mixer::init(InitFlag::MP3 | InitFlag::FLAC | InitFlag::MOD | InitFlag::OGG)?;
+        // Number of mixing channels available for sound effect `Chunk`s to play
+        // simultaneously.
+        sdl2::mixer::allocate_channels(4);
+        Ok(())
     }
 
     fn canvas(sdl_context: &Sdl, window_settings: &WindowSettings) -> EngineResult<WindowCanvas> {
@@ -162,6 +182,15 @@ impl Engine for GameWorld {
 
     fn canvas(&mut self) -> &mut WindowCanvas {
         &mut self.canvas
+    }
+
+    fn play_sound(&self, sound_chunk: &Chunk, loops: i32) -> EngineResult<()> {
+        if self.audio_enabled {
+            sdl2::mixer::Channel::all()
+                .play(&sound_chunk, loops)
+                .map_err(|e| EngineError::sdl(e))?;
+        }
+        Ok(())
     }
 
     fn delta_time(&self) -> f32 {
