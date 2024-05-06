@@ -170,7 +170,7 @@ impl<'a> AssetManager<'a> {
                 raw_asset.id
             )));
         };
-        let chunk = create_sound_chunk(&value)?;
+        let chunk = create_sound_chunk(value)?;
         self.audio_chunks.insert(raw_asset.id.clone(), chunk);
         Ok(())
     }

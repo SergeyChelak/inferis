@@ -186,8 +186,8 @@ impl Engine for GameWorld {
     fn play_sound(&self, sound_chunk: &Chunk, loops: i32) -> EngineResult<()> {
         if self.audio_enabled {
             sdl2::mixer::Channel::all()
-                .play(&sound_chunk, loops)
-                .map_err(|e| EngineError::sdl(e))?;
+                .play(sound_chunk, loops)
+                .map_err(EngineError::sdl)?;
         }
         Ok(())
     }
