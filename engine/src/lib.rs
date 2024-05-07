@@ -1,18 +1,18 @@
 pub mod assets;
 pub mod entities;
 pub mod geometry;
+pub mod runloop;
 pub mod settings;
-pub mod world;
 
 pub use assets::AssetManager;
 pub use entities::utils::*;
 pub use entities::*;
 pub use geometry::*;
+pub use runloop::game_loop::GameWorld;
+pub use runloop::*;
 pub use sdl2::*;
 pub use settings::*;
 pub use storage::*;
-pub use world::game_world::GameWorld;
-pub use world::*;
 
 #[derive(Debug)]
 pub enum EngineError {
