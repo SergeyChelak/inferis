@@ -23,7 +23,7 @@ use super::{Engine, InputEvent, Scene, SceneID};
 
 const TARGET_FPS: u128 = 60;
 
-pub struct GameWorld {
+pub struct GameLoop {
     is_running: bool,
     scenes: HashMap<SceneID, Rc<RefCell<dyn Scene>>>,
     current_scene: SceneID,
@@ -34,7 +34,7 @@ pub struct GameWorld {
     audio_enabled: bool,
 }
 
-impl GameWorld {
+impl GameLoop {
     pub fn new(settings: EngineSettings) -> EngineResult<Self> {
         let sdl_context = sdl2::init().map_err(EngineError::Sdl)?;
         let canvas = Self::canvas(&sdl_context, &settings.window)?;
@@ -170,7 +170,7 @@ impl GameWorld {
     }
 }
 
-impl Engine for GameWorld {
+impl Engine for GameLoop {
     fn terminate(&mut self) {
         self.is_running = false;
     }

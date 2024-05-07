@@ -21,7 +21,7 @@ fn main() -> EngineResult<()> {
         },
         audio_setting: AudioSettings::default(),
     };
-    let mut world = GameWorld::new(settings)?;
+    let mut world = GameLoop::new(settings)?;
 
     let game_scene = GameScene::new()?;
     let id = game_scene.id();
