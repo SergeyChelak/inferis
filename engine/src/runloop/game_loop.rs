@@ -36,10 +36,10 @@ pub struct GameLoop {
 
 impl GameLoop {
     pub fn new(settings: EngineSettings) -> EngineResult<Self> {
-        let sdl_context = sdl2::init().map_err(EngineError::Sdl)?;
-        let canvas = Self::canvas(&sdl_context, &settings.window)?;
-        let event_pump = sdl_context.event_pump().map_err(EngineError::Sdl)?;
-        let audio_enabled = Self::setup_audio(&sdl_context, &settings.audio_setting)
+        let sdl = sdl2::init().map_err(EngineError::Sdl)?;
+        let event_pump = sdl.event_pump().map_err(EngineError::Sdl)?;
+        let canvas = setup_canvas(&sdl, &settings.window)?;
+        let audio_enabled = setup_audio(&sdl, &settings.audio_setting)
             .map_err(EngineError::Sdl)
             .is_ok();
         Ok(Self {
@@ -52,36 +52,6 @@ impl GameLoop {
             settings,
             audio_enabled,
         })
-    }
-
-    fn setup_audio(sdl: &Sdl, settings: &AudioSettings) -> Result<(), String> {
-        _ = sdl.audio()?;
-        sdl2::mixer::open_audio(
-            settings.frequency,
-            settings.format,
-            settings.channels,
-            settings.chunk_size,
-        )?;
-        _ = sdl2::mixer::init(InitFlag::MP3 | InitFlag::FLAC | InitFlag::MOD | InitFlag::OGG)?;
-        sdl2::mixer::allocate_channels(settings.mixing_channels);
-        Ok(())
-    }
-
-    fn canvas(sdl_context: &Sdl, window_settings: &WindowSettings) -> EngineResult<WindowCanvas> {
-        let video_subsystem = sdl_context.video().map_err(EngineError::Sdl)?;
-        let size = &window_settings.size;
-        let window = video_subsystem
-            .window(&window_settings.title, size.width, size.height)
-            .position_centered()
-            .build()
-            .map_err(|op| EngineError::Sdl(op.to_string()))?;
-        window
-            .into_canvas()
-            .accelerated()
-            .target_texture()
-            .present_vsync()
-            .build()
-            .map_err(|op| EngineError::Sdl(op.to_string()))
     }
 
     pub fn register_scene<T: Scene + 'static>(&mut self, scene: T) {
@@ -168,6 +138,36 @@ impl GameLoop {
     fn current_scene_ref(&self) -> Option<Rc<RefCell<dyn Scene>>> {
         self.scenes.get(&self.current_scene).cloned()
     }
+}
+
+fn setup_audio(sdl: &Sdl, settings: &AudioSettings) -> Result<(), String> {
+    _ = sdl.audio()?;
+    sdl2::mixer::open_audio(
+        settings.frequency,
+        settings.format,
+        settings.channels,
+        settings.chunk_size,
+    )?;
+    _ = sdl2::mixer::init(InitFlag::MP3 | InitFlag::FLAC | InitFlag::MOD | InitFlag::OGG)?;
+    sdl2::mixer::allocate_channels(settings.mixing_channels);
+    Ok(())
+}
+
+fn setup_canvas(sdl_context: &Sdl, window_settings: &WindowSettings) -> EngineResult<WindowCanvas> {
+    let video_subsystem = sdl_context.video().map_err(EngineError::Sdl)?;
+    let size = &window_settings.size;
+    let window = video_subsystem
+        .window(&window_settings.title, size.width, size.height)
+        .position_centered()
+        .build()
+        .map_err(|op| EngineError::Sdl(op.to_string()))?;
+    window
+        .into_canvas()
+        .accelerated()
+        .target_texture()
+        .present_vsync()
+        .build()
+        .map_err(|op| EngineError::Sdl(op.to_string()))
 }
 
 impl Engine for GameLoop {

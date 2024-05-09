@@ -13,21 +13,6 @@ pub mod game_scene;
 pub use frame_counter::FrameCounter;
 
 pub type SceneID = &'static str;
-pub trait Engine {
-    fn change_scene(&mut self, scene_id: SceneID);
-    fn terminate(&mut self);
-    fn canvas(&mut self) -> &mut WindowCanvas;
-    fn play_sound(&self, sound_chunk: &Chunk, loops: i32) -> EngineResult<()>;
-    fn delta_time(&self) -> f32;
-    fn window_size(&self) -> SizeU32;
-}
-
-pub trait Scene {
-    fn process_events(&mut self, events: &[InputEvent]) -> EngineResult<()>;
-    fn run_systems(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()>;
-    fn render_scene(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()>;
-    fn id(&self) -> SceneID;
-}
 
 pub enum InputEvent {
     Keyboard {
@@ -48,4 +33,21 @@ pub fn texture_size(texture: &Texture) -> SizeU32 {
         width: query.width,
         height: query.height,
     }
+}
+
+// --- deprecated ---
+pub trait Engine {
+    fn change_scene(&mut self, scene_id: SceneID);
+    fn terminate(&mut self);
+    fn canvas(&mut self) -> &mut WindowCanvas;
+    fn play_sound(&self, sound_chunk: &Chunk, loops: i32) -> EngineResult<()>;
+    fn delta_time(&self) -> f32;
+    fn window_size(&self) -> SizeU32;
+}
+
+pub trait Scene {
+    fn process_events(&mut self, events: &[InputEvent]) -> EngineResult<()>;
+    fn run_systems(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()>;
+    fn render_scene(&mut self, engine: &mut dyn Engine, assets: &AssetManager) -> EngineResult<()>;
+    fn id(&self) -> SceneID;
 }
