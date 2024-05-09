@@ -56,6 +56,7 @@ pub trait GameRendererSystem {
 
 pub struct GameScene {
     id: SceneID,
+    storage: ComponentStorage,
     frame_counter: AggregatedFrameCounter,
     common_systems: Vec<Rc<RefCell<dyn GameSystem>>>,
     control_system: Option<Rc<RefCell<dyn GameControlSystem>>>,
@@ -63,9 +64,10 @@ pub struct GameScene {
 }
 
 impl GameScene {
-    pub fn new(id: SceneID) -> Self {
+    pub fn new(id: SceneID, storage: ComponentStorage) -> Self {
         Self {
             id,
+            storage,
             frame_counter: Default::default(),
             common_systems: Default::default(),
             control_system: Default::default(),
@@ -89,20 +91,16 @@ impl GameScene {
         self.common_systems.push(Rc::new(RefCell::new(system)));
     }
 
-    pub fn setup_systems(
-        &mut self,
-        storage: &ComponentStorage,
-        assets: &AssetManager,
-    ) -> EngineResult<()> {
+    pub fn setup_systems(&mut self, assets: &AssetManager) -> EngineResult<()> {
         if let Some(system) = &self.control_system {
-            system.borrow_mut().setup(storage, assets)?;
+            system.borrow_mut().setup(&mut self.storage, assets)?;
         }
         if let Some(system) = &self.render_system {
-            system.borrow_mut().setup(storage, assets)?;
+            system.borrow_mut().setup(&mut self.storage, assets)?;
         }
         for elem in &self.common_systems {
             let mut system = elem.borrow_mut();
-            system.setup(storage, assets)?;
+            system.setup(&mut self.storage, assets)?;
         }
         Ok(())
     }
@@ -110,13 +108,17 @@ impl GameScene {
     pub fn update(
         &mut self,
         engine: &mut impl GameEngine,
-        storage: &ComponentStorage,
         assets: &AssetManager,
     ) -> EngineResult<()> {
         let delta_time = engine.delta_time();
         for elem in &self.common_systems {
             let mut system = elem.borrow_mut();
-            let effects = system.update(&mut self.frame_counter, delta_time, storage, assets)?;
+            let effects = system.update(
+                &mut self.frame_counter,
+                delta_time,
+                &mut self.storage,
+                assets,
+            )?;
             engine.handle_effects(&effects)?
         }
         Ok(())
@@ -125,14 +127,13 @@ impl GameScene {
     pub fn render(
         &mut self,
         engine: &mut impl GameEngine,
-        storage: &ComponentStorage,
         assets: &AssetManager,
     ) -> EngineResult<()> {
         let Some(elem) = &self.render_system else {
             return Ok(());
         };
         let mut system = elem.borrow_mut();
-        let effects = system.render(&mut self.frame_counter, storage, assets)?;
+        let effects = system.render(&mut self.frame_counter, &mut self.storage, assets)?;
         engine.handle_effects(&effects)
     }
 
