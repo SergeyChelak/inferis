@@ -4,7 +4,7 @@ use std::{
 };
 
 use engine::{
-    frame_counter::FrameCounterService, ComponentStorage, EngineError, EngineResult, EntityID,
+    frame_counter::AggregatedFrameCounter, ComponentStorage, EngineError, EngineResult, EntityID,
     Query,
 };
 
@@ -14,7 +14,7 @@ use super::*;
 
 pub fn state_system(
     storage: &mut ComponentStorage,
-    frame_counter: &mut FrameCounterService,
+    frame_counter: &mut AggregatedFrameCounter,
     level_data: &LevelData,
 ) -> EngineResult<()> {
     process_damages(storage)?;
@@ -25,7 +25,7 @@ pub fn state_system(
 
 fn update_all_npc(
     storage: &mut ComponentStorage,
-    frame_counter: &mut FrameCounterService,
+    frame_counter: &mut AggregatedFrameCounter,
 ) -> EngineResult<()> {
     let query = Query::new().with_component::<NpcTag>();
     let entities = storage.fetch_entities(&query);
@@ -37,7 +37,7 @@ fn update_all_npc(
 
 fn update_npc(
     storage: &mut ComponentStorage,
-    frame_counter: &mut FrameCounterService,
+    frame_counter: &mut AggregatedFrameCounter,
     entity_id: EntityID,
 ) -> EngineResult<()> {
     let key = npc_state_frame_counter_key(entity_id);

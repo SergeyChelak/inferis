@@ -1,4 +1,4 @@
-use engine::{frame_counter::FrameCounterService, *};
+use engine::{frame_counter::AggregatedFrameCounter, *};
 
 use crate::resource::*;
 
@@ -16,7 +16,7 @@ use super::{controller::ControllerState, input::*, renderer::*, *};
 pub struct GameScene {
     storage: ComponentStorage,
     controller: ControllerState,
-    frame_counter: FrameCounterService,
+    frame_counter: AggregatedFrameCounter,
     context: Option<LevelData>,
 }
 
@@ -25,7 +25,7 @@ impl GameScene {
         Ok(Self {
             storage: game_play_component_storage()?,
             controller: ControllerState::default(),
-            frame_counter: FrameCounterService::default(),
+            frame_counter: AggregatedFrameCounter::default(),
             context: Default::default(),
         })
     }

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 #[derive(Default)]
-pub struct FrameCounterService {
+pub struct AggregatedFrameCounter {
     map: HashMap<String, FrameCounter>,
 }
 
-impl FrameCounterService {
+impl AggregatedFrameCounter {
     pub fn add_counter(&mut self, counter_id: impl Into<String>, duration: usize) {
         let item = FrameCounter::new(duration);
         self.map.insert(counter_id.into(), item);

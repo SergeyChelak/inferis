@@ -1,7 +1,7 @@
 use std::borrow::BorrowMut;
 
 use engine::{
-    frame_counter::FrameCounterService, ComponentStorage, EngineError, EngineResult, EntityID,
+    frame_counter::AggregatedFrameCounter, ComponentStorage, EngineError, EngineResult, EntityID,
     Query,
 };
 
@@ -12,7 +12,7 @@ use super::{
 
 pub fn attack_system(
     storage: &mut ComponentStorage,
-    frame_counter: &mut FrameCounterService,
+    frame_counter: &mut AggregatedFrameCounter,
 ) -> EngineResult<()> {
     process_shorts(storage, frame_counter)?;
     refresh_weapon_state(storage, frame_counter)?;
@@ -21,7 +21,7 @@ pub fn attack_system(
 
 fn refresh_weapon_state(
     storage: &mut ComponentStorage,
-    frame_counter: &mut FrameCounterService,
+    frame_counter: &mut AggregatedFrameCounter,
 ) -> EngineResult<()> {
     let query = Query::new().with_component::<Weapon>();
     let entities = storage.fetch_entities(&query);
@@ -44,7 +44,7 @@ fn frame_counter_key(entity_id: EntityID) -> String {
 
 fn process_shorts(
     storage: &mut ComponentStorage,
-    frame_counter: &mut FrameCounterService,
+    frame_counter: &mut AggregatedFrameCounter,
 ) -> EngineResult<()> {
     let query = Query::new().with_component::<Shot>();
     let entities = storage.fetch_entities(&query);
@@ -70,7 +70,7 @@ fn process_shorts(
 
 fn try_shot(
     storage: &mut ComponentStorage,
-    frame_counter: &mut FrameCounterService,
+    frame_counter: &mut AggregatedFrameCounter,
     entity_id: EntityID,
 ) -> EngineResult<bool> {
     let Some(weapon) = storage.get::<Weapon>(entity_id).map(|x| *x) else {
