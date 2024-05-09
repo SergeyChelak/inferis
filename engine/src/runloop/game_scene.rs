@@ -3,24 +3,40 @@ use std::{cell::RefCell, rc::Rc};
 use sdl2::rect::Rect;
 
 use crate::{
-    frame_counter::AggregatedFrameCounter, AssetManager, ComponentStorage, EngineResult, Float,
-    InputEvent, SceneID,
+    frame_counter::AggregatedFrameCounter, world::GameWorldState, AssetManager, ComponentStorage,
+    EngineResult, Float, InputEvent, SceneID, SizeU32,
 };
 
-pub trait GameEngine {
-    fn handle_effects(&mut self, effects: &[Effect]) -> EngineResult<()>;
-    fn delta_time(&self) -> Float;
+pub enum Effect {
+    PlaySound { asset_id: String, loops: i32 },
 }
 
-pub enum Effect {
-    Terminate,
-    SwitchScene {
-        scene_id: SceneID,
-    },
-    PlaySound {
-        asset_id: String,
-        loops: i32,
-    },
+pub trait GameSystem {
+    fn setup(
+        &mut self,
+        storage: &ComponentStorage,
+        asset_manager: &AssetManager,
+    ) -> EngineResult<()>;
+    fn update(
+        &mut self,
+        world_state: &mut GameWorldState,
+        frame_counter: &mut AggregatedFrameCounter,
+        delta_time: Float,
+        storage: &mut ComponentStorage,
+        assets: &AssetManager,
+    ) -> EngineResult<Vec<Effect>>;
+}
+
+pub trait GameControlSystem {
+    fn setup(&mut self, storage: &ComponentStorage) -> EngineResult<()>;
+    fn push_events(
+        &mut self,
+        storage: &mut ComponentStorage,
+        events: &[InputEvent],
+    ) -> EngineResult<()>;
+}
+
+pub enum RendererEffect {
     RenderTexture {
         asset_id: String,
         source: Rect,
@@ -28,30 +44,19 @@ pub enum Effect {
     },
 }
 
-pub trait GameSystem {
-    fn setup(&mut self, storage: &ComponentStorage, assets: &AssetManager) -> EngineResult<()>;
-    fn update(
-        &mut self,
-        frame_counter: &mut AggregatedFrameCounter,
-        delta_time: Float,
-        storage: &ComponentStorage,
-        assets: &AssetManager,
-    ) -> EngineResult<Vec<Effect>>;
-}
-
-pub trait GameControlSystem {
-    fn setup(&mut self, storage: &ComponentStorage, assets: &AssetManager) -> EngineResult<()>;
-    fn push_events(&mut self, events: &[InputEvent]) -> EngineResult<()>;
-}
-
 pub trait GameRendererSystem {
-    fn setup(&mut self, storage: &ComponentStorage, assets: &AssetManager) -> EngineResult<()>;
+    fn setup(
+        &mut self,
+        storage: &ComponentStorage,
+        asset_manager: &AssetManager,
+        window_size: SizeU32,
+    ) -> EngineResult<()>;
     fn render(
         &mut self,
         frame_counter: &mut AggregatedFrameCounter,
         storage: &ComponentStorage,
         assets: &AssetManager,
-    ) -> EngineResult<Vec<Effect>>;
+    ) -> EngineResult<Vec<RendererEffect>>;
 }
 
 pub struct GameScene {
@@ -91,50 +96,55 @@ impl GameScene {
         self.common_systems.push(Rc::new(RefCell::new(system)));
     }
 
-    pub fn setup_systems(&mut self, assets: &AssetManager) -> EngineResult<()> {
+    pub fn setup_systems(
+        &mut self,
+        asset_manager: &AssetManager,
+        window_size: SizeU32,
+    ) -> EngineResult<()> {
         if let Some(system) = &self.control_system {
-            system.borrow_mut().setup(&mut self.storage, assets)?;
+            system.borrow_mut().setup(&mut self.storage)?;
         }
         if let Some(system) = &self.render_system {
-            system.borrow_mut().setup(&mut self.storage, assets)?;
+            system
+                .borrow_mut()
+                .setup(&mut self.storage, asset_manager, window_size)?;
         }
         for elem in &self.common_systems {
             let mut system = elem.borrow_mut();
-            system.setup(&mut self.storage, assets)?;
+            system.setup(&mut self.storage, asset_manager)?;
         }
         Ok(())
     }
 
     pub fn update(
         &mut self,
-        engine: &mut impl GameEngine,
-        assets: &AssetManager,
-    ) -> EngineResult<()> {
-        let delta_time = engine.delta_time();
+        world_state: GameWorldState,
+        delta_time: f32,
+        effect_handler: impl Fn(&[Effect]) -> EngineResult<()>,
+        asset_manager: &AssetManager,
+    ) -> EngineResult<GameWorldState> {
+        let mut state = world_state;
         for elem in &self.common_systems {
             let mut system = elem.borrow_mut();
             let effects = system.update(
+                &mut state,
                 &mut self.frame_counter,
                 delta_time,
                 &mut self.storage,
-                assets,
+                asset_manager,
             )?;
-            engine.handle_effects(&effects)?
+            effect_handler(&effects)?;
         }
-        Ok(())
+        Ok(state)
     }
 
-    pub fn render(
-        &mut self,
-        engine: &mut impl GameEngine,
-        assets: &AssetManager,
-    ) -> EngineResult<()> {
+    pub fn render(&mut self, asset_manager: &AssetManager) -> EngineResult<Vec<RendererEffect>> {
         let Some(elem) = &self.render_system else {
-            return Ok(());
+            return Ok(vec![]);
         };
         let mut system = elem.borrow_mut();
-        let effects = system.render(&mut self.frame_counter, &mut self.storage, assets)?;
-        engine.handle_effects(&effects)
+        let effects = system.render(&mut self.frame_counter, &mut self.storage, asset_manager)?;
+        Ok(effects)
     }
 
     pub fn push_events(&mut self, events: &[InputEvent]) -> EngineResult<()> {
@@ -144,6 +154,6 @@ impl GameScene {
         let Some(system) = &self.control_system else {
             return Ok(());
         };
-        system.borrow_mut().push_events(events)
+        system.borrow_mut().push_events(&mut self.storage, events)
     }
 }

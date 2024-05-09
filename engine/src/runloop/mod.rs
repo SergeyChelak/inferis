@@ -9,12 +9,14 @@ use crate::{assets::AssetManager, EngineResult, SizeU32};
 pub mod frame_counter;
 pub mod game_loop;
 pub mod game_scene;
+pub mod world;
 
 pub use frame_counter::FrameCounter;
 
 pub type SceneID = &'static str;
 
 pub enum InputEvent {
+    Quit,
     Keyboard {
         code: Keycode,
         pressed: bool,

@@ -23,7 +23,7 @@ pub struct GameScene {
 impl GameScene {
     pub fn new() -> EngineResult<Self> {
         Ok(Self {
-            storage: game_play_component_storage()?,
+            storage: compose_component_storage()?,
             controller: ControllerState::default(),
             frame_counter: AggregatedFrameCounter::default(),
             context: Default::default(),

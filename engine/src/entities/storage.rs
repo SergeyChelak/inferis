@@ -70,7 +70,7 @@ mod allocator {
         generation: u64,
     }
 
-    #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+    #[derive(Default, Clone, Copy, Debug, Hash, PartialEq, Eq)]
     pub struct Index {
         index: usize,
         generation: u64,

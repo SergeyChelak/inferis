@@ -104,7 +104,7 @@ pub struct SoundFx {
     loops: i32,
 }
 
-pub fn game_play_component_storage() -> EngineResult<ComponentStorage> {
+pub fn compose_component_storage() -> EngineResult<ComponentStorage> {
     let mut storage = ComponentStorage::new();
     storage.register_component::<SpriteTag>()?;
     storage.register_component::<PlayerTag>()?;

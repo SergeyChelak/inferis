@@ -25,6 +25,9 @@ impl ControllerState {
                     self.mouse_x_relative = *x_rel;
                     self.mouse_y_relative = *y_rel;
                 }
+                InputEvent::Quit => {
+                    // no op
+                }
             }
         }
     }
