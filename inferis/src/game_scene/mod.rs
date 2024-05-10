@@ -19,6 +19,7 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
     let mut storage = ComponentStorage::new();
     storage.register_component::<components::PlayerTag>()?;
     storage.register_component::<components::ControllerState>()?;
+    storage.register_component::<components::Movement>()?;
     // minimal entities setup
     let player_bundle = EntityBundle::new()
         .put(components::PlayerTag)

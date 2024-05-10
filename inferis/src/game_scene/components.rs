@@ -1,3 +1,5 @@
+use engine::Float;
+
 pub struct PlayerTag;
 
 #[derive(Default)]
@@ -13,3 +15,16 @@ pub struct ControllerState {
     pub mouse_y_relative: i32,
     pub exit_pressed: bool,
 }
+
+#[derive(Clone, Copy, Default, Debug)]
+pub struct Movement {
+    pub x: Float,
+    pub y: Float,
+    pub angle: Float,
+}
+
+pub struct Velocity(pub Float);
+
+pub struct RotationSpeed(pub Float);
+
+pub struct Angle(pub Float);

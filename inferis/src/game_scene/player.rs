@@ -1,11 +1,11 @@
 use engine::{
     frame_counter::AggregatedFrameCounter, game_scene::GameSystem, world::GameWorldState,
-    ComponentStorage, EngineError, EngineResult, EntityID,
+    AssetManager, ComponentStorage, EngineError, EntityID, Float,
 };
 
 use crate::game_scene::fetch_player_id;
 
-use super::components;
+use super::components::{self, ControllerState, Movement};
 
 #[derive(Default)]
 pub struct PlayerSystem {
@@ -16,29 +16,13 @@ impl PlayerSystem {
     pub fn new() -> Self {
         Default::default()
     }
-
-    fn handle_controls(
-        &self,
-        world_state: &mut GameWorldState,
-        storage: &mut ComponentStorage,
-    ) -> EngineResult<()> {
-        let Some(comp) = storage.get::<components::ControllerState>(self.player_id) else {
-            println!("[v2.controller] warn: controller component isn't associated with player");
-            return Ok(());
-        };
-        if comp.exit_pressed {
-            println!("world stop");
-            world_state.stop();
-        }
-        Ok(())
-    }
 }
 
 impl GameSystem for PlayerSystem {
     fn setup(
         &mut self,
         storage: &engine::ComponentStorage,
-        asset_manager: &engine::AssetManager,
+        _asset_manager: &engine::AssetManager,
     ) -> engine::EngineResult<()> {
         let Some(player_id) = fetch_player_id(storage) else {
             return Err(EngineError::unexpected_state(
@@ -53,12 +37,100 @@ impl GameSystem for PlayerSystem {
     fn update(
         &mut self,
         world_state: &mut GameWorldState,
-        frame_counter: &mut AggregatedFrameCounter,
-        delta_time: engine::Float,
-        storage: &mut engine::ComponentStorage,
-        assets: &engine::AssetManager,
+        _frame_counter: &mut AggregatedFrameCounter,
+        delta_time: Float,
+        storage: &mut ComponentStorage,
+        _assets: &AssetManager,
     ) -> engine::EngineResult<Vec<engine::game_scene::Effect>> {
-        self.handle_controls(world_state, storage)?;
+        let movement: Option<Movement>;
+        // put all logic inside code block to make a borrow checker happy
+        {
+            let Some(controller) = storage.get::<components::ControllerState>(self.player_id)
+            else {
+                println!("[v2.controller] warn: controller component isn't associated with player");
+                return Ok(vec![]);
+            };
+            if controller.exit_pressed {
+                world_state.stop();
+            }
+            let Some(velocity) = storage
+                .get::<components::Velocity>(self.player_id)
+                .map(|x| x.0)
+            else {
+                return Err(EngineError::component_not_found(
+                    "[handle_controls] Velocity",
+                ));
+            };
+            let Some(angle) = storage
+                .get::<components::Angle>(self.player_id)
+                .map(|x| x.0)
+            else {
+                return Err(EngineError::component_not_found("[handle_controls] Angle"));
+            };
+            let Some(rotation_speed) = storage
+                .get::<components::RotationSpeed>(self.player_id)
+                .map(|x| x.0)
+            else {
+                return Err(EngineError::component_not_found(
+                    "[handle_controls] RotationSpeed",
+                ));
+            };
+            movement = Some(calculate_movement(
+                &controller,
+                delta_time,
+                velocity,
+                rotation_speed,
+                angle,
+            ));
+        };
+        storage.set(self.player_id, movement);
         Ok(vec![])
+    }
+}
+
+fn calculate_movement(
+    controller: &ControllerState,
+    delta_time: f32,
+    velocity: Float,
+    rotation_speed: Float,
+    angle: Float,
+) -> Movement {
+    let sin_a = angle.sin();
+    let cos_a = angle.cos();
+
+    let dist = velocity * delta_time;
+    let dist_cos = dist * cos_a;
+    let dist_sin = dist * sin_a;
+
+    let (mut dx, mut dy) = (0.0, 0.0);
+
+    if controller.forward_pressed {
+        dx += dist_cos;
+        dy += dist_sin;
+    }
+    if controller.backward_pressed {
+        dx += -dist_cos;
+        dy += -dist_sin;
+    }
+    if controller.left_pressed {
+        dx += dist_sin;
+        dy += -dist_cos;
+    }
+    if controller.right_pressed {
+        dx += -dist_sin;
+        dy += dist_cos;
+    }
+    // rotation
+    let mut rotation = 0.0;
+    if controller.rotate_left_pressed {
+        rotation = -rotation_speed * delta_time;
+    }
+    if controller.rotate_right_pressed {
+        rotation = rotation_speed * delta_time;
+    }
+    components::Movement {
+        x: dx,
+        y: dy,
+        angle: rotation,
     }
 }

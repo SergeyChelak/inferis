@@ -16,7 +16,7 @@ impl GameSystem for GeneratorSystem {
         storage: &engine::ComponentStorage,
         asset_manager: &engine::AssetManager,
     ) -> engine::EngineResult<()> {
-        println!("[v2.generator] setup");
+        println!("[v2.generator] setup ok");
         Ok(())
     }
 
