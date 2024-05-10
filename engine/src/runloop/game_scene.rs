@@ -87,7 +87,7 @@ impl GameScene {
 
     pub fn render(&mut self, asset_manager: &AssetManager) -> EngineResult<Vec<RendererEffect>> {
         let mut system = self.renderer_system.borrow_mut();
-        let effects = system.render(self.frames, &mut self.storage, asset_manager)?;
+        let effects = system.render(self.frames, &self.storage, asset_manager)?;
         Ok(effects)
     }
 
