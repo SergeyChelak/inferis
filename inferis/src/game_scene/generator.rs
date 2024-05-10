@@ -1,4 +1,4 @@
-use engine::game_scene::GameSystem;
+use engine::systems::{GameSystem, GameSystemCommand};
 
 pub struct GeneratorSystem {
     //
@@ -22,12 +22,11 @@ impl GameSystem for GeneratorSystem {
 
     fn update(
         &mut self,
-        world_state: &mut engine::world::GameWorldState,
         frame_counter: &mut engine::frame_counter::AggregatedFrameCounter,
         delta_time: engine::Float,
         storage: &mut engine::ComponentStorage,
         assets: &engine::AssetManager,
-    ) -> engine::EngineResult<Vec<engine::game_scene::Effect>> {
-        Ok(vec![])
+    ) -> engine::EngineResult<GameSystemCommand> {
+        Ok(GameSystemCommand::Nothing)
     }
 }

@@ -6,8 +6,9 @@ use std::{
 use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, EventPump, Sdl};
 
 use crate::{
-    game_scene::{Effect, GameScene, RendererEffect},
-    AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings, InputEvent,
+    game_scene::GameScene,
+    systems::{GameSystemCommand, RendererEffect},
+    world, AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings, InputEvent,
     WindowSettings,
 };
 
@@ -15,19 +16,8 @@ const TARGET_FPS: u128 = 60;
 
 pub struct GameWorld {
     scenes: HashMap<String, GameScene>,
-    state: GameWorldState,
-}
-
-#[derive(Copy, Clone)]
-pub struct GameWorldState {
     current_scene: &'static str,
     is_running: bool,
-}
-
-impl GameWorldState {
-    pub fn stop(&mut self) {
-        self.is_running = false;
-    }
 }
 
 pub struct GameWorldBuilder {
@@ -50,10 +40,8 @@ impl GameWorldBuilder {
     pub fn build(self, initial_scene_id: &'static str) -> GameWorld {
         GameWorld {
             scenes: self.scenes,
-            state: GameWorldState {
-                current_scene: initial_scene_id,
-                is_running: true,
-            },
+            current_scene: initial_scene_id,
+            is_running: false,
         }
     }
 }
@@ -78,38 +66,28 @@ pub fn start(mut world: GameWorld, settings: EngineSettings) -> EngineResult<()>
         scene.setup_systems(&asset_manager, settings.window.size)?;
     }
 
-    // setup general purpose effect handler
-    let effect_handler = |effects: &[Effect]| -> EngineResult<()> {
-        for effect in effects {
-            use Effect::*;
-            match effect {
-                PlaySound { asset_id, loops } => {
-                    if let Some(chunk) = asset_manager.sound_chunk(asset_id) {
-                        sdl2::mixer::Channel::all()
-                            .play(chunk, *loops)
-                            .map_err(EngineError::sdl)?;
-                    }
-                }
-            }
-        }
-        Ok(())
-    };
-
     let target_duration = 1000 / TARGET_FPS;
     let mut time = Instant::now();
-    while world.state.is_running {
+    world.is_running = true;
+    while world.is_running {
         let frame_start = Instant::now();
-        let mut state = world.state;
-        let Some(scene) = world.scenes.get_mut(state.current_scene) else {
+        let Some(scene) = world.scenes.get_mut(world.current_scene) else {
             return Err(EngineError::SceneNotFound);
         };
         let events = get_events(&mut event_pump);
         scene.push_events(&events)?;
         let delta_time = time.elapsed().as_secs_f32();
-        state = scene.update(state, delta_time, effect_handler, &asset_manager)?;
+        let commands = scene.update(delta_time, &asset_manager)?;
+        commands.iter().for_each(|cmd| {
+            use GameSystemCommand::*;
+            match cmd {
+                Terminate => world.is_running = false,
+                SwitchScene(id) => world.current_scene = id,
+                _ => {}
+            }
+        });
         let effects = scene.render(&asset_manager)?;
         render_effects(&mut canvas, &asset_manager, &effects);
-        world.state = state;
         time = Instant::now();
         // delay the rest of the time if needed
         let suspend_ms = target_duration.saturating_sub(frame_start.elapsed().as_millis());
@@ -191,6 +169,25 @@ fn get_events(event_pump: &mut EventPump) -> Vec<InputEvent> {
     }
     events
 }
+
+/*
+   // setup general purpose effect handler
+   let effect_handler = |effects: &[SoundEffect]| -> EngineResult<()> {
+       for effect in effects {
+           use SoundEffect::*;
+           match effect {
+               PlaySound { asset_id, loops } => {
+                   if let Some(chunk) = asset_manager.sound_chunk(asset_id) {
+                       sdl2::mixer::Channel::all()
+                           .play(chunk, *loops)
+                           .map_err(EngineError::sdl)?;
+                   }
+               }
+           }
+       }
+       Ok(())
+   };
+*/
 
 fn render_effects(
     canvas: &mut WindowCanvas,

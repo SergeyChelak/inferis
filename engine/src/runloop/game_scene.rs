@@ -1,68 +1,18 @@
 use std::{cell::RefCell, rc::Rc};
 
-use sdl2::rect::Rect;
-
 use crate::{
-    frame_counter::AggregatedFrameCounter, world::GameWorldState, AssetManager, ComponentStorage,
-    EngineResult, Float, InputEvent, SceneID, SizeU32,
-};
-
-pub enum Effect {
-    PlaySound { asset_id: String, loops: i32 },
-}
-
-pub trait GameSystem {
-    fn setup(
-        &mut self,
-        storage: &ComponentStorage,
-        asset_manager: &AssetManager,
-    ) -> EngineResult<()>;
-    fn update(
-        &mut self,
-        world_state: &mut GameWorldState,
-        frame_counter: &mut AggregatedFrameCounter,
-        delta_time: Float,
-        storage: &mut ComponentStorage,
-        assets: &AssetManager,
-    ) -> EngineResult<Vec<Effect>>;
-}
-
-pub trait GameControlSystem {
-    fn setup(&mut self, storage: &ComponentStorage) -> EngineResult<()>;
-    fn push_events(
-        &mut self,
-        storage: &mut ComponentStorage,
-        events: &[InputEvent],
-    ) -> EngineResult<()>;
-}
-
-pub enum RendererEffect {
-    RenderTexture {
-        asset_id: String,
-        source: Rect,
-        destination: Rect,
+    frame_counter::AggregatedFrameCounter,
+    systems::{
+        GameControlSystem, GameRendererSystem, GameSystem, GameSystemCommand, RendererEffect,
     },
-}
-
-pub trait GameRendererSystem {
-    fn setup(
-        &mut self,
-        storage: &ComponentStorage,
-        asset_manager: &AssetManager,
-        window_size: SizeU32,
-    ) -> EngineResult<()>;
-    fn render(
-        &mut self,
-        frame_counter: &mut AggregatedFrameCounter,
-        storage: &ComponentStorage,
-        assets: &AssetManager,
-    ) -> EngineResult<Vec<RendererEffect>>;
-}
+    AssetManager, ComponentStorage, EngineResult, InputEvent, SceneID, SizeU32,
+};
 
 pub struct GameScene {
     id: SceneID,
     storage: ComponentStorage,
     frame_counter: AggregatedFrameCounter,
+    command_buffer: Vec<GameSystemCommand>,
     common_systems: Vec<Rc<RefCell<dyn GameSystem>>>,
     control_system: Rc<RefCell<dyn GameControlSystem>>,
     renderer_system: Rc<RefCell<dyn GameRendererSystem>>,
@@ -79,6 +29,7 @@ impl GameScene {
             id,
             storage,
             frame_counter: Default::default(),
+            command_buffer: Vec::with_capacity(20),
             common_systems: Default::default(),
             control_system: Rc::new(RefCell::new(control_system)),
             renderer_system: Rc::new(RefCell::new(renderer_system)),
@@ -90,6 +41,10 @@ impl GameScene {
     }
 
     pub fn add_system(&mut self, system: impl GameSystem + 'static) {
+        self.common_systems.push(Rc::new(RefCell::new(system)));
+    }
+
+    pub fn add_sound_system(&mut self, system: impl GameSystem + 'static) {
         self.common_systems.push(Rc::new(RefCell::new(system)));
     }
 
@@ -111,24 +66,21 @@ impl GameScene {
 
     pub fn update(
         &mut self,
-        world_state: GameWorldState,
         delta_time: f32,
-        effect_handler: impl Fn(&[Effect]) -> EngineResult<()>,
         asset_manager: &AssetManager,
-    ) -> EngineResult<GameWorldState> {
-        let mut state = world_state;
+    ) -> EngineResult<&[GameSystemCommand]> {
+        self.command_buffer.clear();
         for elem in &self.common_systems {
             let mut system = elem.borrow_mut();
-            let effects = system.update(
-                &mut state,
+            let command = system.update(
                 &mut self.frame_counter,
                 delta_time,
                 &mut self.storage,
                 asset_manager,
             )?;
-            effect_handler(&effects)?;
+            self.command_buffer.push(command);
         }
-        Ok(state)
+        Ok(&self.command_buffer)
     }
 
     pub fn render(&mut self, asset_manager: &AssetManager) -> EngineResult<Vec<RendererEffect>> {

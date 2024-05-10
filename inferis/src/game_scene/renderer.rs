@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use engine::{
     frame_counter::AggregatedFrameCounter,
-    game_scene::{GameRendererSystem, RendererEffect},
+    systems::{GameRendererSystem, RendererEffect},
     EngineError, EntityID, Float, SizeU32,
 };
 

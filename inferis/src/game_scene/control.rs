@@ -1,8 +1,7 @@
 use std::borrow::BorrowMut;
 
 use engine::{
-    game_scene::GameControlSystem, keyboard::Keycode, EngineError, EngineResult, EntityID,
-    InputEvent,
+    keyboard::Keycode, systems::GameControlSystem, EngineError, EngineResult, EntityID, InputEvent,
 };
 
 use crate::game_scene::fetch_player_id;

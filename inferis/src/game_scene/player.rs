@@ -1,5 +1,6 @@
 use engine::{
-    frame_counter::AggregatedFrameCounter, game_scene::GameSystem, world::GameWorldState,
+    frame_counter::AggregatedFrameCounter,
+    systems::{GameSystem, GameSystemCommand},
     AssetManager, ComponentStorage, EngineError, EntityID, Float,
 };
 
@@ -15,6 +16,43 @@ pub struct PlayerSystem {
 impl PlayerSystem {
     pub fn new() -> Self {
         Default::default()
+    }
+
+    fn process_movement(
+        &self,
+        delta_time: Float,
+        storage: &ComponentStorage,
+        controller: &ControllerState,
+    ) -> engine::EngineResult<components::Movement> {
+        let Some(velocity) = storage
+            .get::<components::Velocity>(self.player_id)
+            .map(|x| x.0)
+        else {
+            return Err(EngineError::component_not_found(
+                "[handle_controls] Velocity",
+            ));
+        };
+        let Some(angle) = storage
+            .get::<components::Angle>(self.player_id)
+            .map(|x| x.0)
+        else {
+            return Err(EngineError::component_not_found("[handle_controls] Angle"));
+        };
+        let Some(rotation_speed) = storage
+            .get::<components::RotationSpeed>(self.player_id)
+            .map(|x| x.0)
+        else {
+            return Err(EngineError::component_not_found(
+                "[handle_controls] RotationSpeed",
+            ));
+        };
+        Ok(calculate_movement(
+            &controller,
+            delta_time,
+            velocity,
+            rotation_speed,
+            angle,
+        ))
     }
 }
 
@@ -36,55 +74,27 @@ impl GameSystem for PlayerSystem {
 
     fn update(
         &mut self,
-        world_state: &mut GameWorldState,
         _frame_counter: &mut AggregatedFrameCounter,
         delta_time: Float,
         storage: &mut ComponentStorage,
         _assets: &AssetManager,
-    ) -> engine::EngineResult<Vec<engine::game_scene::Effect>> {
-        let movement: Option<Movement>;
-        // put all logic inside code block to make a borrow checker happy
+    ) -> engine::EngineResult<GameSystemCommand> {
+        let movement: Movement;
+        let mut command = GameSystemCommand::Nothing;
+        // put controller logic inside code block to make a borrow checker happy
         {
             let Some(controller) = storage.get::<components::ControllerState>(self.player_id)
             else {
                 println!("[v2.controller] warn: controller component isn't associated with player");
-                return Ok(vec![]);
+                return Ok(GameSystemCommand::Nothing);
             };
             if controller.exit_pressed {
-                world_state.stop();
+                command = GameSystemCommand::Terminate;
             }
-            let Some(velocity) = storage
-                .get::<components::Velocity>(self.player_id)
-                .map(|x| x.0)
-            else {
-                return Err(EngineError::component_not_found(
-                    "[handle_controls] Velocity",
-                ));
-            };
-            let Some(angle) = storage
-                .get::<components::Angle>(self.player_id)
-                .map(|x| x.0)
-            else {
-                return Err(EngineError::component_not_found("[handle_controls] Angle"));
-            };
-            let Some(rotation_speed) = storage
-                .get::<components::RotationSpeed>(self.player_id)
-                .map(|x| x.0)
-            else {
-                return Err(EngineError::component_not_found(
-                    "[handle_controls] RotationSpeed",
-                ));
-            };
-            movement = Some(calculate_movement(
-                &controller,
-                delta_time,
-                velocity,
-                rotation_speed,
-                angle,
-            ));
+            movement = self.process_movement(delta_time, storage, &controller)?;
         };
-        storage.set(self.player_id, movement);
-        Ok(vec![])
+        storage.set(self.player_id, Some(movement));
+        Ok(command)
     }
 }
 

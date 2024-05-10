@@ -9,6 +9,7 @@ use crate::{assets::AssetManager, EngineResult, SizeU32};
 pub mod frame_counter;
 pub mod game_loop;
 pub mod game_scene;
+pub mod systems;
 pub mod world;
 
 pub use frame_counter::FrameCounter;
