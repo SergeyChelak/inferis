@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     systems::{
         GameControlSystem, GameRendererSystem, GameSoundSystem, GameSystem, GameSystemCommand,
-        RendererEffect, SoundEffect,
+        RendererEffect, SoundEffect, VecPtr,
     },
     AssetManager, ComponentStorage, EngineResult, InputEvent, SceneID, SizeU32,
 };
@@ -85,7 +85,7 @@ impl GameScene {
         Ok(&self.command_buffer)
     }
 
-    pub fn render(&mut self, asset_manager: &AssetManager) -> EngineResult<Vec<RendererEffect>> {
+    pub fn render(&mut self, asset_manager: &AssetManager) -> EngineResult<VecPtr<RendererEffect>> {
         let mut system = self.renderer_system.borrow_mut();
         let effects = system.render(self.frames, &self.storage, asset_manager)?;
         Ok(effects)

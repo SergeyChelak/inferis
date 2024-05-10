@@ -7,7 +7,7 @@ use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, E
 
 use crate::{
     game_scene::GameScene,
-    systems::{GameSystemCommand, RendererEffect, SoundEffect},
+    systems::{GameSystemCommand, RendererEffect, SoundEffect, VecPtr},
     AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings, InputEvent,
     WindowSettings,
 };
@@ -87,7 +87,7 @@ pub fn start(mut world: GameWorld, settings: EngineSettings) -> EngineResult<()>
             }
         });
         let effects = scene.render(&asset_manager)?;
-        render_effects(&mut canvas, &asset_manager, &effects);
+        render_effects(&mut canvas, &asset_manager, effects);
         let sound_effects = scene.sound_effects(&asset_manager)?;
         play_sound_effects(&sound_effects, &asset_manager)?;
         time = Instant::now();
@@ -190,11 +190,11 @@ fn play_sound_effects(effects: &[SoundEffect], asset_manager: &AssetManager) -> 
 fn render_effects(
     canvas: &mut WindowCanvas,
     asset_manager: &AssetManager,
-    effects: &[RendererEffect],
+    effects: VecPtr<RendererEffect>,
 ) {
     canvas.set_draw_color(Color::BLACK);
     canvas.clear();
-    for effect in effects {
+    for effect in effects.borrow().iter() {
         //
     }
     canvas.present();

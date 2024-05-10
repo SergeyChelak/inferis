@@ -28,3 +28,5 @@ pub struct Velocity(pub Float);
 pub struct RotationSpeed(pub Float);
 
 pub struct Angle(pub Float);
+
+pub struct Health(pub u32);

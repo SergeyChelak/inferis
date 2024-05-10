@@ -194,6 +194,13 @@ impl<'a> AssetManager<'a> {
     pub fn sound_chunk(&self, key: &str) -> Option<&Chunk> {
         self.audio_chunks.get(key)
     }
+
+    pub fn texture_ids(&self) -> Vec<String> {
+        self.textures
+            .keys()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+    }
 }
 
 fn load_assets(source: &AssetSource) -> EngineResult<Vec<RawAsset>> {

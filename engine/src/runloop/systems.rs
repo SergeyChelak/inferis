@@ -1,9 +1,8 @@
+use std::{cell::RefCell, rc::Rc};
+
 use sdl2::rect::Rect;
 
-use crate::{
-    frame_counter::AggregatedFrameCounter, AssetManager, ComponentStorage, EngineResult, Float,
-    InputEvent, SceneID, SizeU32,
-};
+use crate::{AssetManager, ComponentStorage, EngineResult, Float, InputEvent, SceneID, SizeU32};
 
 pub enum GameSystemCommand {
     Nothing,
@@ -43,6 +42,12 @@ pub enum RendererEffect {
     },
 }
 
+pub type VecPtr<T> = Rc<RefCell<Vec<T>>>;
+
+pub fn vec_ptr<T>(capacity: usize) -> VecPtr<T> {
+    Rc::new(RefCell::new(Vec::with_capacity(capacity)))
+}
+
 pub trait GameRendererSystem {
     fn setup(
         &mut self,
@@ -55,7 +60,7 @@ pub trait GameRendererSystem {
         frames: usize,
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
-    ) -> EngineResult<Vec<RendererEffect>>;
+    ) -> EngineResult<VecPtr<RendererEffect>>;
 }
 
 pub enum SoundEffect {
