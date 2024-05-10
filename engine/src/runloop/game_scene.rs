@@ -88,6 +88,7 @@ impl GameScene {
     pub fn render(&mut self, asset_manager: &AssetManager) -> EngineResult<RendererLayersPtr> {
         let mut system = self.renderer_system.borrow_mut();
         let effects = system.render(self.frames, &self.storage, asset_manager)?;
+        self.frames += 1;
         Ok(effects)
     }
 
