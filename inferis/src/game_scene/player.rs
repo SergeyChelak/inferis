@@ -56,8 +56,8 @@ impl PlayerSystem {
 impl GameSystem for PlayerSystem {
     fn setup(
         &mut self,
-        storage: &engine::ComponentStorage,
-        _asset_manager: &engine::AssetManager,
+        storage: &mut ComponentStorage,
+        _asset_manager: &AssetManager,
     ) -> engine::EngineResult<()> {
         let Some(player_id) = fetch_player_id(storage) else {
             return Err(EngineError::unexpected_state(

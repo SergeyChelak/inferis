@@ -17,7 +17,7 @@ pub enum GameSystemCommand {
 pub trait GameSystem {
     fn setup(
         &mut self,
-        storage: &ComponentStorage,
+        storage: &mut ComponentStorage,
         asset_manager: &AssetManager,
     ) -> EngineResult<()>;
     fn update(

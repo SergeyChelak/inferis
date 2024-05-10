@@ -55,14 +55,14 @@ impl GameScene {
         asset_manager: &AssetManager,
         window_size: SizeU32,
     ) -> EngineResult<()> {
-        self.control_system.borrow_mut().setup(&mut self.storage)?;
-        self.renderer_system
-            .borrow_mut()
-            .setup(&mut self.storage, asset_manager, window_size)?;
         for elem in &self.common_systems {
             let mut system = elem.borrow_mut();
             system.setup(&mut self.storage, asset_manager)?;
         }
+        self.control_system.borrow_mut().setup(&mut self.storage)?;
+        self.renderer_system
+            .borrow_mut()
+            .setup(&mut self.storage, asset_manager, window_size)?;
         if let Some(elem) = &self.sound_system {
             let mut system = elem.borrow_mut();
             system.setup(&mut self.storage, asset_manager)?;
