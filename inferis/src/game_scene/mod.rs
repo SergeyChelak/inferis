@@ -30,9 +30,12 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
 
 pub fn compose_scene() -> EngineResult<GameScene> {
     let storage = compose_component_storage()?;
-    let mut scene = GameScene::new(SCENE_GAME_PLAY, storage);
-    scene.set_renderer_system(RendererSystem::new());
-    scene.set_control_system(ControlSystem::new());
+    let mut scene = GameScene::new(
+        SCENE_GAME_PLAY,
+        storage,
+        ControlSystem::new(),
+        RendererSystem::new(),
+    );
     // general purpose systems
     scene.add_system(GeneratorSystem::new());
     scene.add_system(PlayerSystem::new());

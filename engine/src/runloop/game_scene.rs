@@ -64,32 +64,29 @@ pub struct GameScene {
     storage: ComponentStorage,
     frame_counter: AggregatedFrameCounter,
     common_systems: Vec<Rc<RefCell<dyn GameSystem>>>,
-    control_system: Option<Rc<RefCell<dyn GameControlSystem>>>,
-    render_system: Option<Rc<RefCell<dyn GameRendererSystem>>>,
+    control_system: Rc<RefCell<dyn GameControlSystem>>,
+    renderer_system: Rc<RefCell<dyn GameRendererSystem>>,
 }
 
 impl GameScene {
-    pub fn new(id: SceneID, storage: ComponentStorage) -> Self {
+    pub fn new(
+        id: SceneID,
+        storage: ComponentStorage,
+        control_system: impl GameControlSystem + 'static,
+        renderer_system: impl GameRendererSystem + 'static,
+    ) -> Self {
         Self {
             id,
             storage,
             frame_counter: Default::default(),
             common_systems: Default::default(),
-            control_system: Default::default(),
-            render_system: Default::default(),
+            control_system: Rc::new(RefCell::new(control_system)),
+            renderer_system: Rc::new(RefCell::new(renderer_system)),
         }
     }
 
     pub fn id(&self) -> SceneID {
         self.id
-    }
-
-    pub fn set_control_system(&mut self, system: impl GameControlSystem + 'static) {
-        self.control_system = Some(Rc::new(RefCell::new(system)))
-    }
-
-    pub fn set_renderer_system(&mut self, system: impl GameRendererSystem + 'static) {
-        self.render_system = Some(Rc::new(RefCell::new(system)));
     }
 
     pub fn add_system(&mut self, system: impl GameSystem + 'static) {
@@ -101,14 +98,10 @@ impl GameScene {
         asset_manager: &AssetManager,
         window_size: SizeU32,
     ) -> EngineResult<()> {
-        if let Some(system) = &self.control_system {
-            system.borrow_mut().setup(&mut self.storage)?;
-        }
-        if let Some(system) = &self.render_system {
-            system
-                .borrow_mut()
-                .setup(&mut self.storage, asset_manager, window_size)?;
-        }
+        self.control_system.borrow_mut().setup(&mut self.storage)?;
+        self.renderer_system
+            .borrow_mut()
+            .setup(&mut self.storage, asset_manager, window_size)?;
         for elem in &self.common_systems {
             let mut system = elem.borrow_mut();
             system.setup(&mut self.storage, asset_manager)?;
@@ -139,10 +132,7 @@ impl GameScene {
     }
 
     pub fn render(&mut self, asset_manager: &AssetManager) -> EngineResult<Vec<RendererEffect>> {
-        let Some(elem) = &self.render_system else {
-            return Ok(vec![]);
-        };
-        let mut system = elem.borrow_mut();
+        let mut system = self.renderer_system.borrow_mut();
         let effects = system.render(&mut self.frame_counter, &mut self.storage, asset_manager)?;
         Ok(effects)
     }
@@ -151,9 +141,8 @@ impl GameScene {
         if events.is_empty() {
             return Ok(());
         }
-        let Some(system) = &self.control_system else {
-            return Ok(());
-        };
-        system.borrow_mut().push_events(&mut self.storage, events)
+        self.control_system
+            .borrow_mut()
+            .push_events(&mut self.storage, events)
     }
 }
