@@ -58,7 +58,10 @@ impl RendererSystem {
         Default::default()
     }
 
-    fn cache_player_id(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+    fn update_storage_cache(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+        if storage.is_alive(self.player_id) {
+            return Ok(());
+        }
         self.player_id = fetch_player_id(storage).ok_or(EngineError::unexpected_state(
             "[v2.renderer] player entity not found",
         ))?;
@@ -78,6 +81,39 @@ impl RendererSystem {
         Ok(())
     }
 
+    /*
+    fn render_player_weapon(&mut self) -> EngineResult<()> {
+        let Some(texture_data) = self.texture_data(self.player_id) else {
+            return Ok(());
+        };
+        let Size { width, height } = texture_data.size;
+
+        let Size {
+            width: window_width,
+            height: window_height,
+        } = self.window_size;
+        let ratio = height as Float / width as Float;
+        let w = (window_width as Float * 0.3) as u32;
+        let h = (w as Float * ratio) as u32;
+
+        let destination = Rect::new(
+            ((window_width - w) >> 1) as i32,
+            (window_height - h) as i32,
+            w,
+            h,
+        );
+        let task = TextureRendererTask {
+            texture: texture_data.texture,
+            source: texture_data.source,
+            destination,
+            depth: 0.001,
+        };
+        self.tasks.push(task);
+        Ok(())
+    }
+     */
+
+    // ------------------------------------------------------------------------------------------------------------
     fn render_background(&mut self) -> EngineResult<()> {
         self.render_floor()?;
         self.render_sky()?;
@@ -152,7 +188,7 @@ impl GameRendererSystem for RendererSystem {
         asset_manager: &AssetManager,
         window_size: SizeU32,
     ) -> EngineResult<()> {
-        self.cache_player_id(storage)?;
+        self.update_storage_cache(storage)?;
         self.cache_textures_info(asset_manager)?;
         // precalculated values
         self.window_size = window_size;
@@ -170,6 +206,8 @@ impl GameRendererSystem for RendererSystem {
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
     ) -> EngineResult<RendererLayersPtr> {
+        self.update_storage_cache(storage)?;
+
         // prefetch
         self.angle = storage
             .get::<components::Angle>(self.player_id)

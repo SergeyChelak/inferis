@@ -1,13 +1,17 @@
 use engine::{
     systems::{GameSystem, GameSystemCommand},
-    ComponentStorage, EngineResult, EntityBundle, EntityID, Vec2f,
+    AssetManager, ComponentStorage, EngineError, EngineResult, EntityBundle, EntityID, Float,
+    Vec2f,
 };
+
+use crate::{pbm::PBMImage, resource::WORLD_LEVEL_BASIC};
 
 use super::components::*;
 
 #[derive(Default)]
 pub struct GeneratorSystem {
     player_id: EntityID,
+    maze_id: EntityID,
 }
 
 impl GeneratorSystem {
@@ -22,6 +26,7 @@ impl GeneratorSystem {
     ) -> EngineResult<()> {
         storage.remove_all_entities();
         self.player_id = storage.append(&bundle_player(Vec2f::new(5.0, 10.0)));
+        self.maze_id = storage.append(&bundle_maze(asset_manager)?);
         // TODO: ...
         Ok(())
     }
@@ -33,7 +38,6 @@ impl GameSystem for GeneratorSystem {
         storage: &mut engine::ComponentStorage,
         asset_manager: &engine::AssetManager,
     ) -> engine::EngineResult<()> {
-        // self.cache_player_id(storage)?;
         self.generate_level(storage, asset_manager)?;
         println!("[v2.generator] setup ok");
         Ok(())
@@ -42,9 +46,9 @@ impl GameSystem for GeneratorSystem {
     fn update(
         &mut self,
         frames: usize,
-        delta_time: engine::Float,
-        storage: &mut engine::ComponentStorage,
-        asset_manager: &engine::AssetManager,
+        delta_time: Float,
+        storage: &mut ComponentStorage,
+        asset_manager: &AssetManager,
     ) -> engine::EngineResult<GameSystemCommand> {
         // TODO: implement valid logic for (re)creating levels and characters
         if storage.has_component::<InvalidatedTag>(self.player_id) {
@@ -67,4 +71,16 @@ fn bundle_player(position: Vec2f) -> EntityBundle {
         .put(Position(position))
         .put(Angle(0.0))
     // .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
+}
+
+fn bundle_maze(asset_manager: &AssetManager) -> EngineResult<EntityBundle> {
+    let Some(data) = asset_manager.binary(WORLD_LEVEL_BASIC) else {
+        return Err(EngineError::MazeGenerationFailed(
+            "Level map not found".to_string(),
+        ));
+    };
+    let image = PBMImage::with_binary(data.clone())
+        .map_err(|err| EngineError::MazeGenerationFailed(err.to_string()))?;
+    let array = image.transform_to_array(|x| x as i32);
+    Ok(EntityBundle::new().put(Maze(array)))
 }

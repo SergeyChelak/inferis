@@ -30,6 +30,7 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<components::Sprite>()?;
     storage.register_component::<components::ScaleRatio>()?;
     storage.register_component::<components::HeightShift>()?;
+    storage.register_component::<components::Maze>()?;
     Ok(storage)
 }
 

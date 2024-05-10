@@ -19,6 +19,7 @@ pub use crate::game_scene::components::Health;
 pub use crate::game_scene::components::HealthType;
 pub use crate::game_scene::components::HeightShift;
 pub use crate::game_scene::components::InvalidatedTag;
+pub use crate::game_scene::components::Maze;
 pub use crate::game_scene::components::Movement;
 pub use crate::game_scene::components::NpcTag;
 pub use crate::game_scene::components::PlayerTag;
@@ -68,9 +69,6 @@ pub enum WeaponState {
 }
 
 pub struct ReceivedDamage(pub HealthType);
-
-pub type MazeData = Vec<Vec<i32>>;
-pub struct Maze(pub MazeData);
 
 pub struct TextureID(pub String);
 

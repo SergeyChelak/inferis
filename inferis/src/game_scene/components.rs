@@ -42,3 +42,7 @@ pub struct Sprite(pub &'static str);
 // sprite position parameters
 pub struct ScaleRatio(pub Float);
 pub struct HeightShift(pub Float);
+
+//
+pub type MazeData = Vec<Vec<i32>>;
+pub struct Maze(pub MazeData);

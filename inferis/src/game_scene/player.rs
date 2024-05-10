@@ -1,6 +1,6 @@
 use engine::{
     systems::{GameSystem, GameSystemCommand},
-    AssetManager, ComponentStorage, EngineError, EntityID, Float,
+    AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float,
 };
 
 use crate::game_scene::fetch_player_id;
@@ -15,6 +15,16 @@ pub struct PlayerSystem {
 impl PlayerSystem {
     pub fn new() -> Self {
         Default::default()
+    }
+
+    fn update_storage_cache(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+        if storage.is_alive(self.player_id) {
+            return Ok(());
+        }
+        self.player_id = fetch_player_id(storage).ok_or(EngineError::unexpected_state(
+            "[v2.player] player entity not found",
+        ))?;
+        Ok(())
     }
 
     fn update_movement(
@@ -43,13 +53,45 @@ impl PlayerSystem {
                 "[v2.player] RotationSpeed",
             ));
         };
-        Ok(calculate_movement(
-            &controller,
-            delta_time,
-            velocity,
-            rotation_speed,
-            angle,
-        ))
+        let sin_a = angle.sin();
+        let cos_a = angle.cos();
+
+        let dist = velocity * delta_time;
+        let dist_cos = dist * cos_a;
+        let dist_sin = dist * sin_a;
+
+        let (mut dx, mut dy) = (0.0, 0.0);
+
+        if controller.forward_pressed {
+            dx += dist_cos;
+            dy += dist_sin;
+        }
+        if controller.backward_pressed {
+            dx += -dist_cos;
+            dy += -dist_sin;
+        }
+        if controller.left_pressed {
+            dx += dist_sin;
+            dy += -dist_cos;
+        }
+        if controller.right_pressed {
+            dx += -dist_sin;
+            dy += dist_cos;
+        }
+        // rotation
+        let mut rotation = 0.0;
+        if controller.rotate_left_pressed {
+            rotation = -rotation_speed * delta_time;
+        }
+        if controller.rotate_right_pressed {
+            rotation = rotation_speed * delta_time;
+        }
+        let movement = components::Movement {
+            x: dx,
+            y: dy,
+            angle: rotation,
+        };
+        Ok(movement)
     }
 }
 
@@ -58,13 +100,8 @@ impl GameSystem for PlayerSystem {
         &mut self,
         storage: &mut ComponentStorage,
         _asset_manager: &AssetManager,
-    ) -> engine::EngineResult<()> {
-        let Some(player_id) = fetch_player_id(storage) else {
-            return Err(EngineError::unexpected_state(
-                "[v2.player] player entity not found",
-            ));
-        };
-        self.player_id = player_id;
+    ) -> EngineResult<()> {
+        self.update_storage_cache(storage)?;
         println!("[v2.player] setup ok");
         Ok(())
     }
@@ -76,6 +113,7 @@ impl GameSystem for PlayerSystem {
         storage: &mut ComponentStorage,
         _assets: &AssetManager,
     ) -> engine::EngineResult<GameSystemCommand> {
+        self.update_storage_cache(storage)?;
         let movement: Movement;
         let mut command = GameSystemCommand::Nothing;
         // put controller logic inside code block to make a borrow checker happy
@@ -92,52 +130,5 @@ impl GameSystem for PlayerSystem {
         };
         storage.set(self.player_id, Some(movement));
         Ok(command)
-    }
-}
-
-fn calculate_movement(
-    controller: &ControllerState,
-    delta_time: f32,
-    velocity: Float,
-    rotation_speed: Float,
-    angle: Float,
-) -> Movement {
-    let sin_a = angle.sin();
-    let cos_a = angle.cos();
-
-    let dist = velocity * delta_time;
-    let dist_cos = dist * cos_a;
-    let dist_sin = dist * sin_a;
-
-    let (mut dx, mut dy) = (0.0, 0.0);
-
-    if controller.forward_pressed {
-        dx += dist_cos;
-        dy += dist_sin;
-    }
-    if controller.backward_pressed {
-        dx += -dist_cos;
-        dy += -dist_sin;
-    }
-    if controller.left_pressed {
-        dx += dist_sin;
-        dy += -dist_cos;
-    }
-    if controller.right_pressed {
-        dx += -dist_sin;
-        dy += dist_cos;
-    }
-    // rotation
-    let mut rotation = 0.0;
-    if controller.rotate_left_pressed {
-        rotation = -rotation_speed * delta_time;
-    }
-    if controller.rotate_right_pressed {
-        rotation = rotation_speed * delta_time;
-    }
-    components::Movement {
-        x: dx,
-        y: dy,
-        angle: rotation,
     }
 }

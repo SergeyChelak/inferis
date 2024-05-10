@@ -1,7 +1,8 @@
 use std::borrow::BorrowMut;
 
 use engine::{
-    keyboard::Keycode, systems::GameControlSystem, EngineError, EngineResult, EntityID, InputEvent,
+    keyboard::Keycode, systems::GameControlSystem, ComponentStorage, EngineError, EngineResult,
+    EntityID, InputEvent,
 };
 
 use crate::game_scene::fetch_player_id;
@@ -17,16 +18,21 @@ impl ControlSystem {
     pub fn new() -> Self {
         Default::default()
     }
+
+    fn update_storage_cache(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+        if storage.is_alive(self.player_id) {
+            return Ok(());
+        }
+        self.player_id = fetch_player_id(storage).ok_or(EngineError::unexpected_state(
+            "[v2.controller] player entity not found",
+        ))?;
+        Ok(())
+    }
 }
 
 impl GameControlSystem for ControlSystem {
     fn setup(&mut self, storage: &engine::ComponentStorage) -> EngineResult<()> {
-        let Some(player_id) = fetch_player_id(storage) else {
-            return Err(EngineError::unexpected_state(
-                "[v2.controller] player entity not found",
-            ));
-        };
-        self.player_id = player_id;
+        self.update_storage_cache(storage)?;
         println!("[v2.controller] setup ok");
         Ok(())
     }
@@ -36,6 +42,7 @@ impl GameControlSystem for ControlSystem {
         storage: &mut engine::ComponentStorage,
         events: &[engine::InputEvent],
     ) -> EngineResult<()> {
+        self.update_storage_cache(storage)?;
         let Some(mut comp) = storage.get_mut::<components::ControllerState>(self.player_id) else {
             println!("[v2.controller] warn: controller component isn't associated with player");
             return Ok(());
