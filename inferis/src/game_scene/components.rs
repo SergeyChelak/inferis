@@ -1,6 +1,8 @@
-use engine::Float;
+use engine::{Float, Vec2f};
 
 pub struct PlayerTag;
+pub struct NpcTag;
+pub struct InvalidatedTag;
 
 #[derive(Default)]
 pub struct ControllerState {
@@ -22,6 +24,7 @@ pub struct Movement {
     pub y: Float,
     pub angle: Float,
 }
+pub struct Position(pub Vec2f);
 
 pub struct Velocity(pub Float);
 
@@ -29,4 +32,13 @@ pub struct RotationSpeed(pub Float);
 
 pub struct Angle(pub Float);
 
-pub struct Health(pub u32);
+pub type HealthType = u32;
+
+pub struct Health(pub HealthType);
+
+//  texture id?
+pub struct Sprite(pub &'static str);
+
+// sprite position parameters
+pub struct ScaleRatio(pub Float);
+pub struct HeightShift(pub Float);

@@ -14,21 +14,21 @@ mod sound;
 mod state;
 mod transform;
 
-pub struct PlayerTag;
-
-pub struct NpcTag;
-
-pub struct SpriteTag;
+pub use crate::game_scene::components::Angle;
+pub use crate::game_scene::components::Health;
+pub use crate::game_scene::components::HealthType;
+pub use crate::game_scene::components::HeightShift;
+pub use crate::game_scene::components::InvalidatedTag;
+pub use crate::game_scene::components::Movement;
+pub use crate::game_scene::components::NpcTag;
+pub use crate::game_scene::components::PlayerTag;
+pub use crate::game_scene::components::Position;
+pub use crate::game_scene::components::RotationSpeed;
+pub use crate::game_scene::components::ScaleRatio;
+pub use crate::game_scene::components::Velocity;
 
 pub struct UserControllableTag;
-
-pub struct InvalidatedTag;
-
-pub type HealthType = u32;
-
-pub struct Health(pub HealthType);
-
-pub struct Position(pub Vec2f);
+pub struct SpriteTag;
 
 #[derive(Clone, Copy, Debug)]
 pub enum CharacterState {
@@ -38,19 +38,6 @@ pub enum CharacterState {
     Walk,
     Damage,
 }
-
-#[derive(Clone, Copy, Default, Debug)]
-pub struct Transform {
-    pub relative_x: Float,
-    pub relative_y: Float,
-    pub relative_angle: Float,
-}
-
-pub struct Velocity(pub Float);
-
-pub struct RotationSpeed(pub Float);
-
-pub struct Angle(pub Float);
 
 #[derive(Clone, Copy)]
 pub struct Shot {
@@ -87,10 +74,6 @@ pub struct Maze(pub MazeData);
 
 pub struct TextureID(pub String);
 
-pub struct ScaleRatio(pub Float);
-
-pub struct HeightShift(pub Float);
-
 #[derive(Clone)]
 pub struct AnimationData {
     pub frame_counter: usize,
@@ -121,7 +104,7 @@ pub fn compose_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<HeightShift>()?;
     storage.register_component::<AnimationData>()?;
     storage.register_component::<BoundingBox>()?;
-    storage.register_component::<Transform>()?;
+    storage.register_component::<Movement>()?;
     storage.register_component::<ReceivedDamage>()?;
     storage.register_component::<Shot>()?;
     storage.register_component::<Weapon>()?;

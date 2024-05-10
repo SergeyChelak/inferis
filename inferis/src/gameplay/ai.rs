@@ -1,8 +1,7 @@
 use engine::{ComponentStorage, EngineError, EngineResult, EntityID, Float, Query, Vec2f};
 
 use super::{
-    common::ray_cast_with_entity, Angle, CharacterState, NpcTag, Position, Shot, Transform,
-    Velocity,
+    common::ray_cast_with_entity, Angle, CharacterState, Movement, NpcTag, Position, Shot, Velocity,
 };
 
 struct NpcData {
@@ -119,10 +118,10 @@ fn movement(storage: &mut ComponentStorage, data: &NpcData) {
     let sin_a = angle.sin();
     let cos_a = angle.cos();
     let dist = velocity * data.delta_time;
-    let transform = Transform {
-        relative_x: dist * cos_a,
-        relative_y: dist * sin_a,
-        relative_angle: 0.0,
+    let transform = Movement {
+        x: dist * cos_a,
+        y: dist * sin_a,
+        angle: 0.0,
     };
     storage.set(data.npc_id, Some(transform));
 }

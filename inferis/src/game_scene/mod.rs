@@ -1,4 +1,4 @@
-mod components;
+pub mod components;
 mod control;
 mod generator;
 mod player;
@@ -18,12 +18,18 @@ use self::{
 fn compose_component_storage() -> EngineResult<ComponentStorage> {
     let mut storage = ComponentStorage::new();
     storage.register_component::<components::PlayerTag>()?;
+    storage.register_component::<components::NpcTag>()?;
+    storage.register_component::<components::InvalidatedTag>()?;
     storage.register_component::<components::ControllerState>()?;
     storage.register_component::<components::Movement>()?;
+    storage.register_component::<components::Position>()?;
     storage.register_component::<components::Velocity>()?;
     storage.register_component::<components::RotationSpeed>()?;
     storage.register_component::<components::Angle>()?;
     storage.register_component::<components::Health>()?;
+    storage.register_component::<components::Sprite>()?;
+    storage.register_component::<components::ScaleRatio>()?;
+    storage.register_component::<components::HeightShift>()?;
     // minimal entities setup
     let player_bundle = EntityBundle::new()
         .put(components::PlayerTag)

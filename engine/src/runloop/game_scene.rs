@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     systems::{
         GameControlSystem, GameRendererSystem, GameSoundSystem, GameSystem, GameSystemCommand,
-        RendererEffect, RendererLayersPtr, SoundEffect,
+        RendererLayersPtr, SoundEffect,
     },
     AssetManager, ComponentStorage, EngineResult, InputEvent, SceneID, SizeU32,
 };

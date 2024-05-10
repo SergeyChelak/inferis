@@ -2,10 +2,10 @@ use std::{borrow::BorrowMut, f32::consts::PI};
 
 use engine::{ComponentStorage, EngineResult, EntityID, Query, Rectangle, Vec2f};
 
-use super::{Angle, BoundingBox, Maze, Position, Transform};
+use super::{Angle, BoundingBox, Maze, Movement, Position};
 
 pub fn transform_entities(storage: &mut ComponentStorage) -> EngineResult<()> {
-    let query = Query::new().with_component::<Transform>();
+    let query = Query::new().with_component::<Movement>();
     let entities = storage.fetch_entities(&query);
     for entity_id in entities {
         transform_entity(storage, entity_id)?;
@@ -14,18 +14,18 @@ pub fn transform_entities(storage: &mut ComponentStorage) -> EngineResult<()> {
 }
 
 fn transform_entity(storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult<()> {
-    let Some(transform) = storage.get::<Transform>(entity_id).map(|x| *x) else {
+    let Some(transform) = storage.get::<Movement>(entity_id).map(|x| *x) else {
         unreachable!("[transform] query executed successfully but transform component not found")
     };
 
     if let Some(mut position) = storage.get_mut::<Position>(entity_id) {
         let mut x = position.0.x;
         let mut y = position.0.y;
-        if check_collisions(storage, entity_id, Vec2f::new(x + transform.relative_x, y)) {
-            x += transform.relative_x;
+        if check_collisions(storage, entity_id, Vec2f::new(x + transform.x, y)) {
+            x += transform.x;
         }
-        if check_collisions(storage, entity_id, Vec2f::new(x, y + transform.relative_y)) {
-            y += transform.relative_y;
+        if check_collisions(storage, entity_id, Vec2f::new(x, y + transform.y)) {
+            y += transform.y;
         }
         let pos = position.borrow_mut();
         pos.0 = Vec2f::new(x, y);
@@ -33,7 +33,7 @@ fn transform_entity(storage: &mut ComponentStorage, entity_id: EntityID) -> Engi
 
     if let Some(mut angle_comp) = storage.get_mut::<Angle>(entity_id) {
         let angle = angle_comp.borrow_mut();
-        let mut val = (angle.0 + transform.relative_angle) % (2.0 * PI);
+        let mut val = (angle.0 + transform.angle) % (2.0 * PI);
         if val < 0.0 {
             val += 2.0 * PI;
         }

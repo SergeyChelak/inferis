@@ -21,9 +21,9 @@ const MAP_SCALE: u32 = 6;
 pub struct RendererSystem {
     layers: RendererLayersPtr,
     texture_size: HashMap<String, SizeU32>,
-    // short cached values
+    // short term cached values
     angle: Float,
-    // long cached values
+    // long term cached values
     player_id: EntityID,
     window_size: SizeU32,
     rays_count: u32,

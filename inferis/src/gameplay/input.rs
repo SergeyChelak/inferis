@@ -52,7 +52,7 @@ fn transform_position(
     id: EntityID,
     controller: &ControllerState,
     delta_time: f32,
-) -> EngineResult<Transform> {
+) -> EngineResult<Movement> {
     let Some(vel_comp) = storage.get::<Velocity>(id) else {
         return Err(EngineError::component_not_found("Velocity"));
     };
@@ -98,9 +98,9 @@ fn transform_position(
     if controller.rotate_right_pressed {
         rotation = rotation_speed * delta_time;
     }
-    Ok(Transform {
-        relative_x: dx,
-        relative_y: dy,
-        relative_angle: rotation,
+    Ok(Movement {
+        x: dx,
+        y: dy,
+        angle: rotation,
     })
 }
