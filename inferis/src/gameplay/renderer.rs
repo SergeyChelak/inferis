@@ -435,6 +435,7 @@ impl<'a> Renderer<'a> {
         let maze = &maze_comp.0;
         let canvas = self.engine.canvas();
         canvas.set_draw_color(Color::WHITE);
+        let mut rects = Vec::<Rect>::with_capacity(maze.len() * maze[0].len());
         for (row, vector) in maze.iter().enumerate() {
             for (col, value) in vector.iter().enumerate() {
                 if *value == 0 {
@@ -446,10 +447,11 @@ impl<'a> Renderer<'a> {
                     MAP_SCALE,
                     MAP_SCALE,
                 );
-                canvas.fill_rect(rect).map_err(EngineError::sdl)?
+                rects.push(rect);
             }
         }
-        Ok(())
+        canvas.fill_rects(&rects).map_err(EngineError::sdl)
+        // Ok(())
     }
 
     fn render_characters(&mut self) -> EngineResult<()> {

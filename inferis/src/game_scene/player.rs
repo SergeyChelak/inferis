@@ -17,7 +17,7 @@ impl PlayerSystem {
         Default::default()
     }
 
-    fn process_movement(
+    fn update_movement(
         &self,
         delta_time: Float,
         storage: &ComponentStorage,
@@ -88,7 +88,7 @@ impl GameSystem for PlayerSystem {
             if controller.exit_pressed {
                 command = GameSystemCommand::Terminate;
             }
-            movement = self.process_movement(delta_time, storage, &controller)?;
+            movement = self.update_movement(delta_time, storage, &controller)?;
         };
         storage.set(self.player_id, Some(movement));
         Ok(command)

@@ -1,4 +1,5 @@
 use std::{
+    cmp::Ordering,
     collections::HashMap,
     time::{Duration, Instant},
 };
@@ -7,7 +8,7 @@ use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, E
 
 use crate::{
     game_scene::GameScene,
-    systems::{GameSystemCommand, RendererEffect, SoundEffect, VecPtr},
+    systems::{GameSystemCommand, RendererEffect, RendererLayersPtr, SoundEffect},
     AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings, InputEvent,
     WindowSettings,
 };
@@ -87,7 +88,7 @@ pub fn start(mut world: GameWorld, settings: EngineSettings) -> EngineResult<()>
             }
         });
         let effects = scene.render(&asset_manager)?;
-        render_effects(&mut canvas, &asset_manager, effects);
+        render_effects(&mut canvas, &asset_manager, effects)?;
         let sound_effects = scene.sound_effects(&asset_manager)?;
         play_sound_effects(&sound_effects, &asset_manager)?;
         time = Instant::now();
@@ -190,12 +191,66 @@ fn play_sound_effects(effects: &[SoundEffect], asset_manager: &AssetManager) -> 
 fn render_effects(
     canvas: &mut WindowCanvas,
     asset_manager: &AssetManager,
-    effects: VecPtr<RendererEffect>,
-) {
+    layers_ptr: RendererLayersPtr,
+) -> EngineResult<()> {
+    let mut layers = layers_ptr.borrow_mut();
     canvas.set_draw_color(Color::BLACK);
     canvas.clear();
-    for effect in effects.borrow().iter() {
-        //
+    for effect in &layers.background {
+        render_effect(canvas, asset_manager, effect)?;
+    }
+
+    layers
+        .depth
+        .sort_by(|a, b| b.depth.partial_cmp(&a.depth).unwrap_or(Ordering::Equal));
+    for depth_effect in &layers.depth {
+        render_effect(canvas, asset_manager, &depth_effect.effect)?;
+    }
+
+    for effect in &layers.hud {
+        render_effect(canvas, asset_manager, effect)?;
     }
     canvas.present();
+    Ok(())
+}
+
+fn render_effect(
+    canvas: &mut WindowCanvas,
+    asset_manager: &AssetManager,
+    effect: &RendererEffect,
+) -> EngineResult<()> {
+    use RendererEffect::*;
+    match effect {
+        Texture {
+            asset_id,
+            source,
+            destination,
+        } => {
+            let Some(texture) = asset_manager.texture(asset_id) else {
+                let msg = format!("[run_loop] texture not found {}", asset_id);
+                return Err(EngineError::TextureNotFound(msg));
+            };
+            canvas
+                .copy(texture, *source, *destination)
+                .map_err(EngineError::sdl)
+        }
+        Line {
+            color,
+            fill,
+            begin,
+            end,
+        } => Ok(()),
+        Rectangle {
+            color,
+            fill,
+            blend_mode,
+            rect,
+        } => Ok(()),
+        Rectangles {
+            color,
+            fill,
+            blend_mode,
+            rects,
+        } => Ok(()),
+    }
 }

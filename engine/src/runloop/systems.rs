@@ -1,6 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
-use sdl2::rect::Rect;
+use sdl2::{
+    pixels::Color,
+    rect::{Point, Rect},
+    render::BlendMode,
+};
 
 use crate::{AssetManager, ComponentStorage, EngineResult, Float, InputEvent, SceneID, SizeU32};
 
@@ -35,18 +39,51 @@ pub trait GameControlSystem {
 }
 
 pub enum RendererEffect {
-    RenderTexture {
-        asset_id: String,
+    Texture {
+        asset_id: &'static str,
         source: Rect,
         destination: Rect,
     },
+    Rectangle {
+        color: Color,
+        fill: bool,
+        blend_mode: BlendMode,
+        rect: Rect,
+    },
+    Rectangles {
+        color: Color,
+        fill: bool,
+        blend_mode: BlendMode,
+        rects: Vec<Rect>,
+    },
+    Line {
+        color: Color,
+        fill: bool,
+        begin: Point,
+        end: Point,
+    },
 }
 
-pub type VecPtr<T> = Rc<RefCell<Vec<T>>>;
-
-pub fn vec_ptr<T>(capacity: usize) -> VecPtr<T> {
-    Rc::new(RefCell::new(Vec::with_capacity(capacity)))
+pub struct DepthRenderEffect {
+    pub effect: RendererEffect,
+    pub depth: Float,
 }
+
+pub struct RendererLayers {
+    pub hud: Vec<RendererEffect>,
+    pub depth: Vec<DepthRenderEffect>,
+    pub background: Vec<RendererEffect>,
+}
+
+impl RendererLayers {
+    pub fn clear(&mut self) {
+        self.hud.clear();
+        self.depth.clear();
+        self.background.clear();
+    }
+}
+
+pub type RendererLayersPtr = Rc<RefCell<RendererLayers>>;
 
 pub trait GameRendererSystem {
     fn setup(
@@ -60,7 +97,7 @@ pub trait GameRendererSystem {
         frames: usize,
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
-    ) -> EngineResult<VecPtr<RendererEffect>>;
+    ) -> EngineResult<RendererLayersPtr>;
 }
 
 pub enum SoundEffect {

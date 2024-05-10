@@ -1,13 +1,16 @@
-use std::{collections::HashMap, f32::consts::PI};
+use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use engine::{
     rect::Rect,
-    systems::{vec_ptr, GameRendererSystem, RendererEffect, VecPtr},
+    systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
     texture_size, AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float,
     SizeU32,
 };
 
-use crate::{game_scene::fetch_player_id, resource::WORLD_SKY};
+use crate::{
+    game_scene::fetch_player_id,
+    resource::{WORLD_FLOOR_GRADIENT, WORLD_SKY},
+};
 
 use super::components;
 
@@ -15,9 +18,8 @@ const FIELD_OF_VIEW: Float = PI / 3.0;
 const HALF_FIELD_OF_VIEW: Float = FIELD_OF_VIEW * 0.5;
 const MAP_SCALE: u32 = 6;
 
-#[derive(Default)]
 pub struct RendererSystem {
-    effect_buffer: VecPtr<RendererEffect>,
+    layers: RendererLayersPtr,
     texture_size: HashMap<String, SizeU32>,
     // short cached values
     angle: Float,
@@ -30,12 +32,30 @@ pub struct RendererSystem {
     screen_distance: Float,
 }
 
+impl Default for RendererSystem {
+    fn default() -> Self {
+        let layers = RendererLayers {
+            hud: Vec::with_capacity(200),
+            depth: Vec::with_capacity(2000),
+            background: Vec::with_capacity(20),
+        };
+        Self {
+            layers: Rc::new(RefCell::new(layers)),
+            texture_size: Default::default(),
+            angle: Default::default(),
+            player_id: Default::default(),
+            window_size: Default::default(),
+            rays_count: Default::default(),
+            ray_angle_step: Default::default(),
+            scale: Default::default(),
+            screen_distance: Default::default(),
+        }
+    }
+}
+
 impl RendererSystem {
     pub fn new() -> Self {
-        Self {
-            effect_buffer: vec_ptr(1000),
-            ..Default::default()
-        }
+        Default::default()
     }
 
     fn cache_player_id(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
@@ -59,15 +79,26 @@ impl RendererSystem {
     }
 
     fn render_background(&mut self) -> EngineResult<()> {
-        //let mut buffer = self.effect_buffer.borrow_mut();
         self.render_floor()?;
         self.render_sky()?;
         Ok(())
     }
 
     fn render_floor(&mut self) -> EngineResult<()> {
-        //let mut buffer = self.effect_buffer.borrow_mut();
-
+        let half_height = self.window_size.height >> 1;
+        let destination = Rect::new(0, half_height as i32, self.window_size.width, half_height);
+        // gradient floor
+        let Some(size) = self.texture_size.get(WORLD_FLOOR_GRADIENT) else {
+            return Ok(());
+        };
+        let source = Rect::new(0, 0, size.width, size.height);
+        let mut layers = self.layers.borrow_mut();
+        let effect = RendererEffect::Texture {
+            asset_id: WORLD_FLOOR_GRADIENT,
+            source,
+            destination,
+        };
+        layers.background.push(effect);
         Ok(())
     }
 
@@ -101,11 +132,15 @@ impl RendererSystem {
                 half_height,
             ),
         ];
+        let mut layers = self.layers.borrow_mut();
         for destination in destinations {
-            //
+            let effect = RendererEffect::Texture {
+                asset_id: WORLD_SKY,
+                source,
+                destination,
+            };
+            layers.background.push(effect)
         }
-        //let mut buffer = self.effect_buffer.borrow_mut();
-
         Ok(())
     }
 }
@@ -120,6 +155,7 @@ impl GameRendererSystem for RendererSystem {
         self.cache_player_id(storage)?;
         self.cache_textures_info(asset_manager)?;
         // precalculated values
+        self.window_size = window_size;
         self.rays_count = window_size.width >> 1;
         self.ray_angle_step = FIELD_OF_VIEW / self.rays_count as Float;
         self.scale = window_size.width as Float / self.rays_count as Float;
@@ -133,15 +169,15 @@ impl GameRendererSystem for RendererSystem {
         frames: usize,
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
-    ) -> EngineResult<VecPtr<RendererEffect>> {
+    ) -> EngineResult<RendererLayersPtr> {
         // prefetch
         self.angle = storage
             .get::<components::Angle>(self.player_id)
             .map(|x| x.0)
             .ok_or(EngineError::component_not_found("[v2.renderer] angle"))?;
 
-        self.effect_buffer.borrow_mut().clear();
-        // TODO: ...
-        Ok(self.effect_buffer.clone())
+        self.layers.borrow_mut().clear();
+        self.render_background()?;
+        Ok(self.layers.clone())
     }
 }
