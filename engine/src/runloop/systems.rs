@@ -58,7 +58,6 @@ pub enum RendererEffect {
     },
     Line {
         color: Color,
-        fill: bool,
         begin: Point,
         end: Point,
     },

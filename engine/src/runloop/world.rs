@@ -234,23 +234,40 @@ fn render_effect(
                 .copy(texture, *source, *destination)
                 .map_err(EngineError::sdl)
         }
-        Line {
-            color,
-            fill,
-            begin,
-            end,
-        } => Ok(()),
+        Line { color, begin, end } => {
+            canvas.set_draw_color(*color);
+            canvas.draw_line(*begin, *end).map_err(EngineError::sdl)
+        }
         Rectangle {
             color,
             fill,
             blend_mode,
             rect,
-        } => Ok(()),
+        } => {
+            canvas.set_blend_mode(*blend_mode);
+            canvas.set_draw_color(*color);
+            if *fill {
+                canvas.fill_rect(*rect)
+            } else {
+                canvas.draw_rect(*rect)
+            }
+            .map_err(EngineError::sdl)
+        }
+
         Rectangles {
             color,
             fill,
             blend_mode,
             rects,
-        } => Ok(()),
+        } => {
+            canvas.set_blend_mode(*blend_mode);
+            canvas.set_draw_color(*color);
+            if *fill {
+                canvas.fill_rects(rects)
+            } else {
+                canvas.draw_rects(rects)
+            }
+            .map_err(EngineError::sdl)
+        }
     }
 }
