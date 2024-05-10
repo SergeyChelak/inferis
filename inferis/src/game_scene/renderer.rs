@@ -14,6 +14,7 @@ const MAP_SCALE: u32 = 6;
 
 #[derive(Default)]
 pub struct RendererSystem {
+    effect_buffer: Vec<RendererEffect>,
     player_id: EntityID,
     window_size: SizeU32,
     rays_count: u32,
@@ -24,7 +25,10 @@ pub struct RendererSystem {
 
 impl RendererSystem {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            effect_buffer: Vec::with_capacity(1000),
+            ..Default::default()
+        }
     }
 }
 
@@ -56,6 +60,8 @@ impl GameRendererSystem for RendererSystem {
         storage: &engine::ComponentStorage,
         asset_manager: &engine::AssetManager,
     ) -> engine::EngineResult<Vec<RendererEffect>> {
+        self.effect_buffer.clear();
+        // TODO: ...
         Ok(vec![])
     }
 }
