@@ -1,7 +1,9 @@
 use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use engine::{
+    pixels::Color,
     rect::Rect,
+    render::BlendMode,
     systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
     texture_size, AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float,
     SizeU32,
@@ -12,7 +14,7 @@ use crate::{
     resource::{WORLD_FLOOR_GRADIENT, WORLD_SKY},
 };
 
-use super::components;
+use super::{components, fetch_first};
 
 const FIELD_OF_VIEW: Float = PI / 3.0;
 const HALF_FIELD_OF_VIEW: Float = FIELD_OF_VIEW * 0.5;
@@ -25,6 +27,7 @@ pub struct RendererSystem {
     angle: Float,
     // long term cached values
     player_id: EntityID,
+    maze_id: EntityID,
     window_size: SizeU32,
     rays_count: u32,
     ray_angle_step: Float,
@@ -44,6 +47,7 @@ impl Default for RendererSystem {
             texture_size: Default::default(),
             angle: Default::default(),
             player_id: Default::default(),
+            maze_id: Default::default(),
             window_size: Default::default(),
             rays_count: Default::default(),
             ray_angle_step: Default::default(),
@@ -59,12 +63,16 @@ impl RendererSystem {
     }
 
     fn update_storage_cache(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
-        if storage.is_alive(self.player_id) {
+        if storage.is_alive(self.player_id) && storage.is_alive(self.maze_id) {
             return Ok(());
         }
         self.player_id = fetch_player_id(storage).ok_or(EngineError::unexpected_state(
             "[v2.renderer] player entity not found",
         ))?;
+
+        self.maze_id = fetch_first::<components::Maze>(storage).ok_or(
+            EngineError::unexpected_state("[v2.renderer] maze entity not found"),
+        )?;
         Ok(())
     }
 
@@ -80,38 +88,6 @@ impl RendererSystem {
         }
         Ok(())
     }
-
-    /*
-    fn render_player_weapon(&mut self) -> EngineResult<()> {
-        let Some(texture_data) = self.texture_data(self.player_id) else {
-            return Ok(());
-        };
-        let Size { width, height } = texture_data.size;
-
-        let Size {
-            width: window_width,
-            height: window_height,
-        } = self.window_size;
-        let ratio = height as Float / width as Float;
-        let w = (window_width as Float * 0.3) as u32;
-        let h = (w as Float * ratio) as u32;
-
-        let destination = Rect::new(
-            ((window_width - w) >> 1) as i32,
-            (window_height - h) as i32,
-            w,
-            h,
-        );
-        let task = TextureRendererTask {
-            texture: texture_data.texture,
-            source: texture_data.source,
-            destination,
-            depth: 0.001,
-        };
-        self.tasks.push(task);
-        Ok(())
-    }
-     */
 
     // ------------------------------------------------------------------------------------------------------------
     fn render_background(&mut self) -> EngineResult<()> {
@@ -179,6 +155,43 @@ impl RendererSystem {
         }
         Ok(())
     }
+
+    // ------------------------------------------------------------------------------------------------------------
+    fn render_hud_minimap(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+        self.render_hud_maze(storage)?;
+        Ok(())
+    }
+
+    fn render_hud_maze(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+        let Some(maze_comp) = storage.get::<components::Maze>(self.maze_id) else {
+            return Ok(());
+        };
+        let maze = &maze_comp.0;
+        let mut array = Vec::<Rect>::with_capacity(maze.len() * maze[0].len());
+        for (row, vector) in maze.iter().enumerate() {
+            for (col, value) in vector.iter().enumerate() {
+                if *value == 0 {
+                    continue;
+                }
+                let rect = Rect::new(
+                    col as i32 * MAP_SCALE as i32,
+                    row as i32 * MAP_SCALE as i32,
+                    MAP_SCALE,
+                    MAP_SCALE,
+                );
+                array.push(rect);
+            }
+        }
+        let mut layers = self.layers.borrow_mut();
+        let effect = RendererEffect::Rectangles {
+            color: Color::WHITE,
+            fill: true,
+            blend_mode: BlendMode::None,
+            rects: array,
+        };
+        layers.hud.push(effect);
+        Ok(())
+    }
 }
 
 impl GameRendererSystem for RendererSystem {
@@ -216,6 +229,7 @@ impl GameRendererSystem for RendererSystem {
 
         self.layers.borrow_mut().clear();
         self.render_background()?;
+        self.render_hud_minimap(storage)?;
         Ok(self.layers.clone())
     }
 }
