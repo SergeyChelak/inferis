@@ -7,8 +7,8 @@ use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, E
 
 use crate::{
     game_scene::GameScene,
-    systems::{GameSystemCommand, RendererEffect},
-    world, AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings, InputEvent,
+    systems::{GameSystemCommand, RendererEffect, SoundEffect},
+    AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings, InputEvent,
     WindowSettings,
 };
 
@@ -88,6 +88,8 @@ pub fn start(mut world: GameWorld, settings: EngineSettings) -> EngineResult<()>
         });
         let effects = scene.render(&asset_manager)?;
         render_effects(&mut canvas, &asset_manager, &effects);
+        let sound_effects = scene.sound_effects(&asset_manager)?;
+        play_sound_effects(&sound_effects, &asset_manager)?;
         time = Instant::now();
         // delay the rest of the time if needed
         let suspend_ms = target_duration.saturating_sub(frame_start.elapsed().as_millis());
@@ -170,24 +172,20 @@ fn get_events(event_pump: &mut EventPump) -> Vec<InputEvent> {
     events
 }
 
-/*
-   // setup general purpose effect handler
-   let effect_handler = |effects: &[SoundEffect]| -> EngineResult<()> {
-       for effect in effects {
-           use SoundEffect::*;
-           match effect {
-               PlaySound { asset_id, loops } => {
-                   if let Some(chunk) = asset_manager.sound_chunk(asset_id) {
-                       sdl2::mixer::Channel::all()
-                           .play(chunk, *loops)
-                           .map_err(EngineError::sdl)?;
-                   }
-               }
-           }
-       }
-       Ok(())
-   };
-*/
+fn play_sound_effects(effects: &[SoundEffect], asset_manager: &AssetManager) -> EngineResult<()> {
+    for effect in effects {
+        match effect {
+            SoundEffect::PlaySound { asset_id, loops } => {
+                if let Some(chunk) = asset_manager.sound_chunk(asset_id) {
+                    sdl2::mixer::Channel::all()
+                        .play(chunk, *loops)
+                        .map_err(EngineError::sdl)?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
 
 fn render_effects(
     canvas: &mut WindowCanvas,

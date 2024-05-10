@@ -74,5 +74,5 @@ pub trait GameSoundSystem {
         &mut self,
         storage: &mut ComponentStorage,
         assets: &AssetManager,
-    ) -> EngineResult<SoundEffect>;
+    ) -> EngineResult<Vec<SoundEffect>>;
 }

@@ -3,7 +3,8 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     frame_counter::AggregatedFrameCounter,
     systems::{
-        GameControlSystem, GameRendererSystem, GameSystem, GameSystemCommand, RendererEffect,
+        self, GameControlSystem, GameRendererSystem, GameSoundSystem, GameSystem,
+        GameSystemCommand, RendererEffect, SoundEffect,
     },
     AssetManager, ComponentStorage, EngineResult, InputEvent, SceneID, SizeU32,
 };
@@ -16,6 +17,7 @@ pub struct GameScene {
     common_systems: Vec<Rc<RefCell<dyn GameSystem>>>,
     control_system: Rc<RefCell<dyn GameControlSystem>>,
     renderer_system: Rc<RefCell<dyn GameRendererSystem>>,
+    sound_system: Option<Rc<RefCell<dyn GameSoundSystem>>>,
 }
 
 impl GameScene {
@@ -33,6 +35,7 @@ impl GameScene {
             common_systems: Default::default(),
             control_system: Rc::new(RefCell::new(control_system)),
             renderer_system: Rc::new(RefCell::new(renderer_system)),
+            sound_system: Default::default(),
         }
     }
 
@@ -44,8 +47,8 @@ impl GameScene {
         self.common_systems.push(Rc::new(RefCell::new(system)));
     }
 
-    pub fn add_sound_system(&mut self, system: impl GameSystem + 'static) {
-        self.common_systems.push(Rc::new(RefCell::new(system)));
+    pub fn add_sound_system(&mut self, system: impl GameSoundSystem + 'static) {
+        self.sound_system = Some(Rc::new(RefCell::new(system)));
     }
 
     pub fn setup_systems(
@@ -58,6 +61,10 @@ impl GameScene {
             .borrow_mut()
             .setup(&mut self.storage, asset_manager, window_size)?;
         for elem in &self.common_systems {
+            let mut system = elem.borrow_mut();
+            system.setup(&mut self.storage, asset_manager)?;
+        }
+        if let Some(elem) = &self.sound_system {
             let mut system = elem.borrow_mut();
             system.setup(&mut self.storage, asset_manager)?;
         }
@@ -87,6 +94,16 @@ impl GameScene {
         let mut system = self.renderer_system.borrow_mut();
         let effects = system.render(&mut self.frame_counter, &mut self.storage, asset_manager)?;
         Ok(effects)
+    }
+
+    pub fn sound_effects(
+        &mut self,
+        asset_manager: &AssetManager,
+    ) -> EngineResult<Vec<SoundEffect>> {
+        let Some(system) = &self.sound_system else {
+            return Ok(vec![]);
+        };
+        system.borrow_mut().update(&mut self.storage, asset_manager)
     }
 
     pub fn push_events(&mut self, events: &[InputEvent]) -> EngineResult<()> {

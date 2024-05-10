@@ -28,22 +28,20 @@ impl PlayerSystem {
             .get::<components::Velocity>(self.player_id)
             .map(|x| x.0)
         else {
-            return Err(EngineError::component_not_found(
-                "[handle_controls] Velocity",
-            ));
+            return Err(EngineError::component_not_found("[v2.player] Velocity"));
         };
         let Some(angle) = storage
             .get::<components::Angle>(self.player_id)
             .map(|x| x.0)
         else {
-            return Err(EngineError::component_not_found("[handle_controls] Angle"));
+            return Err(EngineError::component_not_found("[v2.player] Angle"));
         };
         let Some(rotation_speed) = storage
             .get::<components::RotationSpeed>(self.player_id)
             .map(|x| x.0)
         else {
             return Err(EngineError::component_not_found(
-                "[handle_controls] RotationSpeed",
+                "[v2.player] RotationSpeed",
             ));
         };
         Ok(calculate_movement(
