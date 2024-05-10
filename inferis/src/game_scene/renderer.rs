@@ -54,7 +54,7 @@ impl GameRendererSystem for RendererSystem {
         &mut self,
         frame_counter: &mut AggregatedFrameCounter,
         storage: &engine::ComponentStorage,
-        assets: &engine::AssetManager,
+        asset_manager: &engine::AssetManager,
     ) -> engine::EngineResult<Vec<RendererEffect>> {
         Ok(vec![])
     }

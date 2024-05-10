@@ -3,8 +3,8 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     frame_counter::AggregatedFrameCounter,
     systems::{
-        self, GameControlSystem, GameRendererSystem, GameSoundSystem, GameSystem,
-        GameSystemCommand, RendererEffect, SoundEffect,
+        GameControlSystem, GameRendererSystem, GameSoundSystem, GameSystem, GameSystemCommand,
+        RendererEffect, SoundEffect,
     },
     AssetManager, ComponentStorage, EngineResult, InputEvent, SceneID, SizeU32,
 };

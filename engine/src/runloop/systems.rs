@@ -22,7 +22,7 @@ pub trait GameSystem {
         frame_counter: &mut AggregatedFrameCounter,
         delta_time: Float,
         storage: &mut ComponentStorage,
-        assets: &AssetManager,
+        asset_manager: &AssetManager,
     ) -> EngineResult<GameSystemCommand>;
 }
 
@@ -54,7 +54,7 @@ pub trait GameRendererSystem {
         &mut self,
         frame_counter: &mut AggregatedFrameCounter,
         storage: &ComponentStorage,
-        assets: &AssetManager,
+        asset_manager: &AssetManager,
     ) -> EngineResult<Vec<RendererEffect>>;
 }
 
@@ -73,6 +73,6 @@ pub trait GameSoundSystem {
     fn update(
         &mut self,
         storage: &mut ComponentStorage,
-        assets: &AssetManager,
+        asset_manager: &AssetManager,
     ) -> EngineResult<Vec<SoundEffect>>;
 }
