@@ -19,7 +19,7 @@ pub trait GameSystem {
     ) -> EngineResult<()>;
     fn update(
         &mut self,
-        frame_counter: &mut AggregatedFrameCounter,
+        frames: usize,
         delta_time: Float,
         storage: &mut ComponentStorage,
         asset_manager: &AssetManager,
@@ -52,7 +52,7 @@ pub trait GameRendererSystem {
     ) -> EngineResult<()>;
     fn render(
         &mut self,
-        frame_counter: &mut AggregatedFrameCounter,
+        frames: usize,
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
     ) -> EngineResult<Vec<RendererEffect>>;

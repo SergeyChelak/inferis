@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+// deprecated
 #[derive(Default)]
 pub struct AggregatedFrameCounter {
     map: HashMap<String, FrameCounter>,

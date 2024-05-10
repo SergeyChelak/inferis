@@ -1,7 +1,6 @@
 use std::f32::consts::PI;
 
 use engine::{
-    frame_counter::AggregatedFrameCounter,
     systems::{GameRendererSystem, RendererEffect},
     EngineError, EntityID, Float, SizeU32,
 };
@@ -56,7 +55,7 @@ impl GameRendererSystem for RendererSystem {
 
     fn render(
         &mut self,
-        frame_counter: &mut AggregatedFrameCounter,
+        frames: usize,
         storage: &engine::ComponentStorage,
         asset_manager: &engine::AssetManager,
     ) -> engine::EngineResult<Vec<RendererEffect>> {

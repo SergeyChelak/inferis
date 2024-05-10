@@ -22,7 +22,7 @@ impl GameSystem for GeneratorSystem {
 
     fn update(
         &mut self,
-        frame_counter: &mut engine::frame_counter::AggregatedFrameCounter,
+        frames: usize,
         delta_time: engine::Float,
         storage: &mut engine::ComponentStorage,
         assets: &engine::AssetManager,

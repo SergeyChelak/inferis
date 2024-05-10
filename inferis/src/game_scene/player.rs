@@ -1,5 +1,4 @@
 use engine::{
-    frame_counter::AggregatedFrameCounter,
     systems::{GameSystem, GameSystemCommand},
     AssetManager, ComponentStorage, EngineError, EntityID, Float,
 };
@@ -72,7 +71,7 @@ impl GameSystem for PlayerSystem {
 
     fn update(
         &mut self,
-        _frame_counter: &mut AggregatedFrameCounter,
+        _frames: usize,
         delta_time: Float,
         storage: &mut ComponentStorage,
         _assets: &AssetManager,

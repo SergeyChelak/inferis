@@ -1,7 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    frame_counter::AggregatedFrameCounter,
     systems::{
         GameControlSystem, GameRendererSystem, GameSoundSystem, GameSystem, GameSystemCommand,
         RendererEffect, SoundEffect,
@@ -12,7 +11,7 @@ use crate::{
 pub struct GameScene {
     id: SceneID,
     storage: ComponentStorage,
-    frame_counter: AggregatedFrameCounter,
+    frames: usize,
     command_buffer: Vec<GameSystemCommand>,
     common_systems: Vec<Rc<RefCell<dyn GameSystem>>>,
     control_system: Rc<RefCell<dyn GameControlSystem>>,
@@ -30,7 +29,7 @@ impl GameScene {
         Self {
             id,
             storage,
-            frame_counter: Default::default(),
+            frames: 0,
             command_buffer: Vec::with_capacity(20),
             common_systems: Default::default(),
             control_system: Rc::new(RefCell::new(control_system)),
@@ -79,12 +78,8 @@ impl GameScene {
         self.command_buffer.clear();
         for elem in &self.common_systems {
             let mut system = elem.borrow_mut();
-            let command = system.update(
-                &mut self.frame_counter,
-                delta_time,
-                &mut self.storage,
-                asset_manager,
-            )?;
+            let command =
+                system.update(self.frames, delta_time, &mut self.storage, asset_manager)?;
             self.command_buffer.push(command);
         }
         Ok(&self.command_buffer)
@@ -92,7 +87,7 @@ impl GameScene {
 
     pub fn render(&mut self, asset_manager: &AssetManager) -> EngineResult<Vec<RendererEffect>> {
         let mut system = self.renderer_system.borrow_mut();
-        let effects = system.render(&mut self.frame_counter, &mut self.storage, asset_manager)?;
+        let effects = system.render(self.frames, &mut self.storage, asset_manager)?;
         Ok(effects)
     }
 
