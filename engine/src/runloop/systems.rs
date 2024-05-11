@@ -40,7 +40,7 @@ pub trait GameControlSystem {
 
 pub enum RendererEffect {
     Texture {
-        asset_id: &'static str,
+        asset_id: String,
         source: Rect,
         destination: Rect,
     },

@@ -1,12 +1,10 @@
 use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use engine::{
-    entities,
     pixels::Color,
     ray_cast,
     rect::Rect,
     render::BlendMode,
-    storage,
     systems::{
         DepthRenderEffect, GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr,
     },
@@ -28,7 +26,7 @@ const MAP_SCALE: u32 = 6;
 struct SpriteViewData {
     size: SizeU32,
     source: Rect,
-    texture_id: &'static str,
+    texture_id: String,
 }
 
 pub struct RendererSystem {
@@ -103,22 +101,28 @@ impl RendererSystem {
     }
 
     // ------------------------------------------------------------------------------------------------------------
-    fn render_sprites(&mut self, frames: usize, storage: &ComponentStorage) -> EngineResult<()> {
+    fn render_sprites(
+        &mut self,
+        frames: usize,
+        storage: &ComponentStorage,
+        asset_manager: &AssetManager,
+    ) -> EngineResult<()> {
         let query = Query::new().with_component::<components::Sprite>();
         let entities = storage.fetch_entities(&query);
         for entity_id in entities {
-            self.render_sprite(entity_id, frames, storage)?;
+            self.render_sprite(frames, storage, asset_manager, entity_id)?;
         }
         Ok(())
     }
 
     fn render_sprite(
         &mut self,
-        entity_id: EntityID,
         frames: usize,
         storage: &ComponentStorage,
+        asset_manager: &AssetManager,
+        entity_id: EntityID,
     ) -> EngineResult<()> {
-        let Some(texture_data) = self.sprite_view_data(storage, entity_id) else {
+        let Some(data) = self.sprite_view_data(frames, storage, asset_manager, entity_id) else {
             return Ok(());
         };
         let Some(sprite_pos) = storage.get::<components::Position>(entity_id).map(|x| x.0) else {
@@ -149,7 +153,7 @@ impl RendererSystem {
         let SizeU32 {
             width: w,
             height: h,
-        } = texture_data.size;
+        } = data.size;
         let skip_rendering = {
             let half_width = (w >> 1) as Float;
             x < -half_width
@@ -170,8 +174,8 @@ impl RendererSystem {
         let mut layers = self.layers.borrow_mut();
         let destination = Rect::new(sx as i32, sy as i32, proj_width as u32, proj_height as u32);
         let effect = RendererEffect::Texture {
-            asset_id: texture_data.texture_id,
-            source: texture_data.source,
+            asset_id: data.texture_id,
+            source: data.source,
             destination,
         };
         layers.depth.push(DepthRenderEffect {
@@ -187,7 +191,9 @@ impl RendererSystem {
     // ------------------------------------------------------------------------------------------------------------
     fn sprite_view_data(
         &self,
+        frames: usize,
         storage: &ComponentStorage,
+        asset_manager: &AssetManager,
         entity_id: EntityID,
     ) -> Option<SpriteViewData> {
         let sprite = storage.get::<components::Sprite>(entity_id)?;
@@ -198,7 +204,7 @@ impl RendererSystem {
                 let data = SpriteViewData {
                     size,
                     source,
-                    texture_id: asset_id,
+                    texture_id: asset_id.to_string(),
                 };
                 Some(data)
             }
@@ -207,8 +213,30 @@ impl RendererSystem {
                 frame_start,
                 times,
             } => {
-                //todo!()
-                None
+                let params = asset_manager.animation(asset_id)?;
+                let size = *self.texture_size.get(&params.texture_id)?;
+                let frame_size = SizeU32 {
+                    width: size.width / params.frames_count as u32,
+                    height: size.height,
+                };
+                let elapsed = frames - frame_start;
+                let index = if elapsed / params.frames_count < times {
+                    (elapsed / params.duration as usize) % params.frames_count
+                } else {
+                    params.frames_count - 1
+                };
+                let source = Rect::new(
+                    frame_size.width as i32 * index as i32,
+                    0,
+                    frame_size.width,
+                    frame_size.height,
+                );
+                let data = SpriteViewData {
+                    size: frame_size,
+                    source,
+                    texture_id: params.texture_id.to_string(),
+                };
+                Some(data)
             }
         }
     }
@@ -229,7 +257,7 @@ impl RendererSystem {
             let Some(texture_id) = result.value else {
                 continue;
             };
-            let Some(texture_size) = self.texture_size.get(texture_id) else {
+            let Some(texture_size) = self.texture_size.get(&texture_id) else {
                 continue;
             };
             // get rid of fishbowl effect
@@ -272,7 +300,7 @@ impl RendererSystem {
         let source = Rect::new(0, 0, size.width, size.height);
         let mut layers = self.layers.borrow_mut();
         let effect = RendererEffect::Texture {
-            asset_id: WORLD_FLOOR_GRADIENT,
+            asset_id: WORLD_FLOOR_GRADIENT.to_string(),
             source,
             destination,
         };
@@ -313,7 +341,7 @@ impl RendererSystem {
         let mut layers = self.layers.borrow_mut();
         for destination in destinations {
             let effect = RendererEffect::Texture {
-                asset_id: WORLD_SKY,
+                asset_id: WORLD_SKY.to_string(),
                 source,
                 destination,
             };
@@ -403,7 +431,7 @@ impl GameRendererSystem for RendererSystem {
         self.render_sky()?;
         // depth layer
         self.render_walls(storage)?;
-        self.render_sprites(frames, storage)?;
+        self.render_sprites(frames, storage, asset_manager)?;
         // hud layer
         self.render_hud_weapon(frames, storage)?;
         self.render_hud_minimap(storage)?;

@@ -247,7 +247,7 @@ impl<'a> Renderer<'a> {
         let check = |point: Vec2f| component_maze.wall_texture(point);
         for ray in 0..self.rays_count {
             let result = ray_cast(pos, ray_angle, &check);
-            let Some(texture) = result.value.and_then(|key| self.assets.texture(key)) else {
+            let Some(texture) = result.value.and_then(|key| self.assets.texture(&key)) else {
                 continue;
             };
             // get rid of fishbowl effect
