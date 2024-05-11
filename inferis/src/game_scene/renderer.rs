@@ -1,15 +1,17 @@
 use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use engine::{
+    entities,
     pixels::Color,
     ray_cast,
     rect::Rect,
     render::BlendMode,
+    storage,
     systems::{
         DepthRenderEffect, GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr,
     },
     texture_size, AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float,
-    SizeU32, Vec2f, RAY_CASTER_TOL,
+    Query, SizeU32, Vec2f, RAY_CASTER_TOL,
 };
 
 use crate::{
@@ -22,6 +24,12 @@ use super::{components, fetch_first};
 const FIELD_OF_VIEW: Float = PI / 3.0;
 const HALF_FIELD_OF_VIEW: Float = FIELD_OF_VIEW * 0.5;
 const MAP_SCALE: u32 = 6;
+
+struct SpriteViewData {
+    size: SizeU32,
+    source: Rect,
+    texture_id: &'static str,
+}
 
 pub struct RendererSystem {
     layers: RendererLayersPtr,
@@ -95,6 +103,116 @@ impl RendererSystem {
     }
 
     // ------------------------------------------------------------------------------------------------------------
+    fn render_sprites(&mut self, frames: usize, storage: &ComponentStorage) -> EngineResult<()> {
+        let query = Query::new().with_component::<components::Sprite>();
+        let entities = storage.fetch_entities(&query);
+        for entity_id in entities {
+            self.render_sprite(entity_id, frames, storage)?;
+        }
+        Ok(())
+    }
+
+    fn render_sprite(
+        &mut self,
+        entity_id: EntityID,
+        frames: usize,
+        storage: &ComponentStorage,
+    ) -> EngineResult<()> {
+        let Some(texture_data) = self.sprite_view_data(storage, entity_id) else {
+            return Ok(());
+        };
+        let Some(sprite_pos) = storage.get::<components::Position>(entity_id).map(|x| x.0) else {
+            return Ok(());
+        };
+        let sprite_scale = storage
+            .get::<components::ScaleRatio>(entity_id)
+            .map(|x| x.0)
+            .unwrap_or(1.0);
+        let sprite_height_shift = storage
+            .get::<components::HeightShift>(entity_id)
+            .map(|x| x.0)
+            .unwrap_or(1.0);
+        let vector = sprite_pos - self.player_pos;
+        let delta = {
+            let Vec2f { x: dx, y: dy } = vector;
+            let theta = dy.atan2(dx);
+            let value = theta - self.angle;
+            if dx > 0.0 && self.angle > PI || dx < 0.0 && dy < 0.0 {
+                value + 2.0 * PI
+            } else {
+                value
+            }
+        };
+        let delta_rays = delta / self.ray_angle_step;
+        let x = ((self.rays_count >> 1) as Float + delta_rays) * self.scale;
+        let norm_distance = vector.hypotenuse() * delta.cos();
+        let SizeU32 {
+            width: w,
+            height: h,
+        } = texture_data.size;
+        let skip_rendering = {
+            let half_width = (w >> 1) as Float;
+            x < -half_width
+                || x > self.window_size.width as Float + half_width
+                || norm_distance < 0.5
+        };
+        if skip_rendering {
+            return Ok(());
+        }
+        let ratio = w as Float / h as Float;
+        let proj = self.screen_distance / norm_distance * sprite_scale;
+        let (proj_width, proj_height) = (proj * ratio, proj);
+        let sprite_half_width = 0.5 * proj_width;
+        let height_shift = proj_height * sprite_height_shift;
+        let sx = x - sprite_half_width;
+        let sy = (self.window_size.height as Float - proj_height) * 0.5 + height_shift;
+
+        let mut layers = self.layers.borrow_mut();
+        let destination = Rect::new(sx as i32, sy as i32, proj_width as u32, proj_height as u32);
+        let effect = RendererEffect::Texture {
+            asset_id: texture_data.texture_id,
+            source: texture_data.source,
+            destination,
+        };
+        layers.depth.push(DepthRenderEffect {
+            effect,
+            depth: norm_distance,
+        });
+        Ok(())
+    }
+
+    fn render_hud_weapon(&mut self, frames: usize, storage: &ComponentStorage) -> EngineResult<()> {
+        Ok(())
+    }
+    // ------------------------------------------------------------------------------------------------------------
+    fn sprite_view_data(
+        &self,
+        storage: &ComponentStorage,
+        entity_id: EntityID,
+    ) -> Option<SpriteViewData> {
+        let sprite = storage.get::<components::Sprite>(entity_id)?;
+        match sprite.view {
+            components::SpriteView::Texture { asset_id } => {
+                let size = *self.texture_size.get(asset_id)?;
+                let source = Rect::new(0, 0, size.width, size.height);
+                let data = SpriteViewData {
+                    size,
+                    source,
+                    texture_id: asset_id,
+                };
+                Some(data)
+            }
+            components::SpriteView::Animation {
+                asset_id,
+                frame_start,
+                times,
+            } => {
+                //todo!()
+                None
+            }
+        }
+    }
+    // ------------------------------------------------------------------------------------------------------------
     fn render_walls(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
         let Some(component_maze) = storage.get::<components::Maze>(self.maze_id) else {
             return Ok(());
@@ -144,12 +262,6 @@ impl RendererSystem {
     }
 
     // ------------------------------------------------------------------------------------------------------------
-    fn render_background(&mut self) -> EngineResult<()> {
-        self.render_floor()?;
-        self.render_sky()?;
-        Ok(())
-    }
-
     fn render_floor(&mut self) -> EngineResult<()> {
         let half_height = self.window_size.height >> 1;
         let destination = Rect::new(0, half_height as i32, self.window_size.width, half_height);
@@ -280,16 +392,20 @@ impl GameRendererSystem for RendererSystem {
             .get::<components::Angle>(self.player_id)
             .map(|x| x.0)
             .ok_or(EngineError::component_not_found("[v2.renderer] angle"))?;
-        // self.angle += 0.02;
-        // self.angle %= 2.0 * PI;
         self.player_pos = storage
             .get::<components::Position>(self.player_id)
             .map(|x| x.0)
             .ok_or(EngineError::component_not_found("[v2.renderer] position"))?;
 
         self.layers.borrow_mut().clear();
-        self.render_background()?;
+        // background layer
+        self.render_floor()?;
+        self.render_sky()?;
+        // depth layer
         self.render_walls(storage)?;
+        self.render_sprites(frames, storage)?;
+        // hud layer
+        self.render_hud_weapon(frames, storage)?;
         self.render_hud_minimap(storage)?;
         Ok(self.layers.clone())
     }

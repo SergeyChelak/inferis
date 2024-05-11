@@ -38,8 +38,38 @@ pub type HealthType = u32;
 
 pub struct Health(pub HealthType);
 
-//  texture id?
-pub struct Sprite(pub &'static str);
+pub enum SpriteView {
+    Texture {
+        asset_id: &'static str,
+    },
+    Animation {
+        asset_id: &'static str,
+        frame_start: usize,
+        times: usize,
+    },
+}
+
+pub struct Sprite {
+    pub view: SpriteView,
+}
+
+impl Sprite {
+    pub fn with_texture(asset_id: &'static str) -> Self {
+        Self {
+            view: SpriteView::Texture { asset_id },
+        }
+    }
+
+    pub fn with_animation(asset_id: &'static str, frame_start: usize, times: usize) -> Self {
+        Self {
+            view: SpriteView::Animation {
+                asset_id,
+                frame_start,
+                times,
+            },
+        }
+    }
+}
 
 // sprite position parameters
 pub struct ScaleRatio(pub Float);
