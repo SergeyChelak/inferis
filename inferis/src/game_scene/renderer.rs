@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 use engine::{
     pixels::Color,
     ray_cast,
-    rect::Rect,
+    rect::{Point, Rect},
     render::BlendMode,
     systems::{
         DepthRenderEffect, GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr,
@@ -14,6 +14,7 @@ use engine::{
 
 use crate::{
     game_scene::fetch_player_id,
+    gameplay::NpcTag,
     resource::{WORLD_FLOOR_GRADIENT, WORLD_SKY},
 };
 
@@ -353,6 +354,63 @@ impl RendererSystem {
     // ------------------------------------------------------------------------------------------------------------
     fn render_hud_minimap(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
         self.render_hud_maze(storage)?;
+        self.render_hud_minimap_objects(storage)?;
+        Ok(())
+    }
+
+    fn render_hud_minimap_objects(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+        let query = Query::new().with_component::<components::Position>();
+        let entities = storage.fetch_entities(&query);
+        for entity_id in entities {
+            self.render_hud_minimap_object(storage, entity_id)?;
+        }
+        Ok(())
+    }
+
+    fn render_hud_minimap_object(
+        &mut self,
+        storage: &ComponentStorage,
+        entity_id: EntityID,
+    ) -> EngineResult<()> {
+        let Some(pos) = storage.get::<components::Position>(entity_id).map(|x| x.0) else {
+            return Ok(());
+        };
+        let color = if entity_id == self.player_id {
+            Color::RED
+        } else if storage.has_component::<NpcTag>(entity_id) {
+            Color::YELLOW
+        } else {
+            Color::GREEN
+        };
+        let (x, y) = (
+            (pos.x * MAP_SCALE as Float) as i32,
+            (pos.y * MAP_SCALE as Float) as i32,
+        );
+        let size = MAP_SCALE - 1;
+        let rect = Rect::new(x - (size >> 1) as i32, y - (size >> 1) as i32, size, size);
+
+        let mut layers = self.layers.borrow_mut();
+        let effect = RendererEffect::Rectangle {
+            color,
+            fill: true,
+            blend_mode: BlendMode::None,
+            rect,
+        };
+        layers.hud.push(effect);
+
+        let Some(angle) = storage.get::<components::Angle>(entity_id).map(|x| x.0) else {
+            return Ok(());
+        };
+        let length = 2.5 * MAP_SCALE as Float;
+        let effect = RendererEffect::Line {
+            color,
+            begin: Point::new(x, y),
+            end: Point::new(
+                x + (length * angle.cos()) as i32,
+                y + (length * angle.sin()) as i32,
+            ),
+        };
+        layers.hud.push(effect);
         Ok(())
     }
 
