@@ -14,7 +14,7 @@ pub fn attack_system(
     storage: &mut ComponentStorage,
     frame_counter: &mut AggregatedFrameCounter,
 ) -> EngineResult<()> {
-    process_shorts(storage, frame_counter)?;
+    process_shots(storage, frame_counter)?;
     refresh_weapon_state(storage, frame_counter)?;
     Ok(())
 }
@@ -42,7 +42,7 @@ fn frame_counter_key(entity_id: EntityID) -> String {
     format!("WEAPON_{}", entity_id.id_key())
 }
 
-fn process_shorts(
+fn process_shots(
     storage: &mut ComponentStorage,
     frame_counter: &mut AggregatedFrameCounter,
 ) -> EngineResult<()> {
@@ -63,7 +63,7 @@ fn process_shorts(
         let Some(mut shot) = storage.get_mut::<Shot>(entity_id) else {
             return Err(EngineError::component_not_found("Shot"));
         };
-        shot.borrow_mut().state = ShotState::Cancelled;
+        shot.borrow_mut().state = new_state;
     }
     Ok(())
 }
