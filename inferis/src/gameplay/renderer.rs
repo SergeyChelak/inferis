@@ -199,8 +199,8 @@ impl<'a> Renderer<'a> {
                 width: size.width / params.frames_count as u32,
                 height: size.height,
             };
-            let index =
-                (animation_data.frame_counter / params.duration as usize) % params.frames_count;
+            let index = (animation_data.frame_counter / params.frame_duration as usize)
+                % params.frames_count;
             let source = Rect::new(
                 frame_size.width as i32 * index as i32,
                 0,

@@ -6,16 +6,39 @@ use engine::{
 };
 
 use crate::{
-    game_scene::{components::Sprite, fetch_player_id},
+    game_scene::{components::Sprite, fetch_player_id, subsystems::update_weapon_state},
     gameplay::Weapon,
-    resource::{PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM},
+    resource::{PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM, PLAYER_SHOT_DEADLINE},
 };
 
-use super::components::{self, ControllerState, Movement};
+use super::{
+    components::{self, ControllerState, Movement, Shot},
+    subsystems::can_shoot,
+};
+
+struct InputResult {
+    pub movement: Movement,
+    pub command: GameSystemCommand,
+    pub is_shooting: bool,
+}
+
+impl Default for InputResult {
+    fn default() -> Self {
+        Self {
+            movement: Default::default(),
+            command: GameSystemCommand::Nothing,
+            is_shooting: Default::default(),
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct PlayerSystem {
     player_id: EntityID,
+    // short cache
+    velocity: Float,
+    angle: Float,
+    rotation_speed: Float,
 }
 
 impl PlayerSystem {
@@ -33,36 +56,33 @@ impl PlayerSystem {
         Ok(())
     }
 
+    fn prefetch(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+        self.velocity = storage
+            .get::<components::Velocity>(self.player_id)
+            .map(|x| x.0)
+            .ok_or(EngineError::component_not_found("[v2.player] Velocity"))?;
+        self.angle = storage
+            .get::<components::Angle>(self.player_id)
+            .map(|x| x.0)
+            .ok_or(EngineError::component_not_found("[v2.player] Angle"))?;
+        self.rotation_speed = storage
+            .get::<components::RotationSpeed>(self.player_id)
+            .map(|x| x.0)
+            .ok_or(EngineError::component_not_found(
+                "[v2.player] RotationSpeed",
+            ))?;
+        Ok(())
+    }
+
     fn update_movement(
         &self,
         delta_time: Float,
-        storage: &ComponentStorage,
         controller: &ControllerState,
     ) -> engine::EngineResult<components::Movement> {
-        let Some(velocity) = storage
-            .get::<components::Velocity>(self.player_id)
-            .map(|x| x.0)
-        else {
-            return Err(EngineError::component_not_found("[v2.player] Velocity"));
-        };
-        let Some(angle) = storage
-            .get::<components::Angle>(self.player_id)
-            .map(|x| x.0)
-        else {
-            return Err(EngineError::component_not_found("[v2.player] Angle"));
-        };
-        let Some(rotation_speed) = storage
-            .get::<components::RotationSpeed>(self.player_id)
-            .map(|x| x.0)
-        else {
-            return Err(EngineError::component_not_found(
-                "[v2.player] RotationSpeed",
-            ));
-        };
-        let sin_a = angle.sin();
-        let cos_a = angle.cos();
+        let sin_a = self.angle.sin();
+        let cos_a = self.angle.cos();
 
-        let dist = velocity * delta_time;
+        let dist = self.velocity * delta_time;
         let dist_cos = dist * cos_a;
         let dist_sin = dist * sin_a;
 
@@ -87,10 +107,10 @@ impl PlayerSystem {
         // rotation
         let mut rotation = 0.0;
         if controller.rotate_left_pressed {
-            rotation = -rotation_speed * delta_time;
+            rotation = -self.rotation_speed * delta_time;
         }
         if controller.rotate_right_pressed {
-            rotation = rotation_speed * delta_time;
+            rotation = self.rotation_speed * delta_time;
         }
         let movement = components::Movement {
             x: dx,
@@ -104,56 +124,54 @@ impl PlayerSystem {
         &self,
         delta_time: Float,
         storage: &mut ComponentStorage,
-    ) -> EngineResult<GameSystemCommand> {
-        let movement: Movement;
-        let mut command = GameSystemCommand::Nothing;
-        // put controller logic inside code block to make a borrow checker happy
-        {
-            let Some(controller) = storage.get::<components::ControllerState>(self.player_id)
-            else {
-                println!("[v2.player] warn: controller component isn't associated with player");
-                return Ok(GameSystemCommand::Nothing);
-            };
-            if controller.exit_pressed {
-                command = GameSystemCommand::Terminate;
-            }
-            movement = self.update_movement(delta_time, storage, &controller)?;
+    ) -> EngineResult<InputResult> {
+        let mut result = InputResult::default();
+        let Some(controller) = storage.get::<components::ControllerState>(self.player_id) else {
+            println!("[v2.player] warn: controller component isn't associated with player");
+            return Ok(result);
         };
-        storage.set(self.player_id, Some(movement));
-        Ok(command)
+        if controller.exit_pressed {
+            result.command = GameSystemCommand::Terminate;
+        }
+        result.is_shooting = controller.shot_pressed;
+        result.movement = self.update_movement(delta_time, &controller)?;
+        Ok(result)
     }
 
     fn update_weapon(&self, frames: usize, storage: &mut ComponentStorage) -> EngineResult<()> {
         use components::WeaponState::*;
-        let updated;
-        let state = {
-            let Some(mut weapon) = storage.get_mut::<Weapon>(self.player_id) else {
-                return Ok(());
-            };
-            use components::WeaponState::*;
-            let new_state = match weapon.state {
-                Undefined => Ready(usize::MAX),
-                Recharge(deadline) if deadline >= frames => Ready(usize::MAX),
-                state => state,
-            };
-            updated = new_state != weapon.state;
-            if updated {
-                weapon.borrow_mut().state = new_state;
-            }
-            new_state
+        let Some(state) = update_weapon_state(frames, storage, self.player_id) else {
+            return Ok(());
         };
-        if updated {
-            let sprite = match state {
-                Undefined => None,
-                Recharge(_) => Some(Sprite::with_animation(PLAYER_SHOTGUN_SHOT_ANIM, frames, 1)),
-                Ready(_) => Some(Sprite::with_animation(
-                    PLAYER_SHOTGUN_IDLE_ANIM,
-                    frames,
-                    usize::MAX,
-                )),
-            };
-            storage.set(self.player_id, sprite);
+        let sprite = match state {
+            Undefined => None,
+            Recharge(_) => Some(Sprite::with_animation(PLAYER_SHOTGUN_SHOT_ANIM, frames, 1)),
+            Ready(_) => Some(Sprite::with_animation(
+                PLAYER_SHOTGUN_IDLE_ANIM,
+                frames,
+                usize::MAX,
+            )),
+        };
+        storage.set(self.player_id, sprite);
+        Ok(())
+    }
+
+    fn handle_shot(&self, frames: usize, storage: &mut ComponentStorage) -> EngineResult<()> {
+        if !can_shoot(storage, self.player_id) {
+            return Ok(());
         }
+        let Some(position) = storage
+            .get::<components::Position>(self.player_id)
+            .map(|x| x.0)
+        else {
+            return Ok(());
+        };
+        let shot = Shot {
+            angle: self.angle,
+            position,
+            deadline: frames + PLAYER_SHOT_DEADLINE,
+        };
+        storage.set(self.player_id, Some(shot));
         Ok(())
     }
 }
@@ -177,9 +195,17 @@ impl GameSystem for PlayerSystem {
         _asset_manager: &AssetManager,
     ) -> engine::EngineResult<GameSystemCommand> {
         self.update_storage_cache(storage)?;
-        //
+        self.prefetch(storage)?;
+
+        let input = self.handle_controls(delta_time, storage)?;
+        storage.set(self.player_id, Some(input.movement));
+
+        if input.is_shooting {
+            self.handle_shot(frames, storage)?;
+        }
+
         self.update_weapon(frames, storage)?;
-        // handle user input in the end
-        self.handle_controls(delta_time, storage)
+
+        Ok(input.command)
     }
 }

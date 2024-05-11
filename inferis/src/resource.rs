@@ -25,6 +25,8 @@ pub const WORLD_LEVEL_BASIC: &str = "level_basic";
 pub const PLAYER_SHOTGUN_SHOT_ANIM: &str = "anim_shotgun_shot";
 pub const PLAYER_SHOTGUN_IDLE_ANIM: &str = "anim_shotgun_idle";
 pub const PLAYER_SHOTGUN_DAMAGE: HealthType = 27;
+pub const PLAYER_SHOTGUN_RECHARGE_FRAMES: usize = 35;
+pub const PLAYER_SHOT_DEADLINE: usize = 3;
 pub const PLAYER_PLAYER_DAMAGE_COLOR: &str = "player_damage_clr";
 
 // npc soldier

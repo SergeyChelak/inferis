@@ -19,7 +19,7 @@ use super::{
 };
 
 pub struct Animation {
-    pub duration: u32, // duration in frames
+    pub frame_duration: u32, // duration in frames
     pub frames_count: usize,
     pub texture_id: String,
 }
@@ -101,7 +101,7 @@ impl<'a> AssetManager<'a> {
         };
         let animation = Animation {
             frames_count,
-            duration,
+            frame_duration: duration,
             texture_id,
         };
         self.animations.insert(raw_asset.id.clone(), animation);

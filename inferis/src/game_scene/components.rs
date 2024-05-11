@@ -32,11 +32,19 @@ pub struct Velocity(pub Float);
 
 pub struct RotationSpeed(pub Float);
 
+pub struct BoundingBox(pub SizeFloat);
+
 pub struct Angle(pub Float);
 
 pub type HealthType = u32;
 
 pub struct Health(pub HealthType);
+
+pub struct Shot {
+    pub position: Vec2f,
+    pub angle: Float,
+    pub deadline: usize,
+}
 
 pub enum SpriteView {
     Texture {
@@ -108,8 +116,6 @@ impl Maze {
     }
 }
 
-pub struct BoundingBox(pub SizeFloat);
-
 pub struct SoundFx {
     pub asset_id: String,
     pub loops: i32,
@@ -132,7 +138,7 @@ pub struct Weapon {
     pub state: WeaponState,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WeaponState {
     Undefined,
     Ready(usize),

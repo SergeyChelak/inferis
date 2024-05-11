@@ -54,8 +54,7 @@ pub struct Shot {
 #[derive(Clone, Copy)]
 pub enum ShotState {
     Initial,
-    Accepted,
-    Cancelled,
+    Processed,
 }
 
 pub struct ReceivedDamage(pub HealthType);

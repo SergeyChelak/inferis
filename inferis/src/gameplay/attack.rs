@@ -55,15 +55,11 @@ fn process_shots(
         else {
             continue;
         };
-        let new_state = if try_shot(storage, frame_counter, entity_id)? {
-            ShotState::Accepted
-        } else {
-            ShotState::Cancelled
-        };
+        try_shot(storage, frame_counter, entity_id)?;
         let Some(mut shot) = storage.get_mut::<Shot>(entity_id) else {
             return Err(EngineError::component_not_found("Shot"));
         };
-        shot.borrow_mut().state = new_state;
+        shot.borrow_mut().state = ShotState::Processed;
     }
     Ok(())
 }

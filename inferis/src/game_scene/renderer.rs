@@ -254,8 +254,10 @@ impl RendererSystem {
                     height: size.height,
                 };
                 let elapsed = frames - frame_start;
-                let index = if elapsed / params.frames_count < times {
-                    (elapsed / params.duration as usize) % params.frames_count
+                let frame_duration = params.frame_duration as usize;
+                let duration = frame_duration * params.frames_count;
+                let index = if elapsed / duration < times {
+                    (elapsed / frame_duration) % params.frames_count
                 } else {
                     params.frames_count - 1
                 };

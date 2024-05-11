@@ -1,9 +1,11 @@
+// TODO: make private
 pub mod components;
 mod control;
 mod generator;
 mod movement;
 mod player;
 mod renderer;
+mod subsystems;
 
 use engine::{fetch_first, game_scene::GameScene, ComponentStorage, EngineResult, EntityID};
 
@@ -33,6 +35,7 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<components::BoundingBox>()?;
     storage.register_component::<components::SoundFx>()?;
     storage.register_component::<components::Weapon>()?;
+    storage.register_component::<components::Shot>()?;
     Ok(storage)
 }
 

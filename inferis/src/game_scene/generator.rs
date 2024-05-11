@@ -7,8 +7,8 @@ use engine::{
 use crate::{
     pbm::PBMImage,
     resource::{
-        PLAYER_SHOTGUN_DAMAGE, WORLD_CANDELABRA, WORLD_LEVEL_BASIC, WORLD_TORCH_GREEN_ANIM,
-        WORLD_TORCH_RED_ANIM,
+        PLAYER_SHOTGUN_DAMAGE, PLAYER_SHOTGUN_RECHARGE_FRAMES, WORLD_CANDELABRA, WORLD_LEVEL_BASIC,
+        WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM,
     },
 };
 
@@ -83,7 +83,11 @@ fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
         .put(ControllerState::default())
-        .put(weapon(PLAYER_SHOTGUN_DAMAGE, 60, usize::MAX))
+        .put(weapon(
+            PLAYER_SHOTGUN_DAMAGE,
+            PLAYER_SHOTGUN_RECHARGE_FRAMES,
+            usize::MAX,
+        ))
         .put(Health(500))
         .put(Velocity(7.5))
         .put(RotationSpeed(2.5))
