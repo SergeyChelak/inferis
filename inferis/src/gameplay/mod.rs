@@ -20,7 +20,6 @@ pub use crate::game_scene::components::BoundingBox;
 pub use crate::game_scene::components::Health;
 pub use crate::game_scene::components::HealthType;
 pub use crate::game_scene::components::HeightShift;
-pub use crate::game_scene::components::InvalidatedTag;
 pub use crate::game_scene::components::Maze;
 pub use crate::game_scene::components::Movement;
 pub use crate::game_scene::components::NpcTag;
@@ -32,6 +31,8 @@ pub use crate::game_scene::components::SoundFx;
 pub use crate::game_scene::components::Velocity;
 pub use crate::game_scene::components::Weapon;
 pub use crate::game_scene::components::WeaponState;
+
+pub struct InvalidatedTag;
 
 pub struct UserControllableTag;
 pub struct SpriteTag;

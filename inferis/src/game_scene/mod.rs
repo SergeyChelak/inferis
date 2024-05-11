@@ -3,6 +3,7 @@ pub mod components;
 mod control;
 mod generator;
 mod movement;
+mod npc;
 mod player;
 mod renderer;
 mod sound;
@@ -13,7 +14,7 @@ use engine::{fetch_first, game_scene::GameScene, ComponentStorage, EngineResult,
 use crate::resource::SCENE_GAME_PLAY;
 
 use self::{
-    control::ControlSystem, generator::GeneratorSystem, movement::MovementSystem,
+    control::ControlSystem, generator::GeneratorSystem, movement::MovementSystem, npc::NpcSystem,
     player::PlayerSystem, renderer::RendererSystem, sound::SoundSystem,
 };
 
@@ -21,7 +22,6 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
     let mut storage = ComponentStorage::new();
     storage.register_component::<components::PlayerTag>()?;
     storage.register_component::<components::NpcTag>()?;
-    storage.register_component::<components::InvalidatedTag>()?;
     storage.register_component::<components::ControllerState>()?;
     storage.register_component::<components::Movement>()?;
     storage.register_component::<components::Position>()?;
@@ -37,6 +37,8 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<components::SoundFx>()?;
     storage.register_component::<components::Weapon>()?;
     storage.register_component::<components::Shot>()?;
+    storage.register_component::<components::Damage>()?;
+    storage.register_component::<components::ActorState>()?;
     Ok(storage)
 }
 
@@ -52,6 +54,7 @@ pub fn compose_scene() -> EngineResult<GameScene> {
     // general purpose systems
     scene.add_system(GeneratorSystem::new());
     scene.add_system(PlayerSystem::new());
+    scene.add_system(NpcSystem::new());
     scene.add_system(MovementSystem::new());
     Ok(scene)
 }

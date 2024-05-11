@@ -47,7 +47,23 @@ impl GeneratorSystem {
         ));
         storage.append(&bundle_torch(TorchStyle::Red, Vec2f::new(1.2, 9.0), frames));
         storage.append(&bundle_sprite(WORLD_CANDELABRA, Vec2f::new(8.8, 2.8)));
-        // TODO: ...
+
+        // npc
+        [
+            Vec2f::new(27.0, 13.8),
+            Vec2f::new(8.0, 10.0),
+            Vec2f::new(40.0, 8.0),
+            Vec2f::new(32.0, 23.0),
+            Vec2f::new(40.0, 22.5),
+            Vec2f::new(3.0, 12.5),
+            Vec2f::new(11.5, 2.5),
+            Vec2f::new(19.5, 1.5),
+            Vec2f::new(40.5, 4.5),
+        ]
+        .iter()
+        .for_each(|&v| {
+            storage.append(&bundle_npc_soldier(v));
+        });
         Ok(())
     }
 }
@@ -71,9 +87,9 @@ impl GameSystem for GeneratorSystem {
         asset_manager: &AssetManager,
     ) -> engine::EngineResult<GameSystemCommand> {
         // TODO: implement valid logic for (re)creating levels and characters
-        if storage.has_component::<InvalidatedTag>(self.player_id) {
-            self.generate_level(frames, storage, asset_manager)?;
-        }
+        // if storage.has_component::<InvalidatedTag>(self.player_id) {
+        //     self.generate_level(frames, storage, asset_manager)?;
+        // }
 
         Ok(GameSystemCommand::Nothing)
     }
@@ -82,6 +98,7 @@ impl GameSystem for GeneratorSystem {
 fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
+        // .put(ActorState::Undefined)
         .put(ControllerState::default())
         .put(weapon(
             PLAYER_SHOTGUN_DAMAGE,
@@ -94,6 +111,19 @@ fn bundle_player(position: Vec2f) -> EntityBundle {
         .put(Position(position))
         .put(Angle(0.0))
         .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
+}
+
+fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
+    EntityBundle::new()
+        .put(weapon(4, 30, usize::MAX))
+        .put(Position(position))
+        .put(NpcTag)
+        .put(ActorState::Undefined)
+        .put(Health(100))
+        .put(ScaleRatio(0.7))
+        .put(HeightShift(0.27))
+        .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
+        .put(Velocity(4.3))
 }
 
 fn weapon(damage: HealthType, recharge_time: usize, ammo_count: usize) -> Weapon {

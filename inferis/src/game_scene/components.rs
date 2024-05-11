@@ -4,7 +4,16 @@ use crate::resource::*;
 
 pub struct PlayerTag;
 pub struct NpcTag;
-pub struct InvalidatedTag;
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ActorState {
+    Undefined,
+    Idle(usize),
+    Dead(usize),
+    Attack(usize),
+    Walk(usize),
+    Damaged(usize),
+}
 
 #[derive(Default)]
 pub struct ControllerState {
@@ -45,6 +54,8 @@ pub struct Shot {
     pub angle: Float,
     pub deadline: usize,
 }
+
+pub struct Damage(usize);
 
 pub enum SpriteView {
     Texture {

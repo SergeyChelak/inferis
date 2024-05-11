@@ -1,6 +1,6 @@
 use std::borrow::BorrowMut;
 
-use engine::{ComponentStorage, EntityID};
+use engine::{ComponentStorage, EngineResult, EntityID};
 
 use crate::{game_scene::components, gameplay::WeaponState};
 
@@ -33,11 +33,20 @@ pub fn update_weapon_state(
     }
 }
 
-/// check if weapon is ready for shooting
+/// Checks if weapon is ready for shooting
 /// returns false if the Weapon component is missing
 pub fn can_shoot(storage: &ComponentStorage, entity_id: EntityID) -> bool {
     let Some(weapon) = storage.get::<components::Weapon>(entity_id) else {
         return false;
     };
     matches!(weapon.state, WeaponState::Ready(_))
+}
+
+///
+pub fn process_damages(
+    storage: &ComponentStorage,
+    entity_id: EntityID,
+    sound_asset_id: impl Into<String>,
+) -> EngineResult<()> {
+    Ok(())
 }
