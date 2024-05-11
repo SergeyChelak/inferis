@@ -1,5 +1,7 @@
 use engine::{Float, Vec2f};
 
+use crate::resource::*;
+
 pub struct PlayerTag;
 pub struct NpcTag;
 pub struct InvalidatedTag;
@@ -46,3 +48,32 @@ pub struct HeightShift(pub Float);
 //
 pub type MazeData = Vec<Vec<i32>>;
 pub struct Maze(pub MazeData);
+
+impl Maze {
+    pub fn wall_texture(&self, point: Vec2f) -> Option<&'static str> {
+        match self.value_at(point)? {
+            1 => Some(WORLD_WALL1),
+            2 => Some(WORLD_WALL2),
+            3 => Some(WORLD_WALL3),
+            4 => Some(WORLD_WALL4),
+            5 => Some(WORLD_WALL5),
+            _ => None,
+        }
+    }
+
+    pub fn value_at(&self, point: Vec2f) -> Option<&i32> {
+        let Vec2f { x, y } = point;
+        if x < 0.0 || y < 0.0 {
+            return None;
+        }
+        let (col, row) = (point.x as usize, point.y as usize);
+        self.0.get(row).and_then(|x| x.get(col))
+    }
+
+    pub fn is_wall(&self, point: Vec2f) -> bool {
+        let Some(val) = self.value_at(point) else {
+            return false;
+        };
+        *val != 0
+    }
+}

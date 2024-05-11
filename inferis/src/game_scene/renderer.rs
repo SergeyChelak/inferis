@@ -1,12 +1,22 @@
-use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
+use std::{
+    borrow::Borrow,
+    cell::{Ref, RefCell},
+    collections::HashMap,
+    f32::consts::PI,
+    ops::Deref,
+    rc::Rc,
+};
 
 use engine::{
     pixels::Color,
+    ray_cast,
     rect::Rect,
     render::BlendMode,
-    systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
+    systems::{
+        DepthRenderEffect, GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr,
+    },
     texture_size, AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float,
-    SizeU32,
+    SizeU32, Vec2f, RAY_CASTER_TOL,
 };
 
 use crate::{
@@ -25,6 +35,7 @@ pub struct RendererSystem {
     texture_size: HashMap<String, SizeU32>,
     // short term cached values
     angle: Float,
+    player_pos: Vec2f,
     // long term cached values
     player_id: EntityID,
     maze_id: EntityID,
@@ -46,6 +57,7 @@ impl Default for RendererSystem {
             layers: Rc::new(RefCell::new(layers)),
             texture_size: Default::default(),
             angle: Default::default(),
+            player_pos: Default::default(),
             player_id: Default::default(),
             maze_id: Default::default(),
             window_size: Default::default(),
@@ -85,6 +97,55 @@ impl RendererSystem {
             };
             let size = texture_size(texture);
             self.texture_size.insert(id, size);
+        }
+        Ok(())
+    }
+
+    // ------------------------------------------------------------------------------------------------------------
+    fn render_walls(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+        let Some(component_maze) = storage.get::<components::Maze>(self.maze_id) else {
+            return Ok(());
+        };
+        // dims
+        let height = self.window_size.height as Float;
+        // ray
+        let mut ray_angle = self.angle - HALF_FIELD_OF_VIEW;
+        let image_width = self.scale as u32;
+        let check = |point: Vec2f| component_maze.wall_texture(point);
+        let mut layers = self.layers.borrow_mut();
+        for ray in 0..self.rays_count {
+            let result = ray_cast(self.player_pos, ray_angle, &check);
+            let Some(texture_id) = result.value else {
+                continue;
+            };
+            let Some(texture_size) = self.texture_size.get(texture_id) else {
+                continue;
+            };
+            // get rid of fishbowl effect
+            let depth = result.depth * (self.angle - ray_angle).cos();
+            let projected_height = self.screen_distance / (depth + RAY_CASTER_TOL);
+
+            let x = (ray as Float * self.scale) as i32;
+            let y = (0.5 * (height - projected_height)) as i32;
+
+            let dst = Rect::new(x, y, image_width, projected_height as u32);
+            let SizeU32 {
+                width: w,
+                height: h,
+            } = *texture_size;
+            let src = Rect::new(
+                (result.offset * (w as Float - image_width as Float)) as i32,
+                0,
+                image_width,
+                h,
+            );
+            let effect = RendererEffect::Texture {
+                asset_id: texture_id,
+                source: src,
+                destination: dst,
+            };
+            layers.depth.push(DepthRenderEffect { effect, depth });
+            ray_angle += self.ray_angle_step;
         }
         Ok(())
     }
@@ -226,9 +287,16 @@ impl GameRendererSystem for RendererSystem {
             .get::<components::Angle>(self.player_id)
             .map(|x| x.0)
             .ok_or(EngineError::component_not_found("[v2.renderer] angle"))?;
+        // self.angle += 0.02;
+        // self.angle %= 2.0 * PI;
+        self.player_pos = storage
+            .get::<components::Position>(self.player_id)
+            .map(|x| x.0)
+            .ok_or(EngineError::component_not_found("[v2.renderer] position"))?;
 
         self.layers.borrow_mut().clear();
         self.render_background()?;
+        self.render_walls(storage)?;
         self.render_hud_minimap(storage)?;
         Ok(self.layers.clone())
     }
