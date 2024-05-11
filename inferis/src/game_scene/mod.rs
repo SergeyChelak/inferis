@@ -1,6 +1,7 @@
 pub mod components;
 mod control;
 mod generator;
+mod movement;
 mod player;
 mod renderer;
 
@@ -11,8 +12,8 @@ use engine::{game_scene::GameScene, ComponentStorage, EngineResult, EntityID, Qu
 use crate::resource::SCENE_GAME_PLAY;
 
 use self::{
-    control::ControlSystem, generator::GeneratorSystem, player::PlayerSystem,
-    renderer::RendererSystem,
+    control::ControlSystem, generator::GeneratorSystem, movement::MovementSystem,
+    player::PlayerSystem, renderer::RendererSystem,
 };
 
 fn compose_component_storage() -> EngineResult<ComponentStorage> {
@@ -48,6 +49,7 @@ pub fn compose_scene() -> EngineResult<GameScene> {
     // general purpose systems
     scene.add_system(GeneratorSystem::new());
     scene.add_system(PlayerSystem::new());
+    scene.add_system(MovementSystem::new());
     Ok(scene)
 }
 
