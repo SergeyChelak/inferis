@@ -5,9 +5,7 @@ mod movement;
 mod player;
 mod renderer;
 
-use std::any::Any;
-
-use engine::{game_scene::GameScene, ComponentStorage, EngineResult, EntityID, Query};
+use engine::{fetch_first, game_scene::GameScene, ComponentStorage, EngineResult, EntityID};
 
 use crate::resource::SCENE_GAME_PLAY;
 
@@ -55,9 +53,4 @@ pub fn compose_scene() -> EngineResult<GameScene> {
 
 pub fn fetch_player_id(storage: &ComponentStorage) -> Option<EntityID> {
     fetch_first::<components::PlayerTag>(storage)
-}
-
-pub fn fetch_first<T: Any>(storage: &ComponentStorage) -> Option<EntityID> {
-    let query = Query::new().with_component::<T>();
-    storage.fetch_entities(&query).first().copied()
 }

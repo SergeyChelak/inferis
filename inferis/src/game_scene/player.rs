@@ -120,7 +120,7 @@ impl GameSystem for PlayerSystem {
         {
             let Some(controller) = storage.get::<components::ControllerState>(self.player_id)
             else {
-                println!("[v2.controller] warn: controller component isn't associated with player");
+                println!("[v2.player] warn: controller component isn't associated with player");
                 return Ok(GameSystemCommand::Nothing);
             };
             if controller.exit_pressed {

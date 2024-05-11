@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::ComponentEntry;
+use crate::{ComponentEntry, ComponentStorage, EngineResult, EntityID};
 
 #[derive(Default)]
 pub struct EntityBundle {
@@ -39,4 +39,20 @@ impl Query {
         self.types.insert(type_id);
         self
     }
+}
+
+pub fn fetch_first<T: Any>(storage: &ComponentStorage) -> Option<EntityID> {
+    let query = Query::new().with_component::<T>();
+    storage.fetch_entities(&query).first().copied()
+}
+
+pub fn cleanup_component<T: Any>(storage: &mut ComponentStorage) -> EngineResult<()> {
+    let query = Query::new().with_component::<T>();
+    let entities = storage.fetch_entities(&query);
+    for id in entities {
+        if !storage.set::<T>(id, None) {
+            println!("[warn] failed to remove component {:?}", TypeId::of::<T>());
+        }
+    }
+    Ok(())
 }

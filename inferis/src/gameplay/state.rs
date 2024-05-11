@@ -1,11 +1,8 @@
-use std::{
-    any::{Any, TypeId},
-    borrow::BorrowMut,
-};
+use std::borrow::BorrowMut;
 
 use engine::{
-    frame_counter::AggregatedFrameCounter, ComponentStorage, EngineError, EngineResult, EntityID,
-    Query,
+    cleanup_component, frame_counter::AggregatedFrameCounter, ComponentStorage, EngineError,
+    EngineResult, EntityID, Query,
 };
 
 use self::generator::LevelData;
@@ -161,16 +158,6 @@ pub fn cleanup_system(storage: &mut ComponentStorage) -> EngineResult<()> {
 }
 
 // utils
-fn cleanup_component<T: Any>(storage: &mut ComponentStorage) -> EngineResult<()> {
-    let query = Query::new().with_component::<T>();
-    let entities = storage.fetch_entities(&query);
-    for id in entities {
-        if !storage.set::<T>(id, None) {
-            println!("[state] failed to remove component {:?}", TypeId::of::<T>());
-        }
-    }
-    Ok(())
-}
 
 fn update_or_insert_animation(
     storage: &mut ComponentStorage,
