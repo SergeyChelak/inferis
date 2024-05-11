@@ -115,7 +115,7 @@ fn weapon(damage: HealthType, recharge_time: usize, ammo_count: usize) -> Weapon
     Weapon {
         damage,
         recharge_time,
-        state: WeaponState::Ready,
+        state: WeaponState::Ready(usize::MAX),
         ammo_count,
     }
 }

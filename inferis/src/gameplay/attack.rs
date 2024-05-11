@@ -33,7 +33,7 @@ fn refresh_weapon_state(
             continue;
         };
         let weapon = comp.borrow_mut();
-        weapon.state = WeaponState::Ready;
+        weapon.state = WeaponState::Ready(usize::MAX);
     }
     Ok(())
 }
@@ -63,7 +63,7 @@ fn process_shorts(
         let Some(mut shot) = storage.get_mut::<Shot>(entity_id) else {
             return Err(EngineError::component_not_found("Shot"));
         };
-        shot.borrow_mut().state = new_state;
+        shot.borrow_mut().state = ShotState::Cancelled;
     }
     Ok(())
 }
@@ -76,7 +76,7 @@ fn try_shot(
     let Some(weapon) = storage.get::<Weapon>(entity_id).map(|x| *x) else {
         return Err(EngineError::component_not_found("Weapon"));
     };
-    if weapon.ammo_count == 0 || matches!(weapon.state, WeaponState::Recharge) {
+    if weapon.ammo_count == 0 || matches!(weapon.state, WeaponState::Recharge(_)) {
         return Ok(false);
     }
     if let Ok(Some(target_id)) = ray_cast_shot(storage, entity_id) {
@@ -90,7 +90,7 @@ fn try_shot(
     if let Some(mut comp) = storage.get_mut::<Weapon>(entity_id) {
         let w = comp.borrow_mut();
         w.ammo_count = weapon.ammo_count.saturating_sub(1);
-        w.state = WeaponState::Recharge;
+        w.state = WeaponState::Recharge(0);
         frame_counter.add_counter(frame_counter_key(entity_id), weapon.recharge_time);
     };
     add_shoot_sound(storage, entity_id)?;

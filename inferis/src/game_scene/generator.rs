@@ -7,7 +7,7 @@ use engine::{
 use crate::{
     pbm::PBMImage,
     resource::{
-        PLAYER_SHOTGUN_IDLE_ANIM, WORLD_CANDELABRA, WORLD_LEVEL_BASIC, WORLD_TORCH_GREEN_ANIM,
+        PLAYER_SHOTGUN_DAMAGE, WORLD_CANDELABRA, WORLD_LEVEL_BASIC, WORLD_TORCH_GREEN_ANIM,
         WORLD_TORCH_RED_ANIM,
     },
 };
@@ -32,7 +32,7 @@ impl GeneratorSystem {
         asset_manager: &engine::AssetManager,
     ) -> EngineResult<()> {
         storage.remove_all_entities();
-        self.player_id = storage.append(&bundle_player(Vec2f::new(5.0, 10.0), frames));
+        self.player_id = storage.append(&bundle_player(Vec2f::new(5.0, 10.0)));
         self.maze_id = storage.append(&bundle_maze(asset_manager)?);
         // decorations
         storage.append(&bundle_torch(
@@ -79,22 +79,26 @@ impl GameSystem for GeneratorSystem {
     }
 }
 
-fn bundle_player(position: Vec2f, frame: usize) -> EntityBundle {
+fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
         .put(ControllerState::default())
-        .put(Sprite::with_animation(
-            PLAYER_SHOTGUN_IDLE_ANIM,
-            frame,
-            usize::MAX,
-        ))
-        // .put(weapon(PLAYER_SHOTGUN_DAMAGE, 60, usize::MAX))
+        .put(weapon(PLAYER_SHOTGUN_DAMAGE, 60, usize::MAX))
         .put(Health(500))
         .put(Velocity(7.5))
         .put(RotationSpeed(2.5))
         .put(Position(position))
         .put(Angle(0.0))
         .put(BoundingBox(SizeFloat::new(0.7, 0.7)))
+}
+
+fn weapon(damage: HealthType, recharge_time: usize, ammo_count: usize) -> Weapon {
+    Weapon {
+        damage,
+        recharge_time,
+        state: WeaponState::Undefined,
+        ammo_count,
+    }
 }
 
 fn bundle_maze(asset_manager: &AssetManager) -> EngineResult<EntityBundle> {

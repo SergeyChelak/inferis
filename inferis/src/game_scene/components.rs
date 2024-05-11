@@ -132,8 +132,9 @@ pub struct Weapon {
     pub state: WeaponState,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WeaponState {
-    Ready,
-    Recharge,
+    Undefined,
+    Ready(usize),
+    Recharge(usize),
 }

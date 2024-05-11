@@ -140,7 +140,7 @@ fn update_player_weapon(storage: &mut ComponentStorage, player_id: EntityID) -> 
     let Some(weapon) = storage.get::<Weapon>(player_id).map(|x| *x) else {
         return Err(EngineError::component_not_found("Weapon"));
     };
-    let animation_id = if matches!(weapon.state, super::WeaponState::Ready) {
+    let animation_id = if matches!(weapon.state, super::WeaponState::Ready(usize::MAX)) {
         PLAYER_SHOTGUN_IDLE_ANIM
     } else {
         PLAYER_SHOTGUN_SHOT_ANIM
