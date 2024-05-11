@@ -1,10 +1,11 @@
-use engine::{frame_counter::AggregatedFrameCounter, *};
+use engine::*;
 
 use crate::resource::*;
 
 use self::{
     ai::ai_system,
     attack::attack_system,
+    frame_counter::AggregatedFrameCounter,
     generator::{generator_system, LevelData},
     sound::sound_system,
     state::{cleanup_system, state_system},

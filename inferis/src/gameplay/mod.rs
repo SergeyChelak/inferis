@@ -6,6 +6,7 @@ mod ai;
 mod attack;
 mod common;
 mod controller;
+mod frame_counter;
 mod generator;
 mod input;
 pub mod main_scene;

@@ -1,11 +1,8 @@
 use std::borrow::BorrowMut;
 
-use engine::{
-    cleanup_component, frame_counter::AggregatedFrameCounter, ComponentStorage, EngineError,
-    EngineResult, EntityID, Query,
-};
+use engine::{cleanup_component, ComponentStorage, EngineError, EngineResult, EntityID, Query};
 
-use self::generator::LevelData;
+use self::{frame_counter::AggregatedFrameCounter, generator::LevelData};
 
 use super::*;
 
