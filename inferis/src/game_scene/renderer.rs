@@ -5,9 +5,7 @@ use engine::{
     ray_cast,
     rect::{Point, Rect},
     render::BlendMode,
-    systems::{
-        DepthRenderEffect, GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr,
-    },
+    systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
     texture_size, AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float,
     Query, SizeU32, Vec2f, RAY_CASTER_TOL,
 };
@@ -111,7 +109,11 @@ impl RendererSystem {
         let query = Query::new().with_component::<components::Sprite>();
         let entities = storage.fetch_entities(&query);
         for entity_id in entities {
-            self.render_sprite(frames, storage, asset_manager, entity_id)?;
+            if entity_id == self.player_id {
+                self.render_hud_weapon(frames, storage, asset_manager)?;
+            } else {
+                self.render_sprite(frames, storage, asset_manager, entity_id)?;
+            }
         }
         Ok(())
     }
@@ -183,7 +185,41 @@ impl RendererSystem {
         Ok(())
     }
 
-    fn render_hud_weapon(&mut self, frames: usize, storage: &ComponentStorage) -> EngineResult<()> {
+    fn render_hud_weapon(
+        &mut self,
+        frames: usize,
+        storage: &ComponentStorage,
+        asset_manager: &AssetManager,
+    ) -> EngineResult<()> {
+        let Some(texture_data) =
+            self.sprite_view_data(frames, storage, asset_manager, self.player_id)
+        else {
+            return Ok(());
+        };
+        let SizeU32 { width, height } = texture_data.size;
+
+        let SizeU32 {
+            width: window_width,
+            height: window_height,
+        } = self.window_size;
+        let ratio = height as Float / width as Float;
+        let w = (window_width as Float * 0.3) as u32;
+        let h = (w as Float * ratio) as u32;
+
+        let destination = Rect::new(
+            ((window_width - w) >> 1) as i32,
+            (window_height - h) as i32,
+            w,
+            h,
+        );
+
+        let mut layers = self.layers.borrow_mut();
+        let effect = RendererEffect::Texture {
+            asset_id: texture_data.texture_id,
+            source: texture_data.source,
+            destination,
+        };
+        layers.push_hud(effect);
         Ok(())
     }
     // ------------------------------------------------------------------------------------------------------------
@@ -488,7 +524,6 @@ impl GameRendererSystem for RendererSystem {
         self.render_walls(storage)?;
         self.render_sprites(frames, storage, asset_manager)?;
         // hud layer
-        self.render_hud_weapon(frames, storage)?;
         self.render_hud_minimap(storage)?;
         Ok(self.layers.clone())
     }

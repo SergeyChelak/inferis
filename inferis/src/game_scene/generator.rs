@@ -6,7 +6,10 @@ use engine::{
 
 use crate::{
     pbm::PBMImage,
-    resource::{WORLD_CANDELABRA, WORLD_LEVEL_BASIC, WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM},
+    resource::{
+        PLAYER_SHOTGUN_IDLE_ANIM, WORLD_CANDELABRA, WORLD_LEVEL_BASIC, WORLD_TORCH_GREEN_ANIM,
+        WORLD_TORCH_RED_ANIM,
+    },
 };
 
 use super::components::*;
@@ -29,7 +32,7 @@ impl GeneratorSystem {
         asset_manager: &engine::AssetManager,
     ) -> EngineResult<()> {
         storage.remove_all_entities();
-        self.player_id = storage.append(&bundle_player(Vec2f::new(5.0, 10.0)));
+        self.player_id = storage.append(&bundle_player(Vec2f::new(5.0, 10.0), frames));
         self.maze_id = storage.append(&bundle_maze(asset_manager)?);
         // decorations
         storage.append(&bundle_torch(
@@ -63,7 +66,7 @@ impl GameSystem for GeneratorSystem {
     fn update(
         &mut self,
         frames: usize,
-        delta_time: Float,
+        _delta_time: Float,
         storage: &mut ComponentStorage,
         asset_manager: &AssetManager,
     ) -> engine::EngineResult<GameSystemCommand> {
@@ -76,11 +79,15 @@ impl GameSystem for GeneratorSystem {
     }
 }
 
-fn bundle_player(position: Vec2f) -> EntityBundle {
+fn bundle_player(position: Vec2f, frame: usize) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
         .put(ControllerState::default())
-        // .put(UserControllableTag)
+        .put(Sprite::with_animation(
+            PLAYER_SHOTGUN_IDLE_ANIM,
+            frame,
+            usize::MAX,
+        ))
         // .put(weapon(PLAYER_SHOTGUN_DAMAGE, 60, usize::MAX))
         .put(Health(500))
         .put(Velocity(7.5))
