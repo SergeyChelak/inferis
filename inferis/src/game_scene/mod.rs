@@ -6,9 +6,7 @@ mod renderer;
 
 use std::any::Any;
 
-use engine::{
-    game_scene::GameScene, ComponentStorage, EngineResult, EntityBundle, EntityID, Query,
-};
+use engine::{game_scene::GameScene, ComponentStorage, EngineResult, EntityID, Query};
 
 use crate::resource::SCENE_GAME_PLAY;
 
@@ -33,6 +31,9 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<components::ScaleRatio>()?;
     storage.register_component::<components::HeightShift>()?;
     storage.register_component::<components::Maze>()?;
+    storage.register_component::<components::BoundingBox>()?;
+    storage.register_component::<components::SoundFx>()?;
+    storage.register_component::<components::Weapon>()?;
     Ok(storage)
 }
 

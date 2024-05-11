@@ -1,4 +1,4 @@
-use engine::{Float, Vec2f};
+use engine::{Float, SizeFloat, Vec2f};
 
 use crate::resource::*;
 
@@ -76,4 +76,34 @@ impl Maze {
         };
         *val != 0
     }
+}
+
+pub struct BoundingBox(pub SizeFloat);
+
+pub struct SoundFx {
+    pub asset_id: String,
+    pub loops: i32,
+}
+
+impl SoundFx {
+    pub fn once(id: impl Into<String>) -> Self {
+        Self {
+            asset_id: id.into(),
+            loops: 0,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Weapon {
+    pub damage: HealthType,
+    pub recharge_time: usize,
+    pub ammo_count: usize,
+    pub state: WeaponState,
+}
+
+#[derive(Clone, Copy)]
+pub enum WeaponState {
+    Ready,
+    Recharge,
 }

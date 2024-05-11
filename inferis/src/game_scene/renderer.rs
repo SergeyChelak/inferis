@@ -1,11 +1,4 @@
-use std::{
-    borrow::Borrow,
-    cell::{Ref, RefCell},
-    collections::HashMap,
-    f32::consts::PI,
-    ops::Deref,
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use engine::{
     pixels::Color,

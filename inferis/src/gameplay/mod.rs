@@ -15,6 +15,7 @@ mod state;
 mod transform;
 
 pub use crate::game_scene::components::Angle;
+pub use crate::game_scene::components::BoundingBox;
 pub use crate::game_scene::components::Health;
 pub use crate::game_scene::components::HealthType;
 pub use crate::game_scene::components::HeightShift;
@@ -26,7 +27,10 @@ pub use crate::game_scene::components::PlayerTag;
 pub use crate::game_scene::components::Position;
 pub use crate::game_scene::components::RotationSpeed;
 pub use crate::game_scene::components::ScaleRatio;
+pub use crate::game_scene::components::SoundFx;
 pub use crate::game_scene::components::Velocity;
+pub use crate::game_scene::components::Weapon;
+pub use crate::game_scene::components::WeaponState;
 
 pub struct UserControllableTag;
 pub struct SpriteTag;
@@ -54,20 +58,6 @@ pub enum ShotState {
     Cancelled,
 }
 
-#[derive(Clone, Copy)]
-pub struct Weapon {
-    pub damage: HealthType,
-    pub recharge_time: usize,
-    pub ammo_count: usize,
-    pub state: WeaponState,
-}
-
-#[derive(Clone, Copy)]
-pub enum WeaponState {
-    Ready,
-    Recharge,
-}
-
 pub struct ReceivedDamage(pub HealthType);
 
 pub struct TextureID(pub String);
@@ -76,13 +66,6 @@ pub struct TextureID(pub String);
 pub struct AnimationData {
     pub frame_counter: usize,
     pub animation_id: String,
-}
-
-pub struct BoundingBox(pub SizeFloat);
-
-pub struct SoundFx {
-    asset_id: String,
-    loops: i32,
 }
 
 pub fn compose_component_storage() -> EngineResult<ComponentStorage> {
@@ -137,15 +120,6 @@ impl Shot {
             position,
             angle,
             state: ShotState::Initial,
-        }
-    }
-}
-
-impl SoundFx {
-    pub fn once(id: impl Into<String>) -> Self {
-        Self {
-            asset_id: id.into(),
-            loops: 0,
         }
     }
 }
