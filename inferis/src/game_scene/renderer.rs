@@ -179,10 +179,7 @@ impl RendererSystem {
             source: data.source,
             destination,
         };
-        layers.depth.push(DepthRenderEffect {
-            effect,
-            depth: norm_distance,
-        });
+        layers.push_depth(effect, norm_distance);
         Ok(())
     }
 
@@ -284,7 +281,7 @@ impl RendererSystem {
                 source: src,
                 destination: dst,
             };
-            layers.depth.push(DepthRenderEffect { effect, depth });
+            layers.push_depth(effect, depth);
             ray_angle += self.ray_angle_step;
         }
         Ok(())
@@ -305,7 +302,7 @@ impl RendererSystem {
             source,
             destination,
         };
-        layers.background.push(effect);
+        layers.push_background(effect);
         Ok(())
     }
 
@@ -346,7 +343,7 @@ impl RendererSystem {
                 source,
                 destination,
             };
-            layers.background.push(effect)
+            layers.push_background(effect)
         }
         Ok(())
     }
@@ -396,7 +393,7 @@ impl RendererSystem {
             blend_mode: BlendMode::None,
             rect,
         };
-        layers.hud.push(effect);
+        layers.push_hud(effect);
 
         let Some(angle) = storage.get::<components::Angle>(entity_id).map(|x| x.0) else {
             return Ok(());
@@ -410,7 +407,7 @@ impl RendererSystem {
                 y + (length * angle.sin()) as i32,
             ),
         };
-        layers.hud.push(effect);
+        layers.push_hud(effect);
         Ok(())
     }
 
@@ -441,7 +438,7 @@ impl RendererSystem {
             blend_mode: BlendMode::None,
             rects: array,
         };
-        layers.hud.push(effect);
+        layers.push_hud(effect);
         Ok(())
     }
 }

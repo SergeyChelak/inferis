@@ -80,6 +80,18 @@ impl RendererLayers {
         self.depth.clear();
         self.background.clear();
     }
+
+    pub fn push_hud(&mut self, effect: RendererEffect) {
+        self.hud.push(effect)
+    }
+
+    pub fn push_depth(&mut self, effect: RendererEffect, depth: Float) {
+        self.depth.push(DepthRenderEffect { effect, depth })
+    }
+
+    pub fn push_background(&mut self, effect: RendererEffect) {
+        self.background.push(effect)
+    }
 }
 
 pub type RendererLayersPtr = Rc<RefCell<RendererLayers>>;
