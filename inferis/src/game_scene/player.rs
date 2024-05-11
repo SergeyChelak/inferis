@@ -1,5 +1,3 @@
-use std::borrow::BorrowMut;
-
 use engine::{
     systems::{GameSystem, GameSystemCommand},
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float,
@@ -7,8 +5,10 @@ use engine::{
 
 use crate::{
     game_scene::{components::Sprite, fetch_player_id, subsystems::update_weapon_state},
-    gameplay::Weapon,
-    resource::{PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM, PLAYER_SHOT_DEADLINE},
+    resource::{
+        PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM, PLAYER_SHOT_DEADLINE,
+        SOUND_PLAYER_ATTACK,
+    },
 };
 
 use super::{
@@ -172,6 +172,10 @@ impl PlayerSystem {
             deadline: frames + PLAYER_SHOT_DEADLINE,
         };
         storage.set(self.player_id, Some(shot));
+
+        let sound_fx = components::SoundFx::once(SOUND_PLAYER_ATTACK);
+        storage.set(self.player_id, Some(sound_fx));
+
         Ok(())
     }
 }

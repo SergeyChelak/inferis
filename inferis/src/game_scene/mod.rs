@@ -5,6 +5,7 @@ mod generator;
 mod movement;
 mod player;
 mod renderer;
+mod sound;
 mod subsystems;
 
 use engine::{fetch_first, game_scene::GameScene, ComponentStorage, EngineResult, EntityID};
@@ -13,7 +14,7 @@ use crate::resource::SCENE_GAME_PLAY;
 
 use self::{
     control::ControlSystem, generator::GeneratorSystem, movement::MovementSystem,
-    player::PlayerSystem, renderer::RendererSystem,
+    player::PlayerSystem, renderer::RendererSystem, sound::SoundSystem,
 };
 
 fn compose_component_storage() -> EngineResult<ComponentStorage> {
@@ -47,6 +48,7 @@ pub fn compose_scene() -> EngineResult<GameScene> {
         ControlSystem::new(),
         RendererSystem::new(),
     );
+    scene.add_sound_system(SoundSystem::new());
     // general purpose systems
     scene.add_system(GeneratorSystem::new());
     scene.add_system(PlayerSystem::new());
