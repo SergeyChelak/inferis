@@ -101,7 +101,7 @@ impl RendererSystem {
 
     // ------------------------------------------------------------------------------------------------------------
     fn render_sprites(
-        &mut self,
+        &self,
         frames: usize,
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
@@ -119,7 +119,7 @@ impl RendererSystem {
     }
 
     fn render_sprite(
-        &mut self,
+        &self,
         frames: usize,
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
@@ -186,7 +186,7 @@ impl RendererSystem {
     }
 
     fn render_hud_weapon(
-        &mut self,
+        &self,
         frames: usize,
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
@@ -277,7 +277,7 @@ impl RendererSystem {
         }
     }
     // ------------------------------------------------------------------------------------------------------------
-    fn render_walls(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+    fn render_walls(&self, storage: &ComponentStorage) -> EngineResult<()> {
         let Some(component_maze) = storage.get::<components::Maze>(self.maze_id) else {
             return Ok(());
         };
@@ -326,7 +326,7 @@ impl RendererSystem {
     }
 
     // ------------------------------------------------------------------------------------------------------------
-    fn render_floor(&mut self) -> EngineResult<()> {
+    fn render_floor(&self) -> EngineResult<()> {
         let half_height = self.window_size.height >> 1;
         let destination = Rect::new(0, half_height as i32, self.window_size.width, half_height);
         // gradient floor
@@ -344,7 +344,7 @@ impl RendererSystem {
         Ok(())
     }
 
-    fn render_sky(&mut self) -> EngineResult<()> {
+    fn render_sky(&self) -> EngineResult<()> {
         let Some(texture_size) = self.texture_size.get(WORLD_SKY) else {
             return Ok(());
         };
@@ -387,13 +387,13 @@ impl RendererSystem {
     }
 
     // ------------------------------------------------------------------------------------------------------------
-    fn render_hud_minimap(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+    fn render_hud_minimap(&self, storage: &ComponentStorage) -> EngineResult<()> {
         self.render_hud_maze(storage)?;
         self.render_hud_minimap_objects(storage)?;
         Ok(())
     }
 
-    fn render_hud_minimap_objects(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+    fn render_hud_minimap_objects(&self, storage: &ComponentStorage) -> EngineResult<()> {
         let query = Query::new().with_component::<components::Position>();
         let entities = storage.fetch_entities(&query);
         for entity_id in entities {
@@ -403,7 +403,7 @@ impl RendererSystem {
     }
 
     fn render_hud_minimap_object(
-        &mut self,
+        &self,
         storage: &ComponentStorage,
         entity_id: EntityID,
     ) -> EngineResult<()> {
@@ -449,7 +449,7 @@ impl RendererSystem {
         Ok(())
     }
 
-    fn render_hud_maze(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
+    fn render_hud_maze(&self, storage: &ComponentStorage) -> EngineResult<()> {
         let Some(maze_comp) = storage.get::<components::Maze>(self.maze_id) else {
             return Ok(());
         };
