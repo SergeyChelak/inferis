@@ -1,14 +1,20 @@
+use components::SoundFx;
 use engine::{
     systems::GameSystem, ComponentStorage, EngineError, EngineResult, EntityID, Query, Vec2f,
 };
 
-use crate::resource::{
-    NPC_SOLDIER_ATTACK, NPC_SOLDIER_DAMAGE, NPC_SOLDIER_DEATH, NPC_SOLDIER_IDLE, NPC_SOLDIER_WALK,
+use crate::{
+    gameplay::{BoundingBox, NpcTag},
+    resource::{
+        NPC_SOLDIER_ATTACK, NPC_SOLDIER_DAMAGE, NPC_SOLDIER_DAMAGE_RECOVER, NPC_SOLDIER_DEATH,
+        NPC_SOLDIER_IDLE, NPC_SOLDIER_WALK, SOUND_NPC_ATTACK, SOUND_NPC_DEATH, SOUND_NPC_PAIN,
+    },
 };
 
 use super::{
     components::{self, ActorState, Sprite},
     fetch_player_id,
+    subsystems::process_damages,
 };
 
 #[derive(Default)]
@@ -47,6 +53,12 @@ impl NpcSystem {
         storage: &mut engine::ComponentStorage,
         entity_id: EntityID,
     ) -> EngineResult<()> {
+        process_damages(
+            storage,
+            entity_id,
+            self.frames + NPC_SOLDIER_DAMAGE_RECOVER,
+            SOUND_NPC_PAIN,
+        )?;
         self.update_npc_state(storage, entity_id)?;
         Ok(())
     }
@@ -63,12 +75,18 @@ impl NpcSystem {
         };
         let new_state = match state {
             ActorState::Undefined => ActorState::Idle(usize::MAX),
+            ActorState::Dead(deadline) if deadline == self.frames => {
+                storage.set::<NpcTag>(entity_id, None);
+                storage.set::<BoundingBox>(entity_id, None);
+                state
+            }
             _ => state,
         };
 
         if new_state != state {
             storage.set(entity_id, Some(new_state));
-            self.update_npc_view(storage, entity_id)?;
+            self.update_npc_view(storage, entity_id, &new_state)?;
+            self.update_npc_sound(storage, entity_id, &new_state)?;
         }
 
         Ok(())
@@ -78,13 +96,8 @@ impl NpcSystem {
         &mut self,
         storage: &mut engine::ComponentStorage,
         entity_id: EntityID,
+        state: &components::ActorState,
     ) -> EngineResult<()> {
-        let state = storage
-            .get::<components::ActorState>(entity_id)
-            .map(|x| *x)
-            .ok_or(EngineError::component_not_found(
-                "[v2.npc] npc view did not found ActorState",
-            ))?;
         let animation = match state {
             ActorState::Undefined => None,
             ActorState::Idle(_) => Some(Sprite::with_animation(
@@ -110,6 +123,22 @@ impl NpcSystem {
             )),
         };
         storage.set(entity_id, animation);
+        Ok(())
+    }
+
+    fn update_npc_sound(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+        state: &components::ActorState,
+    ) -> EngineResult<()> {
+        let sound_fx = match state {
+            ActorState::Dead(_) => Some(SoundFx::once(SOUND_NPC_DEATH)),
+            ActorState::Attack(_) => Some(SoundFx::once(SOUND_NPC_ATTACK)),
+            ActorState::Damaged(_) => Some(SoundFx::once(SOUND_NPC_PAIN)),
+            _ => None,
+        };
+        storage.set(entity_id, sound_fx);
         Ok(())
     }
 }
