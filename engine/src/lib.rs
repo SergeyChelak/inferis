@@ -8,7 +8,6 @@ pub use assets::AssetManager;
 pub use entities::utils::*;
 pub use entities::*;
 pub use geometry::*;
-pub use runloop::game_loop::GameLoop;
 pub use runloop::*;
 pub use sdl2::*;
 pub use settings::*;

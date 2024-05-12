@@ -6,7 +6,9 @@ use sdl2::{
     render::BlendMode,
 };
 
-use crate::{AssetManager, ComponentStorage, EngineResult, Float, InputEvent, SceneID, SizeU32};
+use crate::{AssetManager, ComponentStorage, EngineResult, Float, SizeU32};
+
+use super::{InputEvent, SceneID};
 
 pub enum GameSystemCommand {
     Nothing,

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use engine::{assets::AssetSource, world::start, *};
+use engine::{assets::AssetSource, runloop::GameWorldBuilder, *};
 use resource::{FILE_ASSET_BUNDLE, FILE_ASSET_REGISTRY};
 mod game_scene;
 mod pbm;
@@ -13,7 +13,7 @@ fn main() -> EngineResult<()> {
     let game_scene = game_scene::compose_scene()?;
     // must be a menu
     let initial_scene_id = game_scene.id();
-    let world = world::GameWorldBuilder::new()
+    let world = GameWorldBuilder::new()
         .with_scene(game_scene)
         .build(initial_scene_id);
 

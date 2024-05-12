@@ -13,7 +13,6 @@ use crate::{
 
 use super::{
     components::{self, ControllerState, Movement, Shot},
-    sound,
     subsystems::{can_shoot, fetch_player_id, is_actor_dead, updated_state},
 };
 
