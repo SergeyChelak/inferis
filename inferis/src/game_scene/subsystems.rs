@@ -1,6 +1,8 @@
 use std::borrow::BorrowMut;
 
-use engine::{ComponentStorage, EngineError, EngineResult, EntityID};
+use engine::{
+    ray_cast, ComponentStorage, EngineError, EngineResult, EntityID, Float, Query, Vec2f,
+};
 
 use crate::{game_scene::components, gameplay::WeaponState};
 
@@ -44,32 +46,46 @@ pub fn can_shoot(storage: &ComponentStorage, entity_id: EntityID) -> bool {
     matches!(weapon.state, WeaponState::Ready(_))
 }
 
-/// Checks if actor did receive damage. In that case
-/// - the 'Damage' component will removed for entity
-/// - actor state updated to 'Damaged' with value of 'deadline'
-/// - added entity-specific sound
-/// - decreased actor health
-/// Missing health component threated as an error
-pub fn process_damages(
-    storage: &mut ComponentStorage,
+pub fn ray_cast_from_entity(
     entity_id: EntityID,
-    deadline: usize,
-    sound_asset_id: impl Into<String>,
-) -> EngineResult<()> {
-    let Some(damage) = storage.get::<Damage>(entity_id).map(|x| x.0) else {
-        return Ok(());
-    };
-    storage.set::<Damage>(entity_id, None);
-    if deadline > 0 {
-        storage.set(entity_id, Some(ActorState::Damaged(deadline)));
+    storage: &ComponentStorage,
+    maze_id: EntityID,
+    position: Vec2f,
+    angle: Float,
+) -> EngineResult<Option<EntityID>> {
+    let query = Query::new().with_component::<components::BoundingBox>();
+    let entities = storage.fetch_entities(&query);
+    if entities.is_empty() {
+        return Ok(None);
     }
-    let sound_fx = components::SoundFx::once(sound_asset_id);
-    storage.set(entity_id, Some(sound_fx));
-
-    let Some(mut comp) = storage.get_mut::<components::Health>(entity_id) else {
-        return Err(EngineError::component_not_found("[process_damages] Health"));
+    let check = |point: Vec2f| {
+        if point.x < 0.0 || point.y < 0.0 {
+            return None;
+        }
+        let (x, y) = (point.x.round() as i32, point.y.round() as i32);
+        for target_id in &entities {
+            if *target_id == entity_id {
+                continue;
+            }
+            let Some(pos) = storage.get::<components::Position>(*target_id).map(|x| x.0) else {
+                continue;
+            };
+            let (tx, ty) = (pos.x.round() as i32, pos.y.round() as i32);
+            let dist = (pos - point).hypotenuse();
+            if x == tx && y == ty || dist < 0.3 {
+                return Some(*target_id);
+            }
+        }
+        // --- TEMPORARY
+        if let Some(true) = storage
+            .get::<components::Maze>(maze_id)
+            .map(|x| x.is_wall(point))
+        {
+            return Some(maze_id);
+        };
+        // ---
+        None
     };
-    let health = comp.borrow_mut();
-    health.0 = health.0.saturating_sub(damage);
-    Ok(())
+    let result = ray_cast(position, angle, &check);
+    Ok(result.value)
 }

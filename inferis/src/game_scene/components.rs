@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use engine::{Float, SizeFloat, Vec2f};
 
 use crate::resource::*;
@@ -13,6 +15,20 @@ pub enum ActorState {
     Attack(usize),
     Walk(usize),
     Damaged(usize),
+}
+
+impl Display for ActorState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ActorState::Undefined => write!(f, "Undefined")?,
+            ActorState::Idle(deadline) => write!(f, "Idle @ {deadline}")?,
+            ActorState::Dead(deadline) => write!(f, "Dead @ {deadline}")?,
+            ActorState::Attack(deadline) => write!(f, "Attack @ {deadline}")?,
+            ActorState::Walk(deadline) => write!(f, "Walk @ {deadline}")?,
+            ActorState::Damaged(deadline) => write!(f, "Damaged @ {deadline}")?,
+        }
+        Ok(())
+    }
 }
 
 #[derive(Default)]
@@ -49,6 +65,7 @@ pub type HealthType = u32;
 
 pub struct Health(pub HealthType);
 
+#[derive(Clone, Copy)]
 pub struct Shot {
     pub position: Vec2f,
     pub angle: Float,

@@ -3,7 +3,7 @@ use engine::{ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, V
 use super::{BoundingBox, Maze, Position};
 
 pub fn ray_cast_with_entity(
-    storage: &mut ComponentStorage,
+    storage: &ComponentStorage,
     entity_id: EntityID,
     position: Vec2f,
     angle: Float,

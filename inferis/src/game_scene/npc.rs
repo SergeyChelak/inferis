@@ -1,3 +1,5 @@
+use std::borrow::BorrowMut;
+
 use components::SoundFx;
 use engine::{
     systems::GameSystem, ComponentStorage, EngineError, EngineResult, EntityID, Query, Vec2f,
@@ -14,7 +16,6 @@ use crate::{
 use super::{
     components::{self, ActorState, Sprite},
     fetch_player_id,
-    subsystems::process_damages,
 };
 
 #[derive(Default)]
@@ -53,21 +54,53 @@ impl NpcSystem {
         storage: &mut engine::ComponentStorage,
         entity_id: EntityID,
     ) -> EngineResult<()> {
-        process_damages(
-            storage,
-            entity_id,
-            self.frames + NPC_SOLDIER_DAMAGE_RECOVER,
-            SOUND_NPC_PAIN,
-        )?;
-        self.update_npc_state(storage, entity_id)?;
+        let mut state = self.update_state_if_damage(storage, entity_id)?;
+        if state.is_none() {
+            state = self.update_state_if_time(storage, entity_id)?;
+        }
+        if let Some(new_state) = state {
+            storage.set(entity_id, Some(new_state));
+            self.update_npc_view(storage, entity_id, &new_state)?;
+            self.update_npc_sound(storage, entity_id, &new_state)?;
+        }
         Ok(())
     }
 
-    fn update_npc_state(
+    fn update_state_if_damage(
         &mut self,
         storage: &mut engine::ComponentStorage,
         entity_id: EntityID,
-    ) -> EngineResult<()> {
+    ) -> EngineResult<Option<ActorState>> {
+        let Some(damage) = storage.get::<components::Damage>(entity_id).map(|x| x.0) else {
+            return Ok(None);
+        };
+        storage.set::<components::Damage>(entity_id, None);
+        let health = {
+            let Some(mut comp) = storage.get_mut::<components::Health>(entity_id) else {
+                return Err(EngineError::component_not_found(
+                    "[v2.npc] update_npc_state: Health",
+                ));
+            };
+            let health = comp.borrow_mut();
+            health.0 = health.0.saturating_sub(damage);
+            health.0
+        };
+        let state = if health > 0 {
+            ActorState::Damaged(self.frames + NPC_SOLDIER_DAMAGE_RECOVER)
+        } else {
+            storage.set::<NpcTag>(entity_id, None);
+            storage.set::<BoundingBox>(entity_id, None);
+            ActorState::Dead(usize::MAX)
+        };
+        storage.set(entity_id, Some(state));
+        return Ok(Some(state));
+    }
+
+    fn update_state_if_time(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+    ) -> EngineResult<Option<ActorState>> {
         let Some(state) = storage.get::<components::ActorState>(entity_id).map(|x| *x) else {
             return Err(EngineError::component_not_found(
                 "[v2.npc] npc view did not found ActorState",
@@ -75,21 +108,17 @@ impl NpcSystem {
         };
         let new_state = match state {
             ActorState::Undefined => ActorState::Idle(usize::MAX),
-            ActorState::Dead(deadline) if deadline == self.frames => {
-                storage.set::<NpcTag>(entity_id, None);
-                storage.set::<BoundingBox>(entity_id, None);
-                state
+            ActorState::Damaged(deadline) if deadline == self.frames => {
+                ActorState::Idle(usize::MAX)
             }
             _ => state,
         };
 
-        if new_state != state {
-            storage.set(entity_id, Some(new_state));
-            self.update_npc_view(storage, entity_id, &new_state)?;
-            self.update_npc_sound(storage, entity_id, &new_state)?;
+        if new_state == state {
+            Ok(None)
+        } else {
+            Ok(Some(new_state))
         }
-
-        Ok(())
     }
 
     fn update_npc_view(
@@ -105,7 +134,7 @@ impl NpcSystem {
                 self.frames,
                 usize::MAX,
             )),
-            ActorState::Dead(_) => Some(Sprite::with_animation(NPC_SOLDIER_DEATH, self.frames, 1)),
+            ActorState::Dead(_) => Some(Sprite::with_animation(NPC_SOLDIER_DEATH, self.frames, 0)),
             ActorState::Walk(_) => Some(Sprite::with_animation(
                 NPC_SOLDIER_WALK,
                 self.frames,

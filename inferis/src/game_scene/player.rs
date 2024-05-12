@@ -7,13 +7,13 @@ use crate::{
     game_scene::{components::Sprite, fetch_player_id, subsystems::update_weapon_state},
     resource::{
         PLAYER_DAMAGE_DEADLINE, PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM,
-        PLAYER_SHOT_DEADLINE, SOUND_PLAYER_ATTACK, SOUND_PLAYER_PAIN,
+        PLAYER_SHOT_DEADLINE, SOUND_PLAYER_ATTACK,
     },
 };
 
 use super::{
     components::{self, ControllerState, Movement, Shot},
-    subsystems::{can_shoot, process_damages},
+    subsystems::can_shoot,
 };
 
 struct InputResult {
@@ -206,13 +206,6 @@ impl GameSystem for PlayerSystem {
         self.update_storage_cache(storage)?;
         self.prefetch(storage)?;
         self.frames = frames;
-
-        process_damages(
-            storage,
-            self.player_id,
-            frames + PLAYER_DAMAGE_DEADLINE,
-            SOUND_PLAYER_PAIN,
-        )?;
 
         let input = self.handle_controls(delta_time, storage)?;
         storage.set(self.player_id, Some(input.movement));
