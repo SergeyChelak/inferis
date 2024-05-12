@@ -55,7 +55,8 @@ pub struct Shot {
     pub deadline: usize,
 }
 
-pub struct Damage(usize);
+#[derive(Clone, Copy)]
+pub struct Damage(pub HealthType);
 
 pub enum SpriteView {
     Texture {

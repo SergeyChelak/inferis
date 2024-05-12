@@ -98,7 +98,7 @@ impl GameSystem for GeneratorSystem {
 fn bundle_player(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
         .put(PlayerTag)
-        // .put(ActorState::Undefined)
+        .put(ActorState::Undefined)
         .put(ControllerState::default())
         .put(weapon(
             PLAYER_SHOTGUN_DAMAGE,

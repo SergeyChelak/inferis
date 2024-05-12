@@ -1,8 +1,10 @@
 use std::borrow::BorrowMut;
 
-use engine::{ComponentStorage, EngineResult, EntityID};
+use engine::{ComponentStorage, EngineError, EngineResult, EntityID};
 
 use crate::{game_scene::components, gameplay::WeaponState};
+
+use super::components::{ActorState, Damage};
 
 /// Updates weapon state to new one if it reached frame deadline
 /// if state doesn't changed functions returns None
@@ -42,11 +44,32 @@ pub fn can_shoot(storage: &ComponentStorage, entity_id: EntityID) -> bool {
     matches!(weapon.state, WeaponState::Ready(_))
 }
 
-///
+/// Checks if actor did receive damage. In that case
+/// - the 'Damage' component will removed for entity
+/// - actor state updated to 'Damaged' with value of 'deadline'
+/// - added entity-specific sound
+/// - decreased actor health
+/// Missing health component threated as an error
 pub fn process_damages(
-    storage: &ComponentStorage,
+    storage: &mut ComponentStorage,
     entity_id: EntityID,
+    deadline: usize,
     sound_asset_id: impl Into<String>,
 ) -> EngineResult<()> {
+    let Some(damage) = storage.get::<Damage>(entity_id).map(|x| x.0) else {
+        return Ok(());
+    };
+    storage.set::<Damage>(entity_id, None);
+    if deadline > 0 {
+        storage.set(entity_id, Some(ActorState::Damaged(deadline)));
+    }
+    let sound_fx = components::SoundFx::once(sound_asset_id);
+    storage.set(entity_id, Some(sound_fx));
+
+    let Some(mut comp) = storage.get_mut::<components::Health>(entity_id) else {
+        return Err(EngineError::component_not_found("[process_damages] Health"));
+    };
+    let health = comp.borrow_mut();
+    health.0 = health.0.saturating_sub(damage);
     Ok(())
 }

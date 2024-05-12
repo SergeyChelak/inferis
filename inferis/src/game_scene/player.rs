@@ -6,14 +6,14 @@ use engine::{
 use crate::{
     game_scene::{components::Sprite, fetch_player_id, subsystems::update_weapon_state},
     resource::{
-        PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM, PLAYER_SHOT_DEADLINE,
-        SOUND_PLAYER_ATTACK,
+        PLAYER_DAMAGE_DEADLINE, PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM,
+        PLAYER_SHOT_DEADLINE, SOUND_PLAYER_ATTACK, SOUND_PLAYER_PAIN,
     },
 };
 
 use super::{
     components::{self, ControllerState, Movement, Shot},
-    subsystems::can_shoot,
+    subsystems::{can_shoot, process_damages},
 };
 
 struct InputResult {
@@ -39,6 +39,7 @@ pub struct PlayerSystem {
     velocity: Float,
     angle: Float,
     rotation_speed: Float,
+    frames: usize,
 }
 
 impl PlayerSystem {
@@ -138,17 +139,21 @@ impl PlayerSystem {
         Ok(result)
     }
 
-    fn update_weapon(&self, frames: usize, storage: &mut ComponentStorage) -> EngineResult<()> {
+    fn update_weapon(&self, storage: &mut ComponentStorage) -> EngineResult<()> {
         use components::WeaponState::*;
-        let Some(state) = update_weapon_state(frames, storage, self.player_id) else {
+        let Some(state) = update_weapon_state(self.frames, storage, self.player_id) else {
             return Ok(());
         };
         let sprite = match state {
             Undefined => None,
-            Recharge(_) => Some(Sprite::with_animation(PLAYER_SHOTGUN_SHOT_ANIM, frames, 1)),
+            Recharge(_) => Some(Sprite::with_animation(
+                PLAYER_SHOTGUN_SHOT_ANIM,
+                self.frames,
+                1,
+            )),
             Ready(_) => Some(Sprite::with_animation(
                 PLAYER_SHOTGUN_IDLE_ANIM,
-                frames,
+                self.frames,
                 usize::MAX,
             )),
         };
@@ -156,7 +161,7 @@ impl PlayerSystem {
         Ok(())
     }
 
-    fn handle_shot(&self, frames: usize, storage: &mut ComponentStorage) -> EngineResult<()> {
+    fn handle_shot(&self, storage: &mut ComponentStorage) -> EngineResult<()> {
         if !can_shoot(storage, self.player_id) {
             return Ok(());
         }
@@ -169,7 +174,7 @@ impl PlayerSystem {
         let shot = Shot {
             angle: self.angle,
             position,
-            deadline: frames + PLAYER_SHOT_DEADLINE,
+            deadline: self.frames + PLAYER_SHOT_DEADLINE,
         };
         storage.set(self.player_id, Some(shot));
 
@@ -200,15 +205,23 @@ impl GameSystem for PlayerSystem {
     ) -> engine::EngineResult<GameSystemCommand> {
         self.update_storage_cache(storage)?;
         self.prefetch(storage)?;
+        self.frames = frames;
+
+        process_damages(
+            storage,
+            self.player_id,
+            frames + PLAYER_DAMAGE_DEADLINE,
+            SOUND_PLAYER_PAIN,
+        )?;
 
         let input = self.handle_controls(delta_time, storage)?;
         storage.set(self.player_id, Some(input.movement));
 
         if input.is_shooting {
-            self.handle_shot(frames, storage)?;
+            self.handle_shot(storage)?;
         }
 
-        self.update_weapon(frames, storage)?;
+        self.update_weapon(storage)?;
 
         Ok(input.command)
     }
