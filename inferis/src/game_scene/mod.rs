@@ -15,9 +15,9 @@ use engine::{fetch_first, game_scene::GameScene, ComponentStorage, EngineResult,
 use crate::resource::SCENE_GAME_PLAY;
 
 use self::{
-    components::ActorState, control::ControlSystem, damage::DamageSystem,
-    generator::GeneratorSystem, movement::MovementSystem, npc::NpcSystem, player::PlayerSystem,
-    renderer::RendererSystem, sound::SoundSystem,
+    control::ControlSystem, damage::DamageSystem, generator::GeneratorSystem,
+    movement::MovementSystem, npc::NpcSystem, player::PlayerSystem, renderer::RendererSystem,
+    sound::SoundSystem,
 };
 
 fn compose_component_storage() -> EngineResult<ComponentStorage> {
@@ -64,11 +64,4 @@ pub fn compose_scene() -> EngineResult<GameScene> {
 
 pub fn fetch_player_id(storage: &ComponentStorage) -> Option<EntityID> {
     fetch_first::<components::PlayerTag>(storage)
-}
-
-pub fn is_dead(storage: &ComponentStorage, entity_id: EntityID) -> bool {
-    let Some(state) = storage.get::<ActorState>(entity_id) else {
-        return false;
-    };
-    matches!(*state, ActorState::Dead(_))
 }

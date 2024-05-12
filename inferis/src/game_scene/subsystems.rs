@@ -1,12 +1,8 @@
 use std::borrow::BorrowMut;
 
-use engine::{
-    ray_cast, ComponentStorage, EngineError, EngineResult, EntityID, Float, Query, Vec2f,
-};
+use engine::{ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Vec2f};
 
 use crate::{game_scene::components, gameplay::WeaponState};
-
-use super::components::{ActorState, Damage};
 
 /// Updates weapon state to new one if it reached frame deadline
 /// if state doesn't changed functions returns None
