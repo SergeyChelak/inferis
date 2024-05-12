@@ -80,7 +80,7 @@ impl NpcSystem {
                 self.frames,
                 usize::MAX,
             )),
-            ActorState::Dead(_) => Some(Sprite::with_animation(NPC_SOLDIER_DEATH, self.frames, 0)),
+            ActorState::Dead(_) => Some(Sprite::with_animation(NPC_SOLDIER_DEATH, self.frames, 1)),
             ActorState::Walk(_) => Some(Sprite::with_animation(
                 NPC_SOLDIER_WALK,
                 self.frames,

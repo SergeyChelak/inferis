@@ -256,7 +256,7 @@ impl RendererSystem {
                 let elapsed = self.frames - frame_start;
                 let frame_duration = params.frame_duration as usize;
                 let duration = frame_duration * params.frames_count;
-                let index = if elapsed / duration <= times {
+                let index = if elapsed / duration < times {
                     (elapsed / frame_duration) % params.frames_count
                 } else {
                     params.frames_count - 1
