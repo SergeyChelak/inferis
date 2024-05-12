@@ -33,6 +33,66 @@ pub fn update_weapon_state(
     }
 }
 
+pub fn updated_state(
+    frame: usize,
+    storage: &mut engine::ComponentStorage,
+    entity_id: EntityID,
+    damage_duration: usize,
+) -> EngineResult<Option<components::ActorState>> {
+    let mut state = state_if_damaged(storage, entity_id, frame + damage_duration)?;
+    if state.is_none() {
+        state = updated_state_if_time(frame, storage, entity_id)?;
+    }
+    Ok(state)
+}
+
+fn state_if_damaged(
+    storage: &mut engine::ComponentStorage,
+    entity_id: EntityID,
+    damage_deadline: usize,
+) -> EngineResult<Option<components::ActorState>> {
+    let Some(damage) = storage.get::<components::Damage>(entity_id).map(|x| x.0) else {
+        return Ok(None);
+    };
+    storage.set::<components::Damage>(entity_id, None);
+    let health = {
+        let Some(mut comp) = storage.get_mut::<components::Health>(entity_id) else {
+            return Err(engine::EngineError::component_not_found(
+                "[actor state] Health",
+            ));
+        };
+        let health = comp.borrow_mut();
+        health.0 = health.0.saturating_sub(damage);
+        health.0
+    };
+    let state = if health > 0 {
+        components::ActorState::Damaged(damage_deadline)
+    } else {
+        components::ActorState::Dead(usize::MAX)
+    };
+    storage.set(entity_id, Some(state));
+    return Ok(Some(state));
+}
+
+fn updated_state_if_time(
+    frame: usize,
+    storage: &mut engine::ComponentStorage,
+    entity_id: EntityID,
+) -> EngineResult<Option<components::ActorState>> {
+    let Some(state) = storage.get::<components::ActorState>(entity_id).map(|x| *x) else {
+        return Err(engine::EngineError::component_not_found(
+            "[actor state] ActorState",
+        ));
+    };
+    use components::ActorState::*;
+    let result = match state {
+        Undefined => Some(Idle(usize::MAX)),
+        Damaged(deadline) if deadline == frame => Some(Idle(usize::MAX)),
+        _ => None,
+    };
+    Ok(result)
+}
+
 /// Checks if weapon is ready for shooting
 /// returns false if the Weapon component is missing
 pub fn can_shoot(storage: &ComponentStorage, entity_id: EntityID) -> bool {
