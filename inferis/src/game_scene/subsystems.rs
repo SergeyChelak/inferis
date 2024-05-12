@@ -4,7 +4,7 @@ use engine::{
     fetch_first, ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Vec2f,
 };
 
-use crate::{game_scene::components, gameplay::WeaponState};
+use crate::game_scene::components;
 
 /// Updates weapon state to new one if it reached frame deadline
 /// if state doesn't changed functions returns None
@@ -12,7 +12,7 @@ pub fn update_weapon_state(
     frame: usize,
     storage: &mut ComponentStorage,
     entity_id: EntityID,
-) -> Option<WeaponState> {
+) -> Option<components::WeaponState> {
     let has_shot = storage
         .get::<components::Shot>(entity_id)
         .map(|x| x.deadline > frame)
@@ -101,7 +101,7 @@ pub fn can_shoot(storage: &ComponentStorage, entity_id: EntityID) -> bool {
     let Some(weapon) = storage.get::<components::Weapon>(entity_id) else {
         return false;
     };
-    matches!(weapon.state, WeaponState::Ready(_))
+    matches!(weapon.state, components::WeaponState::Ready(_))
 }
 
 pub fn ray_cast_from_entity(

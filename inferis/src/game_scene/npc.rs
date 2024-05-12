@@ -6,7 +6,6 @@ use engine::{
 
 use crate::{
     game_scene::subsystems::{can_shoot, get_actor_state, update_weapon_state},
-    gameplay::{BoundingBox, NpcTag},
     resource::{
         NPC_SOLDIER_ATTACK, NPC_SOLDIER_DAMAGE, NPC_SOLDIER_DAMAGE_RECOVER, NPC_SOLDIER_DEATH,
         NPC_SOLDIER_IDLE, NPC_SOLDIER_SHOT_DEADLINE, NPC_SOLDIER_WALK, SOUND_NPC_ATTACK,
@@ -66,8 +65,8 @@ impl NpcSystem {
         }
         if let Some(new_state) = state {
             if matches!(new_state, ActorState::Dead(_)) {
-                storage.set::<NpcTag>(entity_id, None);
-                storage.set::<BoundingBox>(entity_id, None);
+                storage.set::<components::NpcTag>(entity_id, None);
+                storage.set::<components::BoundingBox>(entity_id, None);
             }
             storage.set(entity_id, Some(new_state));
             self.update_npc_view(storage, entity_id, &new_state)?;

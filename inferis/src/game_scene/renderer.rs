@@ -10,10 +10,7 @@ use engine::{
     Query, SizeU32, Vec2f, RAY_CASTER_TOL,
 };
 
-use crate::{
-    gameplay::NpcTag,
-    resource::{PLAYER_PLAYER_DAMAGE_COLOR, WORLD_FLOOR_GRADIENT, WORLD_SKY},
-};
+use crate::resource::{PLAYER_PLAYER_DAMAGE_COLOR, WORLD_FLOOR_GRADIENT, WORLD_SKY};
 
 use super::{
     components::{self, ActorState},
@@ -443,7 +440,7 @@ impl RendererSystem {
         };
         let color = if entity_id == self.player_id {
             Color::RED
-        } else if storage.has_component::<NpcTag>(entity_id) {
+        } else if storage.has_component::<components::NpcTag>(entity_id) {
             Color::YELLOW
         } else {
             Color::GREEN

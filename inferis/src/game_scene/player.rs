@@ -7,12 +7,13 @@ use crate::{
     game_scene::{components::Sprite, subsystems::update_weapon_state},
     resource::{
         PLAYER_DAMAGE_DAMAGE_RECOVER, PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM,
-        PLAYER_SHOT_DEADLINE, SOUND_PLAYER_ATTACK, WORLD_GAME_OVER,
+        PLAYER_SHOT_DEADLINE, SOUND_PLAYER_ATTACK, SOUND_PLAYER_PAIN, WORLD_GAME_OVER,
     },
 };
 
 use super::{
     components::{self, ControllerState, Movement, Shot},
+    sound,
     subsystems::{can_shoot, fetch_player_id, is_actor_dead, updated_state},
 };
 
@@ -214,12 +215,22 @@ impl GameSystem for PlayerSystem {
             PLAYER_DAMAGE_DAMAGE_RECOVER,
         )? {
             storage.set(self.player_id, Some(new_state));
-            if matches!(new_state, components::ActorState::Dead(_)) {
-                storage.set::<components::BoundingBox>(self.player_id, None);
-                let sprite = Sprite::with_texture(WORLD_GAME_OVER);
-                storage.set(self.player_id, Some(sprite));
+            match new_state {
+                components::ActorState::Dead(_) => {
+                    storage.set::<components::BoundingBox>(self.player_id, None);
+                    let sprite = Sprite::with_texture(WORLD_GAME_OVER);
+                    storage.set(self.player_id, Some(sprite));
+                }
+                components::ActorState::Damaged(_) => {
+                    let sound_fx = components::SoundFx::once(SOUND_PLAYER_PAIN);
+                    storage.set(self.player_id, Some(sound_fx));
+                }
+                _ => {
+                    // no op
+                }
             }
         }
+
         let input = self.handle_controls(delta_time, storage)?;
         if is_actor_dead(storage, self.player_id) {
             // TODO: perform special actions...

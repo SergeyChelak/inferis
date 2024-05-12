@@ -1,8 +1,6 @@
 use std::path::Path;
 
 use engine::{assets::AssetSource, world::start, *};
-mod gameplay;
-use gameplay::main_scene::*;
 use resource::{FILE_ASSET_BUNDLE, FILE_ASSET_REGISTRY};
 mod game_scene;
 mod pbm;
@@ -20,16 +18,6 @@ fn main() -> EngineResult<()> {
         .build(initial_scene_id);
 
     start(world, settings)
-}
-
-fn _main() -> EngineResult<()> {
-    let settings = engine_settings()?;
-    let mut world = GameLoop::new(settings)?;
-    let game_scene = GameScene::new()?;
-    let id = game_scene.id();
-    world.register_scene(game_scene);
-    world.change_scene(id);
-    world.run()
 }
 
 fn engine_settings() -> EngineResult<EngineSettings> {

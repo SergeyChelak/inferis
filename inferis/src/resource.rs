@@ -1,4 +1,4 @@
-use crate::gameplay::HealthType;
+use crate::game_scene::components::HealthType;
 
 // files
 pub const FILE_ASSET_REGISTRY: &str = "assets/asset_registry.txt";
