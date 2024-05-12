@@ -7,7 +7,7 @@ use crate::{
     game_scene::{components::Sprite, fetch_player_id, subsystems::update_weapon_state},
     resource::{
         PLAYER_DAMAGE_DAMAGE_RECOVER, PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM,
-        PLAYER_SHOT_DEADLINE, SOUND_PLAYER_ATTACK,
+        PLAYER_SHOT_DEADLINE, SOUND_PLAYER_ATTACK, WORLD_GAME_OVER,
     },
 };
 
@@ -218,6 +218,9 @@ impl GameSystem for PlayerSystem {
                 storage.set::<components::BoundingBox>(self.player_id, None);
                 storage.set::<components::Health>(self.player_id, None);
                 storage.set::<components::ControllerState>(self.player_id, None);
+
+                let sprite = Sprite::with_texture(WORLD_GAME_OVER);
+                storage.set(self.player_id, Some(sprite));
                 return Ok(GameSystemCommand::Nothing);
             }
         }

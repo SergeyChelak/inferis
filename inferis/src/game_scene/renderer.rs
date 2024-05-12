@@ -13,10 +13,13 @@ use engine::{
 use crate::{
     game_scene::fetch_player_id,
     gameplay::NpcTag,
-    resource::{WORLD_FLOOR_GRADIENT, WORLD_SKY},
+    resource::{PLAYER_PLAYER_DAMAGE_COLOR, WORLD_FLOOR_GRADIENT, WORLD_SKY},
 };
 
-use super::{components, fetch_first};
+use super::{
+    components::{self, ActorState},
+    fetch_first,
+};
 
 const FIELD_OF_VIEW: Float = PI / 3.0;
 const HALF_FIELD_OF_VIEW: Float = FIELD_OF_VIEW * 0.5;
@@ -384,6 +387,37 @@ impl RendererSystem {
     }
 
     // ------------------------------------------------------------------------------------------------------------
+    fn render_hud_damage(
+        &self,
+        storage: &ComponentStorage,
+        asset_manager: &AssetManager,
+    ) -> EngineResult<()> {
+        if !storage
+            .get::<components::ActorState>(self.player_id)
+            .map(|state| match *state {
+                ActorState::Damaged(val) => val > self.frames,
+                _ => false,
+            })
+            .unwrap_or_default()
+        {
+            return Ok(());
+        };
+        let Some(color) = asset_manager.color(PLAYER_PLAYER_DAMAGE_COLOR) else {
+            return Ok(());
+        };
+        let rect = Rect::new(0, 0, self.window_size.width, self.window_size.height);
+        let mut layers = self.layers.borrow_mut();
+        let effect = RendererEffect::Rectangle {
+            color: *color,
+            fill: true,
+            blend_mode: BlendMode::Blend,
+            rect,
+        };
+        layers.push_hud(effect);
+        Ok(())
+    }
+
+    // ------------------------------------------------------------------------------------------------------------
     fn render_hud_minimap(&self, storage: &ComponentStorage) -> EngineResult<()> {
         self.render_hud_maze(storage)?;
         self.render_hud_minimap_objects(storage)?;
@@ -524,6 +558,7 @@ impl GameRendererSystem for RendererSystem {
         self.render_walls(storage)?;
         self.render_sprites(storage, asset_manager)?;
         // hud layer
+        self.render_hud_damage(storage, asset_manager)?;
         self.render_hud_minimap(storage)?;
         Ok(self.layers.clone())
     }
