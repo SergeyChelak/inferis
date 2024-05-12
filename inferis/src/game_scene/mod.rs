@@ -10,7 +10,7 @@ mod renderer;
 mod sound;
 mod subsystems;
 
-use engine::{fetch_first, game_scene::GameScene, ComponentStorage, EngineResult, EntityID};
+use engine::{fetch_first, game_scene::GameScene, ComponentStorage, EngineResult};
 
 use crate::resource::SCENE_GAME_PLAY;
 
@@ -60,8 +60,4 @@ pub fn compose_scene() -> EngineResult<GameScene> {
     scene.add_system(DamageSystem::new());
     scene.add_system(MovementSystem::new());
     Ok(scene)
-}
-
-pub fn fetch_player_id(storage: &ComponentStorage) -> Option<EntityID> {
-    fetch_first::<components::PlayerTag>(storage)
 }

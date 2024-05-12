@@ -138,7 +138,9 @@ fn get_events(event_pump: &mut EventPump) -> Vec<InputEvent> {
     let mut events = Vec::new();
     for event in event_pump.poll_iter() {
         match event {
-            Event::Quit { .. } => events.push(InputEvent::Quit),
+            Event::Quit { .. } => {
+                std::process::exit(0);
+            }
             Event::KeyDown {
                 keycode: Some(keycode),
                 ..

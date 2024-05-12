@@ -5,9 +5,7 @@ use engine::{
     EntityID, InputEvent,
 };
 
-use crate::game_scene::fetch_player_id;
-
-use super::components;
+use super::{components, subsystems::fetch_player_id};
 
 #[derive(Default)]
 pub struct ControlSystem {

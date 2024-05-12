@@ -4,7 +4,7 @@ use engine::{
 };
 
 use crate::{
-    game_scene::{components::Sprite, fetch_player_id, subsystems::update_weapon_state},
+    game_scene::{components::Sprite, subsystems::update_weapon_state},
     resource::{
         PLAYER_DAMAGE_DAMAGE_RECOVER, PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM,
         PLAYER_SHOT_DEADLINE, SOUND_PLAYER_ATTACK, WORLD_GAME_OVER,
@@ -13,7 +13,7 @@ use crate::{
 
 use super::{
     components::{self, ControllerState, Movement, Shot},
-    subsystems::{can_shoot, updated_state},
+    subsystems::{can_shoot, fetch_player_id, is_actor_dead, updated_state},
 };
 
 struct InputResult {
@@ -216,20 +216,20 @@ impl GameSystem for PlayerSystem {
             storage.set(self.player_id, Some(new_state));
             if matches!(new_state, components::ActorState::Dead(_)) {
                 storage.set::<components::BoundingBox>(self.player_id, None);
-                storage.set::<components::Health>(self.player_id, None);
-                storage.set::<components::ControllerState>(self.player_id, None);
-
                 let sprite = Sprite::with_texture(WORLD_GAME_OVER);
                 storage.set(self.player_id, Some(sprite));
-                return Ok(GameSystemCommand::Nothing);
             }
         }
         let input = self.handle_controls(delta_time, storage)?;
-        storage.set(self.player_id, Some(input.movement));
-        if input.is_shooting {
-            self.handle_shot(storage)?;
+        if is_actor_dead(storage, self.player_id) {
+            // TODO: perform special actions...
+        } else {
+            storage.set(self.player_id, Some(input.movement));
+            if input.is_shooting {
+                self.handle_shot(storage)?;
+            }
+            self.update_weapon(storage)?;
         }
-        self.update_weapon(storage)?;
         Ok(input.command)
     }
 }

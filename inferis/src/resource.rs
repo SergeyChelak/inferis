@@ -36,6 +36,7 @@ pub const NPC_SOLDIER_ATTACK: &str = "anim_soldier_attack";
 pub const NPC_SOLDIER_DEATH: &str = "anim_soldier_death";
 pub const NPC_SOLDIER_DAMAGE: &str = "anim_soldier_pain";
 pub const NPC_SOLDIER_WALK: &str = "anim_soldier_walk";
+pub const NPC_SOLDIER_SHOT_DEADLINE: usize = 5;
 pub const NPC_SOLDIER_DAMAGE_RECOVER: usize = 15;
 
 // sound

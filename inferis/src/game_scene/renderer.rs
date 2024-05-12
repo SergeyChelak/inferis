@@ -11,7 +11,6 @@ use engine::{
 };
 
 use crate::{
-    game_scene::fetch_player_id,
     gameplay::NpcTag,
     resource::{PLAYER_PLAYER_DAMAGE_COLOR, WORLD_FLOOR_GRADIENT, WORLD_SKY},
 };
@@ -19,6 +18,7 @@ use crate::{
 use super::{
     components::{self, ActorState},
     fetch_first,
+    subsystems::fetch_player_id,
 };
 
 const FIELD_OF_VIEW: Float = PI / 3.0;

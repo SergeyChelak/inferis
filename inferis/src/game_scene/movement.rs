@@ -54,6 +54,7 @@ impl MovementSystem {
             }
             angle.0 = val;
         }
+        storage.set::<components::Movement>(entity_id, None);
         Ok(())
     }
 

@@ -1,6 +1,8 @@
 use std::borrow::BorrowMut;
 
-use engine::{ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Vec2f};
+use engine::{
+    fetch_first, ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Vec2f,
+};
 
 use crate::{game_scene::components, gameplay::WeaponState};
 
@@ -144,4 +146,22 @@ pub fn ray_cast_from_entity(
     };
     let result = ray_cast(position, angle, &check);
     Ok(result.value)
+}
+
+pub fn fetch_player_id(storage: &ComponentStorage) -> Option<EntityID> {
+    fetch_first::<components::PlayerTag>(storage)
+}
+
+pub fn get_actor_state(storage: &ComponentStorage, entity_id: EntityID) -> components::ActorState {
+    storage
+        .get::<components::ActorState>(entity_id)
+        .map(|x| *x)
+        .unwrap_or_default()
+}
+
+pub fn is_actor_dead(storage: &ComponentStorage, entity_id: EntityID) -> bool {
+    matches!(
+        get_actor_state(storage, entity_id),
+        components::ActorState::Dead(_)
+    )
 }
