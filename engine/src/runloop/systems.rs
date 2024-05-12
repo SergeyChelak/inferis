@@ -1,14 +1,13 @@
 use std::{cell::RefCell, rc::Rc};
 
 use sdl2::{
+    keyboard::Keycode,
     pixels::Color,
     rect::{Point, Rect},
     render::BlendMode,
 };
 
-use crate::{AssetManager, ComponentStorage, EngineResult, Float, SizeU32};
-
-use super::{InputEvent, SceneID};
+use crate::{AssetManager, ComponentStorage, EngineResult, Float, SceneID, SizeU32};
 
 pub enum GameSystemCommand {
     Nothing,
@@ -29,6 +28,20 @@ pub trait GameSystem {
         storage: &mut ComponentStorage,
         asset_manager: &AssetManager,
     ) -> EngineResult<GameSystemCommand>;
+}
+
+pub enum InputEvent {
+    Quit,
+    Keyboard {
+        code: Keycode,
+        pressed: bool,
+    },
+    Mouse {
+        x: i32,
+        y: i32,
+        x_rel: i32,
+        y_rel: i32,
+    },
 }
 
 pub trait GameControlSystem {

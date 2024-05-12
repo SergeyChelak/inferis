@@ -1,6 +1,10 @@
 use std::path::Path;
 
-use engine::{assets::AssetSource, runloop::GameWorldBuilder, *};
+use engine::{
+    assets::AssetSource,
+    world::{start, GameWorldBuilder},
+    *,
+};
 use resource::{FILE_ASSET_BUNDLE, FILE_ASSET_REGISTRY};
 mod game_scene;
 mod pbm;

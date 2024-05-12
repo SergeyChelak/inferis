@@ -1,8 +1,9 @@
 use std::borrow::BorrowMut;
 
 use engine::{
-    keyboard::Keycode, systems::GameControlSystem, ComponentStorage, EngineError, EngineResult,
-    EntityID, InputEvent,
+    keyboard::Keycode,
+    systems::{GameControlSystem, InputEvent},
+    ComponentStorage, EngineError, EngineResult, EntityID,
 };
 
 use super::{components, subsystems::fetch_player_id};
@@ -38,7 +39,7 @@ impl GameControlSystem for ControlSystem {
     fn push_events(
         &mut self,
         storage: &mut engine::ComponentStorage,
-        events: &[engine::InputEvent],
+        events: &[InputEvent],
     ) -> EngineResult<()> {
         self.update_storage_cache(storage)?;
         let Some(mut comp) = storage.get_mut::<components::ControllerState>(self.player_id) else {

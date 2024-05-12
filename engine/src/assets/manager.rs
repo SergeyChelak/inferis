@@ -9,7 +9,7 @@ use sdl2::{
     video::WindowContext,
 };
 
-use crate::{EngineError, EngineResult, Float};
+use crate::{EngineError, EngineResult, Float, SizeU32};
 
 use super::{
     bundle_parser::raw_assets_from_bundle,
@@ -293,5 +293,13 @@ fn create_sound_chunk(data: &[u8]) -> EngineResult<Chunk> {
             return Err(EngineError::sdl("Failed to load sound chunk"));
         }
         Ok(Chunk { raw, owned: true })
+    }
+}
+
+pub fn texture_size(texture: &Texture) -> SizeU32 {
+    let query = texture.query();
+    SizeU32 {
+        width: query.width,
+        height: query.height,
     }
 }

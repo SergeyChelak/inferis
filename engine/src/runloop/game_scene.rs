@@ -1,13 +1,11 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{AssetManager, ComponentStorage, EngineResult, SizeU32};
+use crate::{systems::InputEvent, AssetManager, ComponentStorage, EngineResult, SceneID, SizeU32};
 
 use super::systems::{
     GameControlSystem, GameRendererSystem, GameSoundSystem, GameSystem, GameSystemCommand,
     RendererLayersPtr, SoundEffect,
 };
-
-use super::{InputEvent, SceneID};
 
 pub struct GameScene {
     id: SceneID,

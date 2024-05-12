@@ -7,15 +7,14 @@ use std::{
 use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, EventPump, Sdl};
 
 use crate::{
-    AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings, WindowSettings,
+    systems::InputEvent, AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings,
+    WindowSettings,
 };
 
 use super::{
     game_scene::GameScene,
     systems::{GameSystemCommand, RendererEffect, RendererLayersPtr, SoundEffect},
 };
-
-use super::InputEvent;
 
 const TARGET_FPS: u128 = 60;
 
