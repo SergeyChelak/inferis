@@ -34,6 +34,7 @@ pub struct RendererSystem {
     // short term cached values
     angle: Float,
     player_pos: Vec2f,
+    frames: usize,
     // long term cached values
     player_id: EntityID,
     maze_id: EntityID,
@@ -56,6 +57,7 @@ impl Default for RendererSystem {
             texture_size: Default::default(),
             angle: Default::default(),
             player_pos: Default::default(),
+            frames: Default::default(),
             player_id: Default::default(),
             maze_id: Default::default(),
             window_size: Default::default(),
@@ -102,7 +104,6 @@ impl RendererSystem {
     // ------------------------------------------------------------------------------------------------------------
     fn render_sprites(
         &self,
-        frames: usize,
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
     ) -> EngineResult<()> {
@@ -110,9 +111,9 @@ impl RendererSystem {
         let entities = storage.fetch_entities(&query);
         for entity_id in entities {
             if entity_id == self.player_id {
-                self.render_hud_weapon(frames, storage, asset_manager)?;
+                self.render_hud_weapon(storage, asset_manager)?;
             } else {
-                self.render_sprite(frames, storage, asset_manager, entity_id)?;
+                self.render_sprite(storage, asset_manager, entity_id)?;
             }
         }
         Ok(())
@@ -120,12 +121,11 @@ impl RendererSystem {
 
     fn render_sprite(
         &self,
-        frames: usize,
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
         entity_id: EntityID,
     ) -> EngineResult<()> {
-        let Some(data) = self.sprite_view_data(frames, storage, asset_manager, entity_id) else {
+        let Some(data) = self.sprite_view_data(storage, asset_manager, entity_id) else {
             return Ok(());
         };
         let Some(sprite_pos) = storage.get::<components::Position>(entity_id).map(|x| x.0) else {
@@ -187,12 +187,10 @@ impl RendererSystem {
 
     fn render_hud_weapon(
         &self,
-        frames: usize,
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
     ) -> EngineResult<()> {
-        let Some(texture_data) =
-            self.sprite_view_data(frames, storage, asset_manager, self.player_id)
+        let Some(texture_data) = self.sprite_view_data(storage, asset_manager, self.player_id)
         else {
             return Ok(());
         };
@@ -225,7 +223,6 @@ impl RendererSystem {
     // ------------------------------------------------------------------------------------------------------------
     fn sprite_view_data(
         &self,
-        frames: usize,
         storage: &ComponentStorage,
         asset_manager: &AssetManager,
         entity_id: EntityID,
@@ -253,7 +250,7 @@ impl RendererSystem {
                     width: size.width / params.frames_count as u32,
                     height: size.height,
                 };
-                let elapsed = frames - frame_start;
+                let elapsed = self.frames - frame_start;
                 let frame_duration = params.frame_duration as usize;
                 let duration = frame_duration * params.frames_count;
                 let index = if elapsed / duration <= times {
@@ -517,6 +514,7 @@ impl GameRendererSystem for RendererSystem {
             .get::<components::Position>(self.player_id)
             .map(|x| x.0)
             .ok_or(EngineError::component_not_found("[v2.renderer] position"))?;
+        self.frames = frames;
 
         self.layers.borrow_mut().clear();
         // background layer
@@ -524,7 +522,7 @@ impl GameRendererSystem for RendererSystem {
         self.render_sky()?;
         // depth layer
         self.render_walls(storage)?;
-        self.render_sprites(frames, storage, asset_manager)?;
+        self.render_sprites(storage, asset_manager)?;
         // hud layer
         self.render_hud_minimap(storage)?;
         Ok(self.layers.clone())
