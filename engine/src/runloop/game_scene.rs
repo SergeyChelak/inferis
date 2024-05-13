@@ -58,13 +58,13 @@ impl GameScene {
             let mut system = elem.borrow_mut();
             system.setup(&mut self.storage, asset_manager)?;
         }
-        self.control_system.borrow_mut().setup(&mut self.storage)?;
+        self.control_system.borrow_mut().setup(&self.storage)?;
         self.renderer_system
             .borrow_mut()
-            .setup(&mut self.storage, asset_manager, window_size)?;
+            .setup(&self.storage, asset_manager, window_size)?;
         if let Some(elem) = &self.sound_system {
             let mut system = elem.borrow_mut();
-            system.setup(&mut self.storage, asset_manager)?;
+            system.setup(&self.storage, asset_manager)?;
         }
         Ok(())
     }

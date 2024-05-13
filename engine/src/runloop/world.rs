@@ -24,15 +24,14 @@ pub struct GameWorld {
     is_running: bool,
 }
 
+#[derive(Default)]
 pub struct GameWorldBuilder {
     scenes: HashMap<String, GameScene>,
 }
 
 impl GameWorldBuilder {
     pub fn new() -> Self {
-        Self {
-            scenes: Default::default(),
-        }
+        Self::default()
     }
 
     pub fn with_scene(mut self, scene: GameScene) -> Self {

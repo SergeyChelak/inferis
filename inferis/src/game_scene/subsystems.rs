@@ -19,9 +19,7 @@ pub fn update_weapon_state(
         .get::<components::Shot>(entity_id)
         .map(|x| x.deadline > frame)
         .unwrap_or(false);
-    let Some(mut weapon) = storage.get_mut::<components::Weapon>(entity_id) else {
-        return None;
-    };
+    let mut weapon = storage.get_mut::<components::Weapon>(entity_id)?;
     use components::WeaponState::*;
     let new_state = match weapon.state {
         Undefined => Ready(usize::MAX),
@@ -75,7 +73,7 @@ fn state_if_damaged(
         components::ActorState::Dead(usize::MAX)
     };
     storage.set(entity_id, Some(state));
-    return Ok(Some(state));
+    Ok(Some(state))
 }
 
 fn updated_state_if_time(
