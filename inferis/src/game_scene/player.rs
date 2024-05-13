@@ -6,8 +6,8 @@ use engine::{
 use crate::{
     game_scene::{components::Sprite, subsystems::update_weapon_state},
     resource::{
-        PLAYER_DAMAGE_DAMAGE_RECOVER, PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM,
-        PLAYER_SHOT_DEADLINE, SOUND_PLAYER_ATTACK, SOUND_PLAYER_PAIN, WORLD_GAME_OVER,
+        PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM, SOUND_PLAYER_ATTACK, SOUND_PLAYER_PAIN,
+        WORLD_GAME_OVER,
     },
 };
 
@@ -15,6 +15,9 @@ use super::{
     components::{self, ControllerState, Movement, Shot},
     subsystems::{can_shoot, fetch_player_id, is_actor_dead, updated_state},
 };
+
+pub const PLAYER_SHOT_DEADLINE: usize = 3;
+pub const PLAYER_DAMAGE_DAMAGE_RECOVER: usize = 5;
 
 struct InputResult {
     pub movement: Movement,

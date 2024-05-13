@@ -1,5 +1,3 @@
-use crate::game_scene::components::HealthType;
-
 // files
 pub const FILE_ASSET_REGISTRY: &str = "assets/asset_registry.txt";
 pub const FILE_ASSET_BUNDLE: &str = "inferis.bin";
@@ -24,11 +22,7 @@ pub const WORLD_LEVEL_BASIC: &str = "level_basic";
 // player
 pub const PLAYER_SHOTGUN_SHOT_ANIM: &str = "anim_shotgun_shot";
 pub const PLAYER_SHOTGUN_IDLE_ANIM: &str = "anim_shotgun_idle";
-pub const PLAYER_SHOTGUN_DAMAGE: HealthType = 27;
 pub const PLAYER_PLAYER_DAMAGE_COLOR: &str = "player_damage_clr";
-pub const PLAYER_SHOTGUN_RECHARGE_FRAMES: usize = 45;
-pub const PLAYER_SHOT_DEADLINE: usize = 3;
-pub const PLAYER_DAMAGE_DAMAGE_RECOVER: usize = 5;
 
 // npc soldier
 pub const NPC_SOLDIER_IDLE: &str = "anim_soldier_idle";
@@ -36,8 +30,6 @@ pub const NPC_SOLDIER_ATTACK: &str = "anim_soldier_attack";
 pub const NPC_SOLDIER_DEATH: &str = "anim_soldier_death";
 pub const NPC_SOLDIER_DAMAGE: &str = "anim_soldier_pain";
 pub const NPC_SOLDIER_WALK: &str = "anim_soldier_walk";
-pub const NPC_SOLDIER_SHOT_DEADLINE: usize = 5;
-pub const NPC_SOLDIER_DAMAGE_RECOVER: usize = 15;
 
 // sound
 pub const SOUND_PLAYER_ATTACK: &str = "sound_player_attack";

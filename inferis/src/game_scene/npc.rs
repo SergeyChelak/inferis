@@ -7,16 +7,18 @@ use engine::{
 use crate::{
     game_scene::subsystems::{can_shoot, get_actor_state, update_weapon_state},
     resource::{
-        NPC_SOLDIER_ATTACK, NPC_SOLDIER_DAMAGE, NPC_SOLDIER_DAMAGE_RECOVER, NPC_SOLDIER_DEATH,
-        NPC_SOLDIER_IDLE, NPC_SOLDIER_SHOT_DEADLINE, NPC_SOLDIER_WALK, SOUND_NPC_ATTACK,
-        SOUND_NPC_DEATH, SOUND_NPC_PAIN,
+        NPC_SOLDIER_ATTACK, NPC_SOLDIER_DAMAGE, NPC_SOLDIER_DEATH, NPC_SOLDIER_IDLE,
+        NPC_SOLDIER_WALK, SOUND_NPC_ATTACK, SOUND_NPC_DEATH, SOUND_NPC_PAIN,
     },
 };
 
 use super::{
     components::{self, ActorState, Sprite},
-    subsystems::{fetch_player_id, ray_cast_from_entity, updated_state},
+    subsystems::{fetch_player_id, ray_cast_from_entity, replace_actor_state, updated_state},
 };
+
+pub const NPC_SOLDIER_SHOT_DEADLINE: usize = 10;
+pub const NPC_SOLDIER_DAMAGE_RECOVER: usize = 20;
 
 #[derive(Default)]
 pub struct NpcSystem {
@@ -126,41 +128,39 @@ impl NpcSystem {
         storage: &mut engine::ComponentStorage,
         entity_id: EntityID,
     ) -> EngineResult<Option<components::ActorState>> {
+        let cur_state = get_actor_state(storage, entity_id);
+        match cur_state {
+            ActorState::Idle(_) | ActorState::Attack(_) | ActorState::Walk(_) => {
+                self.ncp_find_target(storage, entity_id)
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn ncp_find_target(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+    ) -> EngineResult<Option<components::ActorState>> {
         let Some(npc_position) = storage.get::<components::Position>(entity_id).map(|x| x.0) else {
             return Ok(None);
         };
         let vector = self.player_position - npc_position;
         let angle = vector.y.atan2(vector.x);
-        // --- TEMPORARY
         storage.set(entity_id, Some(components::Angle(angle)));
-        // ---
-        let old_state = get_actor_state(storage, entity_id);
-        let Some(distance) =
-            ray_cast_from_entity(entity_id, storage, self.maze_id, npc_position, angle)?.and_then(
-                |id| {
-                    if id == self.player_id {
-                        Some(vector.hypotenuse())
-                    } else {
-                        None
-                    }
-                },
-            )
-        else {
-            return if matches!(old_state, components::ActorState::Idle(_)) {
-                Ok(None)
-            } else {
-                Ok(Some(components::ActorState::Idle(usize::MAX)))
-            };
+        let target_id =
+            ray_cast_from_entity(entity_id, storage, self.maze_id, npc_position, angle)?;
+        let new_state = match target_id {
+            Some(id) if self.player_id == id => {
+                if vector.hypotenuse() < 5.0 {
+                    components::ActorState::Attack(usize::MAX)
+                } else {
+                    components::ActorState::Walk(usize::MAX)
+                }
+            }
+            _ => ActorState::Idle(usize::MAX),
         };
-        let new_state = if distance < 5.0 {
-            components::ActorState::Attack(usize::MAX)
-        } else {
-            components::ActorState::Walk(usize::MAX)
-        };
-        if old_state == new_state {
-            return Ok(None);
-        }
-        Ok(Some(new_state))
+        Ok(replace_actor_state(new_state, storage, entity_id))
     }
 
     fn update_npc_view(

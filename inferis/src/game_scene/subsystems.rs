@@ -6,6 +6,8 @@ use engine::{
 
 use crate::game_scene::components;
 
+use super::components::ActorState;
+
 /// Updates weapon state to new one if it reached frame deadline
 /// if state doesn't changed functions returns None
 pub fn update_weapon_state(
@@ -164,4 +166,20 @@ pub fn is_actor_dead(storage: &ComponentStorage, entity_id: EntityID) -> bool {
         get_actor_state(storage, entity_id),
         components::ActorState::Dead(_)
     )
+}
+
+/// Updates ActorState
+/// Returns new state value if its enum is different
+pub fn replace_actor_state(
+    state: ActorState,
+    storage: &mut ComponentStorage,
+    entity_id: EntityID,
+) -> Option<ActorState> {
+    let current = get_actor_state(storage, entity_id);
+    use std::mem;
+    if mem::discriminant(&current) == mem::discriminant(&state) {
+        return None;
+    }
+    storage.set(entity_id, Some(state));
+    Some(state)
 }

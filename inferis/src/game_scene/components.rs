@@ -125,13 +125,14 @@ pub struct Maze(pub MazeData);
 impl Maze {
     pub fn wall_texture(&self, point: Vec2f) -> Option<String> {
         match self.value_at(point)? {
-            1 => Some(WORLD_WALL1.to_string()),
-            2 => Some(WORLD_WALL2.to_string()),
-            3 => Some(WORLD_WALL3.to_string()),
-            4 => Some(WORLD_WALL4.to_string()),
-            5 => Some(WORLD_WALL5.to_string()),
+            1 => Some(WORLD_WALL1),
+            2 => Some(WORLD_WALL2),
+            3 => Some(WORLD_WALL3),
+            4 => Some(WORLD_WALL4),
+            5 => Some(WORLD_WALL5),
             _ => None,
         }
+        .map(|x| x.to_string())
     }
 
     pub fn value_at(&self, point: Vec2f) -> Option<&i32> {

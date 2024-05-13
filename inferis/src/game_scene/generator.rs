@@ -6,13 +6,13 @@ use engine::{
 
 use crate::{
     pbm::PBMImage,
-    resource::{
-        PLAYER_SHOTGUN_DAMAGE, PLAYER_SHOTGUN_RECHARGE_FRAMES, WORLD_CANDELABRA, WORLD_LEVEL_BASIC,
-        WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM,
-    },
+    resource::{WORLD_CANDELABRA, WORLD_LEVEL_BASIC, WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM},
 };
 
 use super::components::*;
+
+pub const PLAYER_SHOTGUN_DAMAGE: HealthType = 27;
+pub const PLAYER_SHOTGUN_RECHARGE_FRAMES: usize = 45;
 
 #[derive(Default)]
 pub struct GeneratorSystem {
@@ -81,10 +81,10 @@ impl GameSystem for GeneratorSystem {
 
     fn update(
         &mut self,
-        frames: usize,
+        _frames: usize,
         _delta_time: Float,
-        storage: &mut ComponentStorage,
-        asset_manager: &AssetManager,
+        _storage: &mut ComponentStorage,
+        _asset_manager: &AssetManager,
     ) -> engine::EngineResult<GameSystemCommand> {
         // TODO: implement valid logic for (re)creating levels and characters
         // if storage.has_component::<InvalidatedTag>(self.player_id) {
