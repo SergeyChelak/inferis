@@ -14,6 +14,9 @@ use super::components::*;
 pub const PLAYER_SHOTGUN_DAMAGE: HealthType = 27;
 pub const PLAYER_SHOTGUN_RECHARGE_FRAMES: usize = 45;
 
+pub const NPC_SOLDIER_SHOTGUN_DAMAGE: HealthType = 4;
+pub const NPC_SOLDIER_SHOTGUN_RECHARGE_FRAMES: usize = 30;
+
 #[derive(Default)]
 pub struct GeneratorSystem {
     player_id: EntityID,
@@ -115,7 +118,11 @@ fn bundle_player(position: Vec2f) -> EntityBundle {
 
 fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
     EntityBundle::new()
-        .put(weapon(4, 30, usize::MAX))
+        .put(weapon(
+            NPC_SOLDIER_SHOTGUN_DAMAGE,
+            NPC_SOLDIER_SHOTGUN_RECHARGE_FRAMES,
+            usize::MAX,
+        ))
         .put(Position(position))
         .put(NpcTag)
         .put(ActorState::Undefined)

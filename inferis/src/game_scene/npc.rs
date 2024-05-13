@@ -1,7 +1,7 @@
 use components::SoundFx;
 use engine::{
-    fetch_first, systems::GameSystem, ComponentStorage, EngineError, EngineResult, EntityID, Query,
-    Vec2f,
+    fetch_first, systems::GameSystem, ComponentStorage, EngineError, EngineResult, EntityID, Float,
+    Query, Vec2f,
 };
 
 use crate::{
@@ -19,6 +19,7 @@ use super::{
 
 pub const NPC_SOLDIER_SHOT_DEADLINE: usize = 10;
 pub const NPC_SOLDIER_DAMAGE_RECOVER: usize = 20;
+pub const NPC_VISION_SENSITIVITY: Float = 0.7;
 
 #[derive(Default)]
 pub struct NpcSystem {
@@ -69,6 +70,7 @@ impl NpcSystem {
             if matches!(new_state, ActorState::Dead(_)) {
                 storage.set::<components::NpcTag>(entity_id, None);
                 storage.set::<components::BoundingBox>(entity_id, None);
+                storage.set::<components::Angle>(entity_id, None);
             }
             storage.set(entity_id, Some(new_state));
             self.update_npc_view(storage, entity_id, &new_state)?;
@@ -148,8 +150,14 @@ impl NpcSystem {
         let vector = self.player_position - npc_position;
         let angle = vector.y.atan2(vector.x);
         storage.set(entity_id, Some(components::Angle(angle)));
-        let target_id =
-            ray_cast_from_entity(entity_id, storage, self.maze_id, npc_position, angle)?;
+        let target_id = ray_cast_from_entity(
+            entity_id,
+            storage,
+            self.maze_id,
+            npc_position,
+            angle,
+            NPC_VISION_SENSITIVITY,
+        )?;
         let new_state = match target_id {
             Some(id) if self.player_id == id => {
                 if vector.hypotenuse() < 5.0 {

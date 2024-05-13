@@ -6,6 +6,8 @@ use engine::{
 
 use super::{components, subsystems::ray_cast_from_entity};
 
+const ATTACK_DETECTION_SENSITIVITY: Float = 0.2;
+
 pub struct DamageSystem {
     frames: usize,
     maze_id: EntityID,
@@ -51,8 +53,14 @@ impl DamageSystem {
         else {
             return Ok(());
         };
-        let Some(target_id) =
-            ray_cast_from_entity(entity_id, storage, self.maze_id, shot.position, shot.angle)?
+        let Some(target_id) = ray_cast_from_entity(
+            entity_id,
+            storage,
+            self.maze_id,
+            shot.position,
+            shot.angle,
+            ATTACK_DETECTION_SENSITIVITY,
+        )?
         else {
             return Ok(());
         };

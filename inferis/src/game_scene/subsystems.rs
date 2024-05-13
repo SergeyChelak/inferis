@@ -1,12 +1,13 @@
 use std::borrow::BorrowMut;
 
 use engine::{
-    fetch_first, ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Vec2f,
+    fetch_first, ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Rectangle,
+    SizeFloat, Vec2f,
 };
 
 use crate::game_scene::components;
 
-use super::components::ActorState;
+use super::components::{ActorState, BoundingBox};
 
 /// Updates weapon state to new one if it reached frame deadline
 /// if state doesn't changed functions returns None
@@ -110,17 +111,21 @@ pub fn ray_cast_from_entity(
     maze_id: EntityID,
     position: Vec2f,
     angle: Float,
+    detection_sensitivity: Float,
 ) -> EngineResult<Option<EntityID>> {
     let query = Query::new().with_component::<components::BoundingBox>();
     let entities = storage.fetch_entities(&query);
     if entities.is_empty() {
         return Ok(None);
     }
+    let detection_size = SizeFloat {
+        width: detection_sensitivity,
+        height: detection_sensitivity,
+    };
     let check = |point: Vec2f| {
         if point.x < 0.0 || point.y < 0.0 {
             return None;
         }
-        let (x, y) = (point.x.round() as i32, point.y.round() as i32);
         for target_id in &entities {
             if *target_id == entity_id {
                 continue;
@@ -128,9 +133,12 @@ pub fn ray_cast_from_entity(
             let Some(pos) = storage.get::<components::Position>(*target_id).map(|x| x.0) else {
                 continue;
             };
-            let (tx, ty) = (pos.x.round() as i32, pos.y.round() as i32);
-            let dist = (pos - point).hypotenuse();
-            if x == tx && y == ty || dist < 0.3 {
+            let Some(target_size) = storage.get::<BoundingBox>(*target_id).map(|x| x.0) else {
+                continue;
+            };
+            let rect1 = Rectangle::with_pole(pos, target_size);
+            let rect2 = Rectangle::with_pole(point, detection_size);
+            if rect1.has_intersection(&rect2) {
                 return Some(*target_id);
             }
         }
