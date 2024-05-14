@@ -6,7 +6,7 @@ use engine::{
 
 use super::{components, subsystems::ray_cast_from_entity};
 
-const ATTACK_DETECTION_SENSITIVITY: Float = 0.2;
+const ATTACK_DETECTION_SENSITIVITY: Float = 0.3;
 
 pub struct DamageSystem {
     frames: usize,

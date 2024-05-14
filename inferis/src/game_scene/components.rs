@@ -146,7 +146,7 @@ impl Maze {
 
     pub fn is_wall(&self, point: Vec2f) -> bool {
         let Some(val) = self.value_at(point) else {
-            return false;
+            return true;
         };
         *val != 0
     }
