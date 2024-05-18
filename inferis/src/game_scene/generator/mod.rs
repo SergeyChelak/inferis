@@ -3,7 +3,7 @@ pub mod matrix;
 use engine::{
     systems::{GameSystem, GameSystemCommand},
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityBundle, EntityID, Float,
-    SizeFloat, Vec2f,
+    SizeFloat, Vec2f, RAY_CASTER_MAX_DEPTH,
 };
 use rand::{seq::SliceRandom, thread_rng};
 
@@ -19,8 +19,6 @@ pub const PLAYER_SHOTGUN_RECHARGE_FRAMES: usize = 45;
 pub const NPC_SOLDIER_SHOTGUN_DAMAGE: HealthType = 4;
 pub const NPC_SOLDIER_SHOTGUN_RECHARGE_FRAMES: usize = 30;
 
-const MATRIX_COLS: usize = 50;
-const MATRIX_ROWS: usize = 50;
 const TILE_WALL: MatrixElement = 1;
 const TILE_FLOOR: MatrixElement = 0;
 const REGION_THRESHOLD: usize = 3;
@@ -43,8 +41,8 @@ impl GeneratorSystem {
     ) -> EngineResult<()> {
         storage.remove_all_entities();
         let mut matrix = generate_matrix(
-            MATRIX_ROWS,
-            MATRIX_COLS,
+            RAY_CASTER_MAX_DEPTH,
+            RAY_CASTER_MAX_DEPTH,
             TILE_WALL,
             TILE_FLOOR,
             REGION_THRESHOLD,

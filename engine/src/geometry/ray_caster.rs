@@ -1,7 +1,7 @@
 use crate::{Float, Vec2f};
 
 pub const RAY_CASTER_TOL: Float = 1e-5;
-const MAX_DEPTH: usize = 50;
+pub const RAY_CASTER_MAX_DEPTH: usize = 50;
 
 pub struct RayCastResult<T> {
     pub value: Option<T>,
@@ -75,7 +75,7 @@ fn cast_horizontal<T>(
     let depth_delta = dy / sin;
     let dx = depth_delta * cos;
     let mut val: Option<T> = None;
-    for _ in 0..MAX_DEPTH {
+    for _ in 0..RAY_CASTER_MAX_DEPTH {
         val = check(Vec2f::new(x, y));
         if val.is_some() {
             break;
@@ -104,7 +104,7 @@ fn cast_vertical<T>(
     let depth_delta = dx / cos;
     let dy = depth_delta * sin;
     let mut val: Option<T> = None;
-    for _ in 0..MAX_DEPTH {
+    for _ in 0..RAY_CASTER_MAX_DEPTH {
         val = check(Vec2f::new(x, y));
         if val.is_some() {
             break;
