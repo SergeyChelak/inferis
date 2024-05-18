@@ -7,9 +7,7 @@ use engine::{
 };
 use rand::{seq::SliceRandom, thread_rng};
 
-use crate::resource::{
-    WORLD_CANDELABRA, WORLD_LEVEL_BASIC, WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM,
-};
+use crate::resource::{WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM};
 
 use self::matrix::{contours, generate_matrix, regions, MatrixElement};
 
@@ -54,9 +52,6 @@ impl GeneratorSystem {
         .ok_or(EngineError::unexpected_state(
             "[v2.generator] failed to build new matrix",
         ))?;
-        let offset = Vec2f::new(0.5, 0.5);
-
-        let contour = contours(&matrix, TILE_WALL);
         {
             // optional step: assign different wall textures
             let regions = matrix::regions(&matrix, TILE_WALL);
@@ -76,9 +71,7 @@ impl GeneratorSystem {
             .collect::<Vec<Vec2f>>();
         available_places.shuffle(&mut thread_rng());
 
-        let maze_bundle = EntityBundle::new().put(Maze { matrix, contour });
-        self.maze_id = storage.append(&maze_bundle);
-
+        let offset = Vec2f::new(0.5, 0.5);
         {
             let Some(pos) = available_places.pop() else {
                 return Err(EngineError::unexpected_state(
@@ -87,34 +80,63 @@ impl GeneratorSystem {
             };
             self.player_id = storage.append(&bundle_player(pos + offset));
         }
-
-        /*
-        // decorations
-        storage.append(&bundle_torch(
-            TorchStyle::Green,
-            Vec2f::new(1.2, 12.9),
-            frames,
-        ));
-        storage.append(&bundle_torch(
-            TorchStyle::Green,
-            Vec2f::new(1.2, 4.1),
-            frames,
-        ));
-        storage.append(&bundle_torch(TorchStyle::Red, Vec2f::new(1.2, 9.0), frames));
-        storage.append(&bundle_sprite(WORLD_CANDELABRA, Vec2f::new(8.8, 2.8)));
-         */
-
         // npc
         #[cfg(not(debug_assertions))]
         let soldiers = 20;
         #[cfg(debug_assertions)]
-        let soldiers = 5;
+        let soldiers = 0;
         for _ in 0..soldiers {
             let Some(pos) = available_places.pop() else {
                 break;
             };
             storage.append(&bundle_npc_soldier(pos + offset));
         }
+
+        let contour = contours(&matrix, TILE_WALL);
+        let maze = Maze { matrix, contour };
+
+        // decorations
+        let dy = Vec2f::new(0.0, 1.0);
+        let dx = Vec2f::new(1.0, 0.0);
+        for pos in available_places.iter() {
+            let top = maze.is_wall(*pos - dy);
+            let left = maze.is_wall(*pos - dx);
+            let bottom = maze.is_wall(*pos + dy);
+            let right = maze.is_wall(*pos + dx);
+
+            if left && top {
+                storage.append(&bundle_torch(
+                    TorchStyle::Green,
+                    *pos + Vec2f::new(0.1, 0.1),
+                    frames,
+                ));
+            }
+            if top && right {
+                storage.append(&bundle_torch(
+                    TorchStyle::Red,
+                    *pos + Vec2f::new(0.9, 0.1),
+                    frames,
+                ));
+            }
+            if bottom && left {
+                storage.append(&bundle_torch(
+                    TorchStyle::Red,
+                    *pos + Vec2f::new(0.1, 0.9),
+                    frames,
+                ));
+            }
+            if bottom && right {
+                storage.append(&bundle_torch(
+                    TorchStyle::Green,
+                    *pos + Vec2f::new(0.9, 0.9),
+                    frames,
+                ));
+            }
+        }
+
+        let maze_bundle = EntityBundle::new().put(maze);
+        self.maze_id = storage.append(&maze_bundle);
+
         Ok(())
     }
 }
@@ -205,13 +227,5 @@ fn bundle_torch(style: TorchStyle, position: Vec2f, frame: usize) -> EntityBundl
         .put(Position(position))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
-        .put(BoundingBox(SizeFloat::new(0.3, 0.3)))
-}
-
-fn bundle_sprite(texture_id: &'static str, position: Vec2f) -> EntityBundle {
-    EntityBundle::new()
-        .put(Sprite::with_texture(texture_id))
-        .put(Position(position))
-        .put(ScaleRatio(0.7))
-        .put(HeightShift(0.27))
+    // .put(BoundingBox(SizeFloat::new(0.3, 0.3)))
 }
