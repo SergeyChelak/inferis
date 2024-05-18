@@ -1,4 +1,4 @@
-mod matrix;
+pub mod matrix;
 
 use engine::{
     systems::{GameSystem, GameSystemCommand},
@@ -7,14 +7,11 @@ use engine::{
 };
 use rand::{seq::SliceRandom, thread_rng};
 
-use crate::{
-    pbm::PBMImage,
-    resource::{WORLD_CANDELABRA, WORLD_LEVEL_BASIC, WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM},
+use crate::resource::{
+    WORLD_CANDELABRA, WORLD_LEVEL_BASIC, WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM,
 };
 
-use self::matrix::{
-    fill_borders, generate_matrix, moore_neighborhood, noise_matrix, regions, MatrixElement,
-};
+use self::matrix::{contours, generate_matrix, regions, MatrixElement};
 
 use super::components::*;
 
@@ -45,10 +42,8 @@ impl GeneratorSystem {
         &mut self,
         frames: usize,
         storage: &mut ComponentStorage,
-        asset_manager: &engine::AssetManager,
     ) -> EngineResult<()> {
         storage.remove_all_entities();
-
         let mut matrix = generate_matrix(
             MATRIX_ROWS,
             MATRIX_COLS,
@@ -59,12 +54,15 @@ impl GeneratorSystem {
         .ok_or(EngineError::unexpected_state(
             "[v2.generator] failed to build new matrix",
         ))?;
+        let offset = Vec2f::new(0.5, 0.5);
+
+        let contour = contours(&matrix, TILE_WALL);
         {
             // optional step: assign different wall textures
             let regions = matrix::regions(&matrix, TILE_WALL);
             for (idx, region) in regions.iter().enumerate() {
                 for pos in region.iter() {
-                    matrix[pos.row][pos.col] = 1 + (idx % 5) as i32;
+                    matrix[pos.row][pos.col] = 1 + (idx % WALL_TEXTURES.len()) as i32;
                 }
             }
         }
@@ -78,10 +76,9 @@ impl GeneratorSystem {
             .collect::<Vec<Vec2f>>();
         available_places.shuffle(&mut thread_rng());
 
-        let maze_bundle = EntityBundle::new().put(Maze(matrix));
+        let maze_bundle = EntityBundle::new().put(Maze { matrix, contour });
         self.maze_id = storage.append(&maze_bundle);
 
-        let offset = Vec2f::new(0.5, 0.5);
         {
             let Some(pos) = available_places.pop() else {
                 return Err(EngineError::unexpected_state(
@@ -90,6 +87,7 @@ impl GeneratorSystem {
             };
             self.player_id = storage.append(&bundle_player(pos + offset));
         }
+
         /*
         // decorations
         storage.append(&bundle_torch(
@@ -107,7 +105,10 @@ impl GeneratorSystem {
          */
 
         // npc
+        #[cfg(not(debug_assertions))]
         let soldiers = 20;
+        #[cfg(debug_assertions)]
+        let soldiers = 5;
         for _ in 0..soldiers {
             let Some(pos) = available_places.pop() else {
                 break;
@@ -122,9 +123,9 @@ impl GameSystem for GeneratorSystem {
     fn setup(
         &mut self,
         storage: &mut engine::ComponentStorage,
-        asset_manager: &engine::AssetManager,
+        _asset_manager: &engine::AssetManager,
     ) -> engine::EngineResult<()> {
-        self.generate_level(0, storage, asset_manager)?;
+        self.generate_level(0, storage)?;
         println!("[v2.generator] setup ok");
         Ok(())
     }
@@ -187,63 +188,6 @@ fn weapon(damage: HealthType, recharge_time: usize, ammo_count: usize) -> Weapon
         state: WeaponState::Undefined,
         ammo_count,
     }
-}
-
-fn generate_maze() -> EngineResult<EntityBundle> {
-    let noise_density = 58;
-    let iterations = 3;
-    let mut matrix = vec![vec![0; MATRIX_COLS]; MATRIX_ROWS];
-    noise_matrix(&mut matrix, noise_density, TILE_WALL, TILE_FLOOR);
-    fill_borders(&mut matrix, TILE_WALL);
-    for _ in 0..iterations {
-        let Some(new_matrix) = moore_neighborhood(&matrix, TILE_WALL, TILE_FLOOR) else {
-            return Err(EngineError::unexpected_state(
-                "[v2.generator] failed to build new matrix",
-            ));
-        };
-        matrix = new_matrix;
-    }
-    // fill isolated gaps
-    let mut regions = matrix::regions(&matrix, TILE_FLOOR);
-    let max = regions.iter().map(|x| x.len()).max().unwrap_or_default();
-    for region in regions.iter() {
-        if region.len() == max {
-            continue;
-        }
-        for pos in region.iter() {
-            matrix[pos.row][pos.col] = TILE_WALL;
-        }
-    }
-    // filter small wall regions
-    regions = matrix::regions(&matrix, TILE_WALL);
-    for region in regions.iter() {
-        if region.len() > REGION_THRESHOLD {
-            continue;
-        }
-        for pos in region.iter() {
-            matrix[pos.row][pos.col] = TILE_FLOOR;
-        }
-    }
-    // optional step: assign different wall textures
-    regions = matrix::regions(&matrix, TILE_WALL);
-    for (idx, region) in regions.iter().enumerate() {
-        for pos in region.iter() {
-            matrix[pos.row][pos.col] = 1 + (idx % 5) as i32;
-        }
-    }
-    Ok(EntityBundle::new().put(Maze(matrix)))
-}
-
-fn bundle_maze(asset_manager: &AssetManager) -> EngineResult<EntityBundle> {
-    let Some(data) = asset_manager.binary(WORLD_LEVEL_BASIC) else {
-        return Err(EngineError::MazeGenerationFailed(
-            "Level map not found".to_string(),
-        ));
-    };
-    let image = PBMImage::with_binary(data.clone())
-        .map_err(|err| EngineError::MazeGenerationFailed(err.to_string()))?;
-    let array = image.transform_to_array(|x| x as i32);
-    Ok(EntityBundle::new().put(Maze(array)))
 }
 
 enum TorchStyle {

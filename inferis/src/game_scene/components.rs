@@ -1,8 +1,13 @@
-use std::fmt::Display;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+};
 
 use engine::{Float, SizeFloat, Vec2f};
 
 use crate::resource::*;
+
+use super::generator;
 
 pub struct PlayerTag;
 pub struct NpcTag;
@@ -118,21 +123,31 @@ impl Sprite {
 pub struct ScaleRatio(pub Float);
 pub struct HeightShift(pub Float);
 
-//
-pub type MazeData = Vec<Vec<i32>>;
-pub struct Maze(pub MazeData);
+pub struct Maze {
+    pub matrix: generator::matrix::Matrix,
+    pub contour: HashSet<generator::matrix::Position>,
+}
+
+use lazy_static::lazy_static;
+lazy_static! {
+    pub static ref WALL_TEXTURES: HashMap<i32, &'static str> = {
+        vec![
+            (1, WORLD_WALL1),
+            (2, WORLD_WALL2),
+            (3, WORLD_WALL3),
+            (4, WORLD_WALL4),
+            (5, WORLD_WALL5),
+        ]
+        .into_iter()
+        .collect()
+    };
+}
 
 impl Maze {
     pub fn wall_texture(&self, point: Vec2f) -> Option<String> {
-        match self.value_at(point)? {
-            1 => Some(WORLD_WALL1),
-            2 => Some(WORLD_WALL2),
-            3 => Some(WORLD_WALL3),
-            4 => Some(WORLD_WALL4),
-            5 => Some(WORLD_WALL5),
-            _ => None,
-        }
-        .map(|x| x.to_string())
+        WALL_TEXTURES
+            .get(self.value_at(point)?)
+            .map(|x| x.to_string())
     }
 
     pub fn value_at(&self, point: Vec2f) -> Option<&i32> {
@@ -141,7 +156,7 @@ impl Maze {
             return None;
         }
         let (col, row) = (point.x as usize, point.y as usize);
-        self.0.get(row).and_then(|x| x.get(col))
+        self.matrix.get(row).and_then(|x| x.get(col))
     }
 
     pub fn is_wall(&self, point: Vec2f) -> bool {

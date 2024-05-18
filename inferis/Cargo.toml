@@ -10,3 +10,4 @@ default-run = "inferis"
 [dependencies]
 engine = { path = "../engine" }
 rand = "0.8.4"
+lazy_static = "1.4.0"

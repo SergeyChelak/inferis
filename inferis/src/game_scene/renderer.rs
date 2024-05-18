@@ -482,27 +482,25 @@ impl RendererSystem {
         let Some(maze_comp) = storage.get::<components::Maze>(self.maze_id) else {
             return Ok(());
         };
-        let maze = &maze_comp.0;
-        let mut array = Vec::<Rect>::with_capacity(maze.len() * maze[0].len());
-        for (row, vector) in maze.iter().enumerate() {
-            for (col, value) in vector.iter().enumerate() {
-                if *value == 0 {
-                    continue;
-                }
-                let rect = Rect::new(
-                    col as i32 * MAP_SCALE as i32,
-                    row as i32 * MAP_SCALE as i32,
+
+        let array = maze_comp
+            .contour
+            .iter()
+            .map(|p| {
+                Rect::new(
+                    p.col as i32 * MAP_SCALE as i32,
+                    p.row as i32 * MAP_SCALE as i32,
                     MAP_SCALE,
                     MAP_SCALE,
-                );
-                array.push(rect);
-            }
-        }
+                )
+            })
+            .collect::<Vec<Rect>>();
+
         let mut layers = self.layers.borrow_mut();
         let effect = RendererEffect::Rectangles {
-            color: Color::WHITE,
+            color: Color::RGBA(0xaa, 0xaa, 0xaa, 0x80),
             fill: true,
-            blend_mode: BlendMode::None,
+            blend_mode: BlendMode::Blend,
             rects: array,
         };
         layers.push_hud(effect);

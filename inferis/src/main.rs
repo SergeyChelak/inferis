@@ -7,7 +7,6 @@ use engine::{
 };
 use resource::{FILE_ASSET_BUNDLE, FILE_ASSET_REGISTRY};
 mod game_scene;
-mod pbm;
 mod resource;
 
 const WINDOW_TITLE: &str = "INFERIS";
