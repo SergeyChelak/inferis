@@ -9,3 +9,4 @@ default-run = "inferis"
 
 [dependencies]
 engine = { path = "../engine" }
+rand = "0.8.4"
