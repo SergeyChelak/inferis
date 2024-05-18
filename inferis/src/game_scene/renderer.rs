@@ -444,7 +444,8 @@ impl RendererSystem {
         } else if storage.has_component::<components::NpcTag>(entity_id) {
             Color::YELLOW
         } else {
-            Color::GREEN
+            // Color::GREEN
+            return Ok(());
         };
         let (x, y) = (
             (pos.x * MAP_SCALE as Float) as i32,

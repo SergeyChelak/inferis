@@ -52,6 +52,7 @@ impl GeneratorSystem {
         .ok_or(EngineError::unexpected_state(
             "[v2.generator] failed to build new matrix",
         ))?;
+        let contour = contours(&matrix, TILE_WALL);
         {
             // optional step: assign different wall textures
             let regions = matrix::regions(&matrix, TILE_WALL);
@@ -84,7 +85,7 @@ impl GeneratorSystem {
         #[cfg(not(debug_assertions))]
         let soldiers = 20;
         #[cfg(debug_assertions)]
-        let soldiers = 0;
+        let soldiers = 5;
         for _ in 0..soldiers {
             let Some(pos) = available_places.pop() else {
                 break;
@@ -92,10 +93,13 @@ impl GeneratorSystem {
             storage.append(&bundle_npc_soldier(pos + offset));
         }
 
-        let contour = contours(&matrix, TILE_WALL);
         let maze = Maze { matrix, contour };
 
         // decorations
+        #[cfg(not(debug_assertions))]
+        let mut decorations = 30;
+        #[cfg(debug_assertions)]
+        let mut decorations = 15;
         let dy = Vec2f::new(0.0, 1.0);
         let dx = Vec2f::new(1.0, 0.0);
         for pos in available_places.iter() {
@@ -103,40 +107,41 @@ impl GeneratorSystem {
             let left = maze.is_wall(*pos - dx);
             let bottom = maze.is_wall(*pos + dy);
             let right = maze.is_wall(*pos + dx);
-
             if left && top {
                 storage.append(&bundle_torch(
                     TorchStyle::Green,
                     *pos + Vec2f::new(0.1, 0.1),
                     frames,
                 ));
-            }
-            if top && right {
+            } else if top && right {
                 storage.append(&bundle_torch(
                     TorchStyle::Red,
                     *pos + Vec2f::new(0.9, 0.1),
                     frames,
                 ));
-            }
-            if bottom && left {
+            } else if bottom && left {
                 storage.append(&bundle_torch(
                     TorchStyle::Red,
                     *pos + Vec2f::new(0.1, 0.9),
                     frames,
                 ));
-            }
-            if bottom && right {
+            } else if bottom && right {
                 storage.append(&bundle_torch(
                     TorchStyle::Green,
                     *pos + Vec2f::new(0.9, 0.9),
                     frames,
                 ));
+            } else {
+                continue;
+            }
+            decorations -= 1;
+            if decorations == 0 {
+                break;
             }
         }
 
         let maze_bundle = EntityBundle::new().put(maze);
         self.maze_id = storage.append(&maze_bundle);
-
         Ok(())
     }
 }
