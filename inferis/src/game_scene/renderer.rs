@@ -483,7 +483,7 @@ impl RendererSystem {
             return Ok(());
         };
 
-        let array = maze_comp
+        let rects = maze_comp
             .contour
             .iter()
             .map(|p| {
@@ -501,7 +501,7 @@ impl RendererSystem {
             color: Color::RGBA(0xaa, 0xaa, 0xaa, 0x80),
             fill: true,
             blend_mode: BlendMode::Blend,
-            rects: array,
+            rects,
         };
         layers.push_hud(effect);
         Ok(())

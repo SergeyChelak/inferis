@@ -1,6 +1,5 @@
-use std::collections::{HashSet, VecDeque};
-
 use rand::prelude::*;
+use std::collections::{HashSet, VecDeque};
 
 pub type MatrixElement = i32;
 

@@ -1,13 +1,11 @@
+use super::generator;
+use crate::resource::*;
+use engine::{Float, SizeFloat, Vec2f};
+use lazy_static::lazy_static;
 use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
 };
-
-use engine::{Float, SizeFloat, Vec2f};
-
-use crate::resource::*;
-
-use super::generator;
 
 pub struct PlayerTag;
 pub struct NpcTag;
@@ -128,7 +126,6 @@ pub struct Maze {
     pub contour: HashSet<generator::matrix::Position>,
 }
 
-use lazy_static::lazy_static;
 lazy_static! {
     pub static ref WALL_TEXTURES: HashMap<i32, &'static str> = {
         vec![

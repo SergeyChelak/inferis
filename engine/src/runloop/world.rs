@@ -1,19 +1,16 @@
-use std::{
-    cmp::Ordering,
-    collections::HashMap,
-    time::{Duration, Instant},
+use super::{
+    game_scene::GameScene,
+    systems::{GameSystemCommand, RendererEffect, RendererLayersPtr, SoundEffect},
 };
-
-use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, EventPump, Sdl};
-
 use crate::{
     systems::InputEvent, AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings,
     WindowSettings,
 };
-
-use super::{
-    game_scene::GameScene,
-    systems::{GameSystemCommand, RendererEffect, RendererLayersPtr, SoundEffect},
+use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, EventPump, Sdl};
+use std::{
+    cmp::Ordering,
+    collections::HashMap,
+    time::{Duration, Instant},
 };
 
 const TARGET_FPS: u128 = 60;
@@ -92,7 +89,7 @@ pub fn start(mut world: GameWorld, settings: EngineSettings) -> EngineResult<()>
         let effects = scene.render(&asset_manager)?;
         render_effects(&mut canvas, &asset_manager, effects)?;
         let sound_effects = scene.sound_effects(&asset_manager)?;
-        play_sound_effects(&sound_effects, &asset_manager)?;
+        _ = play_sound_effects(&sound_effects, &asset_manager);
         time = Instant::now();
         // delay the rest of the time if needed
         let suspend_ms = target_duration.saturating_sub(frame_start.elapsed().as_millis());
