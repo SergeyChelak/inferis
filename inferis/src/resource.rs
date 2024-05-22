@@ -4,6 +4,7 @@ pub const FILE_ASSET_BUNDLE: &str = "inferis.bin";
 
 // scenes
 pub const SCENE_GAME_PLAY: &str = "game_scene";
+pub const SCENE_MAIN_MENU: &str = "main_menu";
 
 // world
 pub const WORLD_WALL1: &str = "wall1";

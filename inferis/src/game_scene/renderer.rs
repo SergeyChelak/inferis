@@ -89,19 +89,6 @@ impl RendererSystem {
         Ok(())
     }
 
-    fn cache_textures_info(&mut self, asset_manager: &AssetManager) -> EngineResult<()> {
-        let ids = asset_manager.texture_ids();
-        for id in ids {
-            let Some(texture) = asset_manager.texture(&id) else {
-                let msg = format!("[v2.renderer] texture id: {}", id);
-                return Err(EngineError::TextureNotFound(msg));
-            };
-            let size = texture_size(texture);
-            self.texture_size.insert(id, size);
-        }
-        Ok(())
-    }
-
     // ------------------------------------------------------------------------------------------------------------
     fn render_sprites(
         &self,
@@ -517,7 +504,7 @@ impl GameRendererSystem for RendererSystem {
         window_size: SizeU32,
     ) -> EngineResult<()> {
         self.update_storage_cache(storage)?;
-        self.cache_textures_info(asset_manager)?;
+        asset_manager.cache_textures_info(&mut self.texture_size)?;
         // precalculated values
         self.window_size = window_size;
         self.rays_count = window_size.width >> 1;

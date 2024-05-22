@@ -7,16 +7,19 @@ use engine::{
 };
 use resource::{FILE_ASSET_BUNDLE, FILE_ASSET_REGISTRY};
 mod game_scene;
+mod menu_scene;
 mod resource;
 
 const WINDOW_TITLE: &str = "INFERIS";
 
 fn main() -> EngineResult<()> {
     let settings = engine_settings()?;
+    let main_menu_scene = menu_scene::compose_scene()?;
     let game_scene = game_scene::compose_scene()?;
     // must be a menu
     let initial_scene_id = game_scene.id();
     let world = GameWorldBuilder::new()
+        .with_scene(main_menu_scene)
         .with_scene(game_scene)
         .build(initial_scene_id);
 

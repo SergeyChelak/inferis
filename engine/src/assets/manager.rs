@@ -201,6 +201,19 @@ impl<'a> AssetManager<'a> {
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
     }
+
+    pub fn cache_textures_info(&self, output: &mut HashMap<String, SizeU32>) -> EngineResult<()> {
+        let ids = self.texture_ids();
+        for id in ids {
+            let Some(texture) = self.texture(&id) else {
+                let msg = format!("[v2.renderer] texture id: {}", id);
+                return Err(EngineError::TextureNotFound(msg));
+            };
+            let size = texture_size(texture);
+            output.insert(id, size);
+        }
+        Ok(())
+    }
 }
 
 fn load_assets(source: &AssetSource) -> EngineResult<Vec<RawAsset>> {
