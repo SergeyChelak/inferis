@@ -14,16 +14,68 @@ use std::{
 };
 
 const TARGET_FPS: u128 = 60;
+const FRAME_DURATION: u128 = 1000 / TARGET_FPS;
 
 pub struct GameWorld {
     scenes: HashMap<String, GameScene>,
     current_scene: &'static str,
     is_running: bool,
+    settings: EngineSettings,
+}
+
+impl GameWorld {
+    pub fn start(&mut self) -> EngineResult<()> {
+        // setup media layer components
+        let sdl = sdl2::init().map_err(EngineError::Sdl)?;
+        let mut canvas = setup_canvas(&sdl, &self.settings.window)?;
+        // audio should be initialized before asset manager will unpack its items
+        setup_audio(&sdl, &self.settings.audio_setting)?;
+        let texture_creator = canvas.texture_creator();
+        let mut asset_manager = AssetManager::default();
+        asset_manager.setup(&self.settings.asset_source, &texture_creator)?;
+        let mut event_pump = sdl.event_pump().map_err(EngineError::Sdl)?;
+        // setup all scenes
+        for (_, scene) in self.scenes.iter_mut() {
+            scene.setup_systems(&asset_manager, self.settings.window.size)?;
+        }
+        let mut time = Instant::now();
+        self.is_running = true;
+        while self.is_running {
+            let frame_start = Instant::now();
+            let Some(scene) = self.scenes.get_mut(self.current_scene) else {
+                return Err(EngineError::SceneNotFound);
+            };
+            let events = get_events(&mut event_pump);
+            scene.push_events(&events)?;
+            let delta_time = time.elapsed().as_secs_f32();
+            let commands = scene.update(delta_time, &asset_manager)?;
+            commands.into_iter().for_each(|cmd| {
+                use GameSystemCommand::*;
+                match cmd {
+                    Terminate => self.is_running = false,
+                    SwitchScene(id) => self.current_scene = id,
+                    _ => {}
+                }
+            });
+            let effects = scene.render(&asset_manager)?;
+            render_effects(&mut canvas, &asset_manager, effects)?;
+            let sound_effects = scene.sound_effects(&asset_manager)?;
+            _ = play_sound_effects(&sound_effects, &asset_manager);
+            time = Instant::now();
+            // delay the rest of the time if needed
+            let suspend_ms = FRAME_DURATION.saturating_sub(frame_start.elapsed().as_millis());
+            if suspend_ms > 0 {
+                let duration = Duration::from_millis(suspend_ms as u64);
+                std::thread::sleep(duration);
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Default)]
 pub struct GameWorldBuilder {
-    scenes: HashMap<String, GameScene>,
+    scenes: Vec<GameScene>,
 }
 
 impl GameWorldBuilder {
@@ -32,73 +84,24 @@ impl GameWorldBuilder {
     }
 
     pub fn with_scene(mut self, scene: GameScene) -> Self {
-        let id = scene.id();
-        self.scenes.insert(id.to_string(), scene);
+        self.scenes.push(scene);
         self
     }
 
-    pub fn build(self, initial_scene_id: &'static str) -> GameWorld {
+    pub fn build(self, settings: EngineSettings) -> GameWorld {
+        let current_scene = self.scenes.first().map(|x| x.id()).unwrap_or_default();
+        let scenes = self
+            .scenes
+            .into_iter()
+            .map(|x| (x.id().to_string(), x))
+            .collect::<HashMap<String, GameScene>>();
         GameWorld {
-            scenes: self.scenes,
-            current_scene: initial_scene_id,
+            scenes,
+            current_scene,
             is_running: false,
+            settings,
         }
     }
-}
-
-pub fn start(mut world: GameWorld, settings: EngineSettings) -> EngineResult<()> {
-    // setup media layer components
-    let sdl = sdl2::init().map_err(EngineError::Sdl)?;
-    let mut canvas = setup_canvas(&sdl, &settings.window)?;
-
-    // TODO: show loading splash texture
-
-    // audio should be initialized before asset manager will unpack its items
-    setup_audio(&sdl, &settings.audio_setting)?;
-    let texture_creator = canvas.texture_creator();
-    let mut asset_manager = AssetManager::default();
-    asset_manager.setup(&settings.asset_source, &texture_creator)?;
-
-    let mut event_pump = sdl.event_pump().map_err(EngineError::Sdl)?;
-
-    // setup all scenes
-    for (_, scene) in world.scenes.iter_mut() {
-        scene.setup_systems(&asset_manager, settings.window.size)?;
-    }
-
-    let target_duration = 1000 / TARGET_FPS;
-    let mut time = Instant::now();
-    world.is_running = true;
-    while world.is_running {
-        let frame_start = Instant::now();
-        let Some(scene) = world.scenes.get_mut(world.current_scene) else {
-            return Err(EngineError::SceneNotFound);
-        };
-        let events = get_events(&mut event_pump);
-        scene.push_events(&events)?;
-        let delta_time = time.elapsed().as_secs_f32();
-        let commands = scene.update(delta_time, &asset_manager)?;
-        commands.iter().for_each(|cmd| {
-            use GameSystemCommand::*;
-            match cmd {
-                Terminate => world.is_running = false,
-                SwitchScene(id) => world.current_scene = id,
-                _ => {}
-            }
-        });
-        let effects = scene.render(&asset_manager)?;
-        render_effects(&mut canvas, &asset_manager, effects)?;
-        let sound_effects = scene.sound_effects(&asset_manager)?;
-        _ = play_sound_effects(&sound_effects, &asset_manager);
-        time = Instant::now();
-        // delay the rest of the time if needed
-        let suspend_ms = target_duration.saturating_sub(frame_start.elapsed().as_millis());
-        if suspend_ms > 0 {
-            let duration = Duration::from_millis(suspend_ms as u64);
-            std::thread::sleep(duration);
-        }
-    }
-    Ok(())
 }
 
 fn setup_canvas(sdl: &Sdl, window_settings: &WindowSettings) -> EngineResult<WindowCanvas> {
