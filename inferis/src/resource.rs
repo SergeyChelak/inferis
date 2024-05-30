@@ -1,10 +1,12 @@
+use engine::SceneID;
+
 // files
 pub const FILE_ASSET_REGISTRY: &str = "assets/asset_registry.txt";
 pub const FILE_ASSET_BUNDLE: &str = "inferis.bin";
 
 // scenes
-pub const SCENE_GAME_PLAY: &str = "game_scene";
-pub const SCENE_MAIN_MENU: &str = "main_menu";
+pub const SCENE_GAME_PLAY: SceneID = 1;
+pub const SCENE_MAIN_MENU: SceneID = 2;
 
 // world
 pub const WORLD_WALL1: &str = "wall1";

@@ -3,8 +3,8 @@ use super::{
     systems::{GameSystemCommand, RendererEffect, RendererLayersPtr, SoundEffect},
 };
 use crate::{
-    assets::AssetSource, systems::InputEvent, AssetManager, AudioSettings, EngineError,
-    EngineResult, EngineSettings, WindowSettings,
+    systems::InputEvent, AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings,
+    SceneID, WindowSettings,
 };
 use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, EventPump, Sdl};
 use std::{
@@ -37,8 +37,8 @@ impl GameWorld {
         let scenes = self
             .scenes
             .into_iter()
-            .map(|x| (x.id().to_string(), x))
-            .collect::<HashMap<String, GameScene>>();
+            .map(|x| (x.id(), x))
+            .collect::<HashMap<SceneID, GameScene>>();
         run(systems, &settings, scenes, current_scene)
     }
 }
@@ -93,8 +93,8 @@ impl SDLSystems {
 fn run(
     systems: SDLSystems,
     settings: &EngineSettings,
-    mut scenes: HashMap<String, GameScene>,
-    mut current_scene: &'static str,
+    mut scenes: HashMap<SceneID, GameScene>,
+    mut current_scene: SceneID,
 ) -> EngineResult<()> {
     let mut canvas = systems.canvas;
     let mut event_pump = systems.event_pump;
@@ -109,7 +109,7 @@ fn run(
     let mut is_running = true;
     while is_running {
         let frame_start = Instant::now();
-        let Some(scene) = scenes.get_mut(current_scene) else {
+        let Some(scene) = scenes.get_mut(&current_scene) else {
             return Err(EngineError::SceneNotFound);
         };
         let events = get_events(&mut event_pump);
@@ -120,7 +120,7 @@ fn run(
             use GameSystemCommand::*;
             match cmd {
                 Terminate => is_running = false,
-                SwitchScene(id) => current_scene = id,
+                SwitchScene(id) => current_scene = *id,
                 _ => {}
             }
         });
