@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use engine::{assets::AssetSource, world::GameWorldBuilder, *};
+use engine::{assets::AssetSource, world::GameWorld, *};
 use resource::{FILE_ASSET_BUNDLE, FILE_ASSET_REGISTRY};
 mod game_scene;
 mod menu_scene;
@@ -12,11 +12,10 @@ fn main() -> EngineResult<()> {
     let settings = engine_settings()?;
     let main_menu_scene = menu_scene::compose_scene()?;
     let game_scene = game_scene::compose_scene()?;
-    GameWorldBuilder::new()
+    GameWorld::new()
         .with_scene(game_scene)
         .with_scene(main_menu_scene)
-        .build(settings)
-        .start()
+        .start(settings)
 }
 
 fn engine_settings() -> EngineResult<EngineSettings> {

@@ -3,8 +3,8 @@ use super::{
     systems::{GameSystemCommand, RendererEffect, RendererLayersPtr, SoundEffect},
 };
 use crate::{
-    systems::InputEvent, AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings,
-    WindowSettings,
+    assets::AssetSource, systems::InputEvent, AssetManager, AudioSettings, EngineError,
+    EngineResult, EngineSettings, WindowSettings,
 };
 use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, EventPump, Sdl};
 use std::{
@@ -16,68 +16,12 @@ use std::{
 const TARGET_FPS: u128 = 60;
 const FRAME_DURATION: u128 = 1000 / TARGET_FPS;
 
-pub struct GameWorld {
-    scenes: HashMap<String, GameScene>,
-    current_scene: &'static str,
-    settings: EngineSettings,
-}
-
-impl GameWorld {
-    pub fn start(&mut self) -> EngineResult<()> {
-        // setup media layer components
-        let sdl = sdl2::init().map_err(EngineError::Sdl)?;
-        let mut canvas = setup_canvas(&sdl, &self.settings.window)?;
-        // audio should be initialized before asset manager will unpack its items
-        setup_audio(&sdl, &self.settings.audio_setting)?;
-        let texture_creator = canvas.texture_creator();
-        let mut asset_manager = AssetManager::default();
-        asset_manager.setup(&self.settings.asset_source, &texture_creator)?;
-        let mut event_pump = sdl.event_pump().map_err(EngineError::Sdl)?;
-        // setup all scenes
-        for (_, scene) in self.scenes.iter_mut() {
-            scene.setup_systems(&asset_manager, self.settings.window.size)?;
-        }
-        let mut time = Instant::now();
-        let mut is_running = true;
-        while is_running {
-            let frame_start = Instant::now();
-            let Some(scene) = self.scenes.get_mut(self.current_scene) else {
-                return Err(EngineError::SceneNotFound);
-            };
-            let events = get_events(&mut event_pump);
-            scene.push_events(&events)?;
-            let delta_time = time.elapsed().as_secs_f32();
-            let commands = scene.update(delta_time, &asset_manager)?;
-            commands.into_iter().for_each(|cmd| {
-                use GameSystemCommand::*;
-                match cmd {
-                    Terminate => is_running = false,
-                    SwitchScene(id) => self.current_scene = id,
-                    _ => {}
-                }
-            });
-            let effects = scene.render(&asset_manager)?;
-            render_effects(&mut canvas, &asset_manager, effects)?;
-            let sound_effects = scene.sound_effects(&asset_manager)?;
-            _ = play_sound_effects(&sound_effects, &asset_manager);
-            time = Instant::now();
-            // delay the rest of the time if needed
-            let suspend_ms = FRAME_DURATION.saturating_sub(frame_start.elapsed().as_millis());
-            if suspend_ms > 0 {
-                let duration = Duration::from_millis(suspend_ms as u64);
-                std::thread::sleep(duration);
-            }
-        }
-        Ok(())
-    }
-}
-
 #[derive(Default)]
-pub struct GameWorldBuilder {
+pub struct GameWorld {
     scenes: Vec<GameScene>,
 }
 
-impl GameWorldBuilder {
+impl GameWorld {
     pub fn new() -> Self {
         Self::default()
     }
@@ -87,51 +31,117 @@ impl GameWorldBuilder {
         self
     }
 
-    pub fn build(self, settings: EngineSettings) -> GameWorld {
+    pub fn start(self, settings: EngineSettings) -> EngineResult<()> {
+        let systems = SDLSystems::setup(&settings)?;
         let current_scene = self.scenes.first().map(|x| x.id()).unwrap_or_default();
         let scenes = self
             .scenes
             .into_iter()
             .map(|x| (x.id().to_string(), x))
             .collect::<HashMap<String, GameScene>>();
-        GameWorld {
-            scenes,
-            current_scene,
-            settings,
-        }
+        run(systems, &settings, scenes, current_scene)
     }
 }
 
-fn setup_canvas(sdl: &Sdl, window_settings: &WindowSettings) -> EngineResult<WindowCanvas> {
-    let video_subsystem = sdl.video().map_err(EngineError::Sdl)?;
-    let size = &window_settings.size;
-    let window = video_subsystem
-        .window(&window_settings.title, size.width, size.height)
-        .position_centered()
-        .build()
-        .map_err(|op| EngineError::Sdl(op.to_string()))?;
-    window
-        .into_canvas()
-        .accelerated()
-        .target_texture()
-        .present_vsync()
-        .build()
-        .map_err(|op| EngineError::Sdl(op.to_string()))
+struct SDLSystems {
+    canvas: WindowCanvas,
+    event_pump: EventPump,
 }
 
-fn setup_audio(sdl: &Sdl, settings: &AudioSettings) -> EngineResult<()> {
-    _ = sdl.audio().map_err(EngineError::Sdl)?;
-    sdl2::mixer::open_audio(
-        settings.frequency,
-        settings.format,
-        settings.channels,
-        settings.chunk_size,
-    )
-    .map_err(EngineError::Sdl)?;
-    sdl2::mixer::init(InitFlag::MP3 | InitFlag::FLAC | InitFlag::MOD | InitFlag::OGG)
+impl SDLSystems {
+    fn setup(settings: &EngineSettings) -> EngineResult<Self> {
+        let sdl = sdl2::init().map_err(EngineError::Sdl)?;
+        let canvas = Self::setup_canvas(&sdl, &settings.window)?;
+        Self::setup_audio(&sdl, &settings.audio_setting)?;
+        let event_pump = sdl.event_pump().map_err(EngineError::Sdl)?;
+        Ok(SDLSystems { canvas, event_pump })
+    }
+
+    fn setup_canvas(sdl: &Sdl, window_settings: &WindowSettings) -> EngineResult<WindowCanvas> {
+        let video_subsystem = sdl.video().map_err(EngineError::Sdl)?;
+        let size = &window_settings.size;
+        let window = video_subsystem
+            .window(&window_settings.title, size.width, size.height)
+            .position_centered()
+            .build()
+            .map_err(|op| EngineError::Sdl(op.to_string()))?;
+        window
+            .into_canvas()
+            .accelerated()
+            .target_texture()
+            .present_vsync()
+            .build()
+            .map_err(|op| EngineError::Sdl(op.to_string()))
+    }
+
+    fn setup_audio(sdl: &Sdl, settings: &AudioSettings) -> EngineResult<()> {
+        _ = sdl.audio().map_err(EngineError::Sdl)?;
+        sdl2::mixer::open_audio(
+            settings.frequency,
+            settings.format,
+            settings.channels,
+            settings.chunk_size,
+        )
         .map_err(EngineError::Sdl)?;
-    sdl2::mixer::allocate_channels(settings.mixing_channels);
+        sdl2::mixer::init(InitFlag::MP3 | InitFlag::FLAC | InitFlag::MOD | InitFlag::OGG)
+            .map_err(EngineError::Sdl)?;
+        sdl2::mixer::allocate_channels(settings.mixing_channels);
+        Ok(())
+    }
+}
+
+fn run(
+    systems: SDLSystems,
+    settings: &EngineSettings,
+    mut scenes: HashMap<String, GameScene>,
+    mut current_scene: &'static str,
+) -> EngineResult<()> {
+    let mut canvas = systems.canvas;
+    let mut event_pump = systems.event_pump;
+    let texture_creator = canvas.texture_creator();
+    let mut asset_manager = AssetManager::default();
+    asset_manager.setup(&settings.asset_source, &texture_creator)?;
+    // setup all scenes
+    for (_, scene) in scenes.iter_mut() {
+        scene.setup_systems(&asset_manager, settings.window.size)?;
+    }
+    let mut time = Instant::now();
+    let mut is_running = true;
+    while is_running {
+        let frame_start = Instant::now();
+        let Some(scene) = scenes.get_mut(current_scene) else {
+            return Err(EngineError::SceneNotFound);
+        };
+        let events = get_events(&mut event_pump);
+        scene.push_events(&events)?;
+        let delta_time = time.elapsed().as_secs_f32();
+        let commands = scene.update(delta_time, &asset_manager)?;
+        commands.into_iter().for_each(|cmd| {
+            use GameSystemCommand::*;
+            match cmd {
+                Terminate => is_running = false,
+                SwitchScene(id) => current_scene = id,
+                _ => {}
+            }
+        });
+        let effects = scene.render(&asset_manager)?;
+        render_effects(&mut canvas, &asset_manager, effects)?;
+        let sound_effects = scene.sound_effects(&asset_manager)?;
+        _ = play_sound_effects(&sound_effects, &asset_manager);
+        time = Instant::now();
+        frame_delay(&frame_start);
+    }
     Ok(())
+}
+
+/// delay the rest of the time if needed
+#[inline(always)]
+fn frame_delay(frame_start: &Instant) {
+    let suspend_ms = FRAME_DURATION.saturating_sub(frame_start.elapsed().as_millis());
+    if suspend_ms > 0 {
+        let duration = Duration::from_millis(suspend_ms as u64);
+        std::thread::sleep(duration);
+    }
 }
 
 fn get_events(event_pump: &mut EventPump) -> Vec<InputEvent> {
