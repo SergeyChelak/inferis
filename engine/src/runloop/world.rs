@@ -19,7 +19,6 @@ const FRAME_DURATION: u128 = 1000 / TARGET_FPS;
 pub struct GameWorld {
     scenes: HashMap<String, GameScene>,
     current_scene: &'static str,
-    is_running: bool,
     settings: EngineSettings,
 }
 
@@ -39,8 +38,8 @@ impl GameWorld {
             scene.setup_systems(&asset_manager, self.settings.window.size)?;
         }
         let mut time = Instant::now();
-        self.is_running = true;
-        while self.is_running {
+        let mut is_running = true;
+        while is_running {
             let frame_start = Instant::now();
             let Some(scene) = self.scenes.get_mut(self.current_scene) else {
                 return Err(EngineError::SceneNotFound);
@@ -52,7 +51,7 @@ impl GameWorld {
             commands.into_iter().for_each(|cmd| {
                 use GameSystemCommand::*;
                 match cmd {
-                    Terminate => self.is_running = false,
+                    Terminate => is_running = false,
                     SwitchScene(id) => self.current_scene = id,
                     _ => {}
                 }
@@ -98,7 +97,6 @@ impl GameWorldBuilder {
         GameWorld {
             scenes,
             current_scene,
-            is_running: false,
             settings,
         }
     }
