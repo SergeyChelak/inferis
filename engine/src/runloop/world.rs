@@ -109,25 +109,25 @@ fn run(
     let mut is_running = true;
     while is_running {
         let frame_start = Instant::now();
-        let Some(scene) = scenes.get_mut(&current_scene) else {
-            return Err(EngineError::SceneNotFound);
+        let commands = {
+            let Some(scene) = scenes.get_mut(&current_scene) else {
+                return Err(EngineError::SceneNotFound);
+            };
+            let events = get_events(&mut event_pump);
+            scene.push_events(&events)?;
+            let delta_time = time.elapsed().as_secs_f32();
+            let commands = scene.update(delta_time, &asset_manager)?;
+            let effects = scene.render(&asset_manager)?;
+            render_effects(&mut canvas, &asset_manager, effects)?;
+            let sound_effects = scene.sound_effects(&asset_manager)?;
+            _ = play_sound_effects(&sound_effects, &asset_manager);
+            commands
         };
-        let events = get_events(&mut event_pump);
-        scene.push_events(&events)?;
-        let delta_time = time.elapsed().as_secs_f32();
-        let commands = scene.update(delta_time, &asset_manager)?;
-        commands.into_iter().for_each(|cmd| {
-            use GameSystemCommand::*;
-            match cmd {
-                Terminate => is_running = false,
-                SwitchScene(id) => current_scene = *id,
-                _ => {}
-            }
+        commands.into_iter().for_each(|cmd| match cmd {
+            GameSystemCommand::Terminate => is_running = false,
+            GameSystemCommand::SwitchScene(id) => current_scene = id,
+            _ => {}
         });
-        let effects = scene.render(&asset_manager)?;
-        render_effects(&mut canvas, &asset_manager, effects)?;
-        let sound_effects = scene.sound_effects(&asset_manager)?;
-        _ = play_sound_effects(&sound_effects, &asset_manager);
         time = Instant::now();
         frame_delay(&frame_start);
     }

@@ -11,7 +11,6 @@ pub struct GameScene {
     id: SceneID,
     storage: ComponentStorage,
     frames: usize,
-    command_buffer: Vec<GameSystemCommand>,
     common_systems: Vec<Rc<RefCell<dyn GameSystem>>>,
     control_system: Rc<RefCell<dyn GameControlSystem>>,
     renderer_system: Rc<RefCell<dyn GameRendererSystem>>,
@@ -29,7 +28,6 @@ impl GameScene {
             id,
             storage,
             frames: 0,
-            command_buffer: Vec::with_capacity(20),
             common_systems: Default::default(),
             control_system: Rc::new(RefCell::new(control_system)),
             renderer_system: Rc::new(RefCell::new(renderer_system)),
@@ -73,15 +71,18 @@ impl GameScene {
         &mut self,
         delta_time: f32,
         asset_manager: &AssetManager,
-    ) -> EngineResult<&[GameSystemCommand]> {
-        self.command_buffer.clear();
+    ) -> EngineResult<Vec<GameSystemCommand>> {
+        let mut command_buffer: Vec<GameSystemCommand> =
+            Vec::with_capacity(self.common_systems.len());
         for elem in &self.common_systems {
             let mut system = elem.borrow_mut();
             let command =
                 system.update(self.frames, delta_time, &mut self.storage, asset_manager)?;
-            self.command_buffer.push(command);
+            if !matches!(command, GameSystemCommand::Nothing) {
+                command_buffer.push(command);
+            }
         }
-        Ok(&self.command_buffer)
+        Ok(command_buffer)
     }
 
     pub fn render(&mut self, asset_manager: &AssetManager) -> EngineResult<RendererLayersPtr> {
