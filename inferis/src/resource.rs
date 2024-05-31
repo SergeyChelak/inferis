@@ -38,3 +38,11 @@ pub const SOUND_PLAYER_PAIN: &str = "sound_player_pain";
 pub const SOUND_NPC_ATTACK: &str = "sound_npc_attack";
 pub const SOUND_NPC_DEATH: &str = "sound_npc_death";
 pub const SOUND_NPC_PAIN: &str = "sound_npc_pain";
+
+pub const MENU_BACKGROUND: &str = "menu_background";
+pub const MENU_LABEL_CONTINUE: &str = "menu_lbl_continue";
+pub const MENU_LABEL_EXIT: &str = "menu_lbl_exit";
+pub const MENU_LABEL_GAME_OVER: &str = "menu_lbl_game_over";
+pub const MENU_LABEL_NEW_GAME: &str = "menu_lbl_new_game";
+pub const MENU_LABEL_PRESS_FIRE: &str = "menu_lbl_press_fire";
+pub const MENU_LABEL_WIN: &str = "menu_lbl_win";

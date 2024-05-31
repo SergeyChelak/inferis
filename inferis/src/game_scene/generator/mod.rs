@@ -169,6 +169,14 @@ impl GameSystem for GeneratorSystem {
 
         Ok(GameSystemCommand::Nothing)
     }
+
+    fn on_scene_event(
+        &mut self,
+        _event: engine::game_scene::SceneEvent,
+        _params: &engine::game_scene::SceneParameters,
+    ) {
+        todo!("scene change wasn't handled")
+    }
 }
 
 fn bundle_player(position: Vec2f) -> EntityBundle {
