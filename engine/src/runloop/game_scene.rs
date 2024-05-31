@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{systems::InputEvent, AssetManager, ComponentStorage, EngineResult, SceneID, SizeU32};
 
@@ -6,6 +6,13 @@ use super::systems::{
     GameControlSystem, GameRendererSystem, GameSoundSystem, GameSystem, GameSystemCommand,
     RendererLayersPtr, SoundEffect,
 };
+
+#[derive(Clone, Copy)]
+pub enum SceneEvent {
+    Change,
+}
+
+pub type SceneParameters = HashMap<String, String>;
 
 pub struct GameScene {
     id: SceneID,
@@ -65,6 +72,12 @@ impl GameScene {
             system.setup(&self.storage, asset_manager)?;
         }
         Ok(())
+    }
+
+    pub fn send_event(&mut self, event: SceneEvent, params: &SceneParameters) {
+        self.common_systems
+            .iter()
+            .for_each(|system| system.borrow_mut().on_scene_event(event, params));
     }
 
     pub fn update(

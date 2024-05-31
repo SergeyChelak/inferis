@@ -7,11 +7,17 @@ use sdl2::{
     render::BlendMode,
 };
 
-use crate::{AssetManager, ComponentStorage, EngineResult, Float, SceneID, SizeU32};
+use crate::{
+    game_scene::{SceneEvent, SceneParameters},
+    AssetManager, ComponentStorage, EngineResult, Float, SceneID, SizeU32,
+};
 
 pub enum GameSystemCommand {
     Nothing,
-    SwitchScene(SceneID),
+    SwitchScene {
+        id: SceneID,
+        params: SceneParameters,
+    },
     Terminate,
 }
 
@@ -21,6 +27,7 @@ pub trait GameSystem {
         storage: &mut ComponentStorage,
         asset_manager: &AssetManager,
     ) -> EngineResult<()>;
+
     fn update(
         &mut self,
         frames: usize,
@@ -28,6 +35,10 @@ pub trait GameSystem {
         storage: &mut ComponentStorage,
         asset_manager: &AssetManager,
     ) -> EngineResult<GameSystemCommand>;
+
+    fn on_scene_event(&mut self, _event: SceneEvent, _params: &SceneParameters) {
+        // no op
+    }
 }
 
 pub enum InputEvent {

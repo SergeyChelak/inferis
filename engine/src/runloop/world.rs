@@ -3,8 +3,8 @@ use super::{
     systems::{GameSystemCommand, RendererEffect, RendererLayersPtr, SoundEffect},
 };
 use crate::{
-    systems::InputEvent, AssetManager, AudioSettings, EngineError, EngineResult, EngineSettings,
-    SceneID, WindowSettings,
+    game_scene::SceneEvent, systems::InputEvent, AssetManager, AudioSettings, EngineError,
+    EngineResult, EngineSettings, SceneID, WindowSettings,
 };
 use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, EventPump, Sdl};
 use std::{
@@ -125,7 +125,12 @@ fn run(
         };
         commands.into_iter().for_each(|cmd| match cmd {
             GameSystemCommand::Terminate => is_running = false,
-            GameSystemCommand::SwitchScene(id) => current_scene = id,
+            GameSystemCommand::SwitchScene { id, params } => {
+                scenes
+                    .get_mut(&id)
+                    .map(|scene| scene.send_event(SceneEvent::Change, &params));
+                current_scene = id;
+            }
             _ => {}
         });
         time = Instant::now();
@@ -226,6 +231,7 @@ fn render_effects(
     Ok(())
 }
 
+#[inline(always)]
 fn render_effect(
     canvas: &mut WindowCanvas,
     asset_manager: &AssetManager,
