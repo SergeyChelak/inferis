@@ -36,8 +36,13 @@ pub trait GameSystem {
         asset_manager: &AssetManager,
     ) -> EngineResult<GameSystemCommand>;
 
-    fn on_scene_event(&mut self, _event: SceneEvent, _params: &SceneParameters) {
-        // no op
+    fn on_scene_event(
+        &mut self,
+        _storage: &mut ComponentStorage,
+        _event: SceneEvent,
+        _params: &SceneParameters,
+    ) -> EngineResult<()> {
+        Ok(())
     }
 }
 

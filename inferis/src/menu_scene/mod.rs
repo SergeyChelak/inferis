@@ -26,7 +26,7 @@ mod components {
 
     pub struct CursorTag;
 
-    #[derive(Default)]
+    #[derive(Default, Copy, Clone)]
     pub struct ControllerState {
         pub up_pressed: bool,
         pub down_pressed: bool,

@@ -2,7 +2,7 @@ use engine::{
     fetch_first,
     game_scene::SceneParameters,
     systems::{GameSystem, GameSystemCommand},
-    EngineError, EntityID,
+    ComponentStorage, EngineError, EngineResult, EntityID,
 };
 
 use crate::resource::{SCENE_GAME_PLAY, SCENE_PARAM_INVALIDATE, SCENE_PARAM_PAUSE};
@@ -41,30 +41,25 @@ impl GameSystem for HandleSystem {
             .ok_or(EngineError::unexpected_state(
                 "[v2.menu.handle] position component not found in cursor entity",
             ))?;
-        let select_pressed: bool;
-        let up_pressed: bool;
-        let down_pressed: bool;
-        {
-            let Some(input) = storage.get::<components::ControllerState>(cursor_id) else {
-                return Ok(GameSystemCommand::Nothing);
-            };
-            select_pressed = input.select_pressed;
-            up_pressed = input.up_pressed;
-            down_pressed = input.down_pressed;
-        }
+        let Some(input) = storage
+            .get::<components::ControllerState>(cursor_id)
+            .map(|x| *x)
+        else {
+            return Ok(GameSystemCommand::Nothing);
+        };
         let entities = active_menu_items(storage);
         if entities.is_empty() {
             return Ok(GameSystemCommand::Nothing);
         }
-        if select_pressed {
+        if input.select_pressed {
             storage.set(cursor_id, Some(components::ControllerState::default()));
             return Ok(on_select(storage, &entities, position));
         }
         let mut new_selection: Option<usize> = None;
-        if down_pressed {
+        if input.down_pressed {
             new_selection = next_item_index(storage, &entities, position);
         }
-        if up_pressed {
+        if input.up_pressed {
             new_selection = prev_item_index(storage, &entities, position);
         }
         if let Some(new_selection) = new_selection {
@@ -89,11 +84,13 @@ impl GameSystem for HandleSystem {
 
     fn on_scene_event(
         &mut self,
+        storage: &mut ComponentStorage,
         _event: engine::game_scene::SceneEvent,
         params: &engine::game_scene::SceneParameters,
-    ) {
+    ) -> EngineResult<()> {
         let is_paused = params.contains_key(SCENE_PARAM_PAUSE);
         println!("is paused {}", is_paused);
+        Ok(())
     }
 }
 

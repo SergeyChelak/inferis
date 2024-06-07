@@ -1,7 +1,6 @@
 pub mod matrix;
 
 use engine::{
-    game_scene::SceneEvent,
     systems::{GameSystem, GameSystemCommand},
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityBundle, EntityID, Float,
     SizeFloat, Vec2f, RAY_CASTER_MAX_DEPTH,
@@ -28,7 +27,6 @@ const REGION_THRESHOLD: usize = 3;
 pub struct GeneratorSystem {
     player_id: EntityID,
     maze_id: EntityID,
-    is_invalid: bool,
 }
 
 impl GeneratorSystem {
@@ -161,22 +159,23 @@ impl GameSystem for GeneratorSystem {
         &mut self,
         _frames: usize,
         _delta_time: Float,
-        storage: &mut ComponentStorage,
+        _storage: &mut ComponentStorage,
         _asset_manager: &AssetManager,
     ) -> engine::EngineResult<GameSystemCommand> {
-        if self.is_invalid {
-            self.generate_level(0, storage)?;
-        }
-        self.is_invalid = false;
         Ok(GameSystemCommand::Nothing)
     }
 
     fn on_scene_event(
         &mut self,
+        storage: &mut ComponentStorage,
         _event: engine::game_scene::SceneEvent,
         params: &engine::game_scene::SceneParameters,
-    ) {
-        self.is_invalid = params.contains_key(SCENE_PARAM_INVALIDATE);
+    ) -> EngineResult<()> {
+        let is_invalidated = params.contains_key(SCENE_PARAM_INVALIDATE);
+        if is_invalidated {
+            self.generate_level(0, storage)?;
+        }
+        Ok(())
     }
 }
 

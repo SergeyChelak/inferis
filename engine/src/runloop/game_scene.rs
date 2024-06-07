@@ -74,10 +74,13 @@ impl GameScene {
         Ok(())
     }
 
-    pub fn send_event(&mut self, event: SceneEvent, params: &SceneParameters) {
-        self.common_systems
-            .iter()
-            .for_each(|system| system.borrow_mut().on_scene_event(event, params));
+    pub fn send_event(&mut self, event: SceneEvent, params: &SceneParameters) -> EngineResult<()> {
+        for system in self.common_systems.iter() {
+            system
+                .borrow_mut()
+                .on_scene_event(&mut self.storage, event, params)?;
+        }
+        Ok(())
     }
 
     pub fn update(
