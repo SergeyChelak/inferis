@@ -46,3 +46,4 @@ pub const MENU_LABEL_GAME_OVER: &str = "menu_lbl_game_over";
 pub const MENU_LABEL_NEW_GAME: &str = "menu_lbl_new_game";
 pub const MENU_LABEL_PRESS_FIRE: &str = "menu_lbl_press_fire";
 pub const MENU_LABEL_WIN: &str = "menu_lbl_win";
+pub const MENU_CURSOR: &str = "menu_cursor";
