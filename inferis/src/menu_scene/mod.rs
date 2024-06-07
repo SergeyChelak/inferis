@@ -39,6 +39,8 @@ mod components {
         Continue,
         Exit,
     }
+
+    pub struct Delay(pub usize);
 }
 
 fn compose_component_storage() -> EngineResult<ComponentStorage> {
@@ -50,6 +52,7 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<components::Texture>()?;
     storage.register_component::<components::ControllerState>()?;
     storage.register_component::<components::MenuAction>()?;
+    storage.register_component::<components::Delay>()?;
     Ok(storage)
 }
 

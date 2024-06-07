@@ -12,6 +12,8 @@ use super::{
     components::{self, CursorTag, Position},
 };
 
+const INPUT_DELAY_FRAMES: usize = 10;
+
 pub struct HandleSystem {}
 
 impl GameSystem for HandleSystem {
@@ -65,6 +67,11 @@ impl GameSystem for HandleSystem {
             new_selection = prev_item_index(storage, &entities, position);
         }
         if let Some(new_selection) = new_selection {
+            let delay = input_delay(storage, cursor_id);
+            if delay > 0 {
+                update_input_delay(storage, cursor_id, delay - 1);
+                return Ok(GameSystemCommand::Nothing);
+            }
             let pos = storage
                 .get::<components::Position>(entities[new_selection])
                 .map(|x| x.0)
@@ -72,6 +79,9 @@ impl GameSystem for HandleSystem {
                     "[v2.menu.handle] position component not found for menu item",
                 ))?;
             storage.set(cursor_id, Some(Position(pos)));
+            update_input_delay(storage, cursor_id, INPUT_DELAY_FRAMES);
+        } else {
+            update_input_delay(storage, cursor_id, 0);
         }
         Ok(GameSystemCommand::Nothing)
     }
@@ -81,6 +91,17 @@ impl HandleSystem {
     pub fn new() -> Self {
         Self {}
     }
+}
+
+fn input_delay(storage: &engine::ComponentStorage, cursor_id: EntityID) -> usize {
+    storage
+        .get::<components::Delay>(cursor_id)
+        .map(|x| x.0)
+        .unwrap_or_default()
+}
+
+fn update_input_delay(storage: &mut engine::ComponentStorage, cursor_id: EntityID, value: usize) {
+    storage.set(cursor_id, Some(components::Delay(value)));
 }
 
 fn selected_index(
@@ -133,7 +154,7 @@ fn on_select(
     else {
         return GameSystemCommand::Nothing;
     };
-    return match *action {
+    match *action {
         components::MenuAction::NewGame => GameSystemCommand::SwitchScene {
             id: SCENE_GAME_PLAY,
             params: SceneParameters::default(),
@@ -143,5 +164,5 @@ fn on_select(
             params: SceneParameters::default(),
         },
         components::MenuAction::Exit => GameSystemCommand::Terminate,
-    };
+    }
 }
