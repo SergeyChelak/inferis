@@ -61,7 +61,7 @@ impl GameControlSystem for ControlSystem {
                         Left => state.rotate_left_pressed = *pressed,
                         Right => state.rotate_right_pressed = *pressed,
                         X => state.shot_pressed = *pressed,
-                        Escape => state.exit_pressed = *pressed,
+                        Escape => state.pause_pressed = *pressed,
                         _ => {
                             // println!("Key {code} pressed {pressed}")
                         }
@@ -71,7 +71,7 @@ impl GameControlSystem for ControlSystem {
                     state.mouse_x_relative = *x_rel;
                     state.mouse_y_relative = *y_rel;
                 }
-                InputEvent::Quit => state.exit_pressed = true,
+                InputEvent::Quit => state.pause_pressed = true,
             }
         }
         Ok(())

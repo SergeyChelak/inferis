@@ -1,4 +1,5 @@
 use engine::{
+    game_scene::SceneParameters,
     systems::{GameSystem, GameSystemCommand},
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float,
 };
@@ -6,8 +7,8 @@ use engine::{
 use crate::{
     game_scene::{components::Sprite, subsystems::update_weapon_state},
     resource::{
-        PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM, SOUND_PLAYER_ATTACK, SOUND_PLAYER_PAIN,
-        WORLD_GAME_OVER,
+        PLAYER_SHOTGUN_IDLE_ANIM, PLAYER_SHOTGUN_SHOT_ANIM, SCENE_MAIN_MENU, SCENE_PARAM_PAUSE,
+        SOUND_PLAYER_ATTACK, SOUND_PLAYER_PAIN, WORLD_GAME_OVER,
     },
 };
 
@@ -134,8 +135,13 @@ impl PlayerSystem {
             println!("[v2.player] warn: controller component isn't associated with player");
             return Ok(result);
         };
-        if controller.exit_pressed {
-            result.command = GameSystemCommand::Terminate;
+        if controller.pause_pressed {
+            let mut params = SceneParameters::default();
+            params.insert(SCENE_PARAM_PAUSE.to_string(), "".to_string());
+            result.command = GameSystemCommand::SwitchScene {
+                id: SCENE_MAIN_MENU,
+                params,
+            };
         }
         result.is_shooting = controller.shot_pressed;
         result.movement = self.update_movement(delta_time, &controller)?;

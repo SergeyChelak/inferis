@@ -5,7 +5,7 @@ use engine::{
     EngineError, EntityID,
 };
 
-use crate::resource::SCENE_GAME_PLAY;
+use crate::resource::{SCENE_GAME_PLAY, SCENE_PARAM_INVALIDATE, SCENE_PARAM_PAUSE};
 
 use super::{
     active_menu_items,
@@ -57,6 +57,7 @@ impl GameSystem for HandleSystem {
             return Ok(GameSystemCommand::Nothing);
         }
         if select_pressed {
+            storage.set(cursor_id, Some(components::ControllerState::default()));
             return Ok(on_select(storage, &entities, position));
         }
         let mut new_selection: Option<usize> = None;
@@ -84,6 +85,15 @@ impl GameSystem for HandleSystem {
             update_input_delay(storage, cursor_id, 0);
         }
         Ok(GameSystemCommand::Nothing)
+    }
+
+    fn on_scene_event(
+        &mut self,
+        _event: engine::game_scene::SceneEvent,
+        params: &engine::game_scene::SceneParameters,
+    ) {
+        let is_paused = params.contains_key(SCENE_PARAM_PAUSE);
+        println!("is paused {}", is_paused);
     }
 }
 
@@ -155,10 +165,14 @@ fn on_select(
         return GameSystemCommand::Nothing;
     };
     match *action {
-        components::MenuAction::NewGame => GameSystemCommand::SwitchScene {
-            id: SCENE_GAME_PLAY,
-            params: SceneParameters::default(),
-        },
+        components::MenuAction::NewGame => {
+            let mut params = SceneParameters::default();
+            params.insert(SCENE_PARAM_INVALIDATE.to_string(), "".to_string());
+            GameSystemCommand::SwitchScene {
+                id: SCENE_GAME_PLAY,
+                params,
+            }
+        }
         components::MenuAction::Continue => GameSystemCommand::SwitchScene {
             id: SCENE_GAME_PLAY,
             params: SceneParameters::default(),

@@ -1,13 +1,14 @@
 pub mod matrix;
 
 use engine::{
+    game_scene::SceneEvent,
     systems::{GameSystem, GameSystemCommand},
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityBundle, EntityID, Float,
     SizeFloat, Vec2f, RAY_CASTER_MAX_DEPTH,
 };
 use rand::{seq::SliceRandom, thread_rng};
 
-use crate::resource::{WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM};
+use crate::resource::{SCENE_PARAM_INVALIDATE, WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM};
 
 use self::matrix::{contours, generate_matrix, regions, MatrixElement};
 
@@ -27,6 +28,7 @@ const REGION_THRESHOLD: usize = 3;
 pub struct GeneratorSystem {
     player_id: EntityID,
     maze_id: EntityID,
+    is_invalid: bool,
 }
 
 impl GeneratorSystem {
@@ -159,23 +161,22 @@ impl GameSystem for GeneratorSystem {
         &mut self,
         _frames: usize,
         _delta_time: Float,
-        _storage: &mut ComponentStorage,
+        storage: &mut ComponentStorage,
         _asset_manager: &AssetManager,
     ) -> engine::EngineResult<GameSystemCommand> {
-        // TODO: implement valid logic for (re)creating levels and characters
-        // if storage.has_component::<InvalidatedTag>(self.player_id) {
-        //     self.generate_level(frames, storage, asset_manager)?;
-        // }
-
+        if self.is_invalid {
+            self.generate_level(0, storage)?;
+        }
+        self.is_invalid = false;
         Ok(GameSystemCommand::Nothing)
     }
 
     fn on_scene_event(
         &mut self,
         _event: engine::game_scene::SceneEvent,
-        _params: &engine::game_scene::SceneParameters,
+        params: &engine::game_scene::SceneParameters,
     ) {
-        todo!("scene change wasn't handled")
+        self.is_invalid = params.contains_key(SCENE_PARAM_INVALIDATE);
     }
 }
 

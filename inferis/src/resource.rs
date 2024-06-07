@@ -8,6 +8,9 @@ pub const FILE_ASSET_BUNDLE: &str = "inferis.bin";
 pub const SCENE_GAME_PLAY: SceneID = 1;
 pub const SCENE_MAIN_MENU: SceneID = 2;
 
+pub const SCENE_PARAM_INVALIDATE: &str = "invalidate";
+pub const SCENE_PARAM_PAUSE: &str = "pause";
+
 // world
 pub const WORLD_WALL1: &str = "wall1";
 pub const WORLD_WALL2: &str = "wall2";

@@ -51,7 +51,7 @@ pub struct ControllerState {
     pub rotate_right_pressed: bool,
     pub mouse_x_relative: i32,
     pub mouse_y_relative: i32,
-    pub exit_pressed: bool,
+    pub pause_pressed: bool,
 }
 
 #[derive(Clone, Copy, Default, Debug)]
