@@ -1,4 +1,5 @@
 use engine::{game_scene::GameScene, ComponentStorage, EngineResult, EntityBundle};
+use handle::HandleSystem;
 
 use crate::{
     menu_scene::{controller::MenuControlSystem, renderer::MenuRendererSystem},
@@ -8,6 +9,7 @@ use crate::{
 };
 
 mod controller;
+mod handle;
 mod renderer;
 
 mod components {
@@ -20,6 +22,13 @@ mod components {
     pub struct MenuItemTag;
 
     pub struct CursorTag;
+
+    #[derive(Default)]
+    pub struct ControllerState {
+        pub up_pressed: bool,
+        pub down_pressed: bool,
+        pub select_pressed: bool,
+    }
 }
 
 fn compose_component_storage() -> EngineResult<ComponentStorage> {
@@ -29,6 +38,7 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<components::Position>()?;
     storage.register_component::<components::Visible>()?;
     storage.register_component::<components::Texture>()?;
+    storage.register_component::<components::ControllerState>()?;
     Ok(storage)
 }
 
@@ -38,12 +48,13 @@ pub fn compose_scene() -> EngineResult<GameScene> {
     storage.append(&menu_item(1, true, &MENU_LABEL_NEW_GAME));
     storage.append(&menu_item(0xff, true, &MENU_LABEL_EXIT));
     storage.append(&cursor_entity(1));
-    let scene = GameScene::new(
+    let mut scene = GameScene::new(
         SCENE_MAIN_MENU,
         storage,
         MenuControlSystem::new(),
         MenuRendererSystem::new(),
     );
+    scene.add_system(HandleSystem::new());
     Ok(scene)
 }
 
@@ -60,4 +71,5 @@ fn cursor_entity(position: u8) -> EntityBundle {
         .put(components::CursorTag)
         .put(components::Position(position))
         .put(components::Texture(MENU_CURSOR))
+        .put(components::ControllerState::default())
 }

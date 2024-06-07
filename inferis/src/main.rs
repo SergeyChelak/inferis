@@ -10,10 +10,10 @@ const WINDOW_TITLE: &str = "INFERIS";
 
 fn main() -> EngineResult<()> {
     let settings = engine_settings()?;
-    let main_menu_scene = menu_scene::compose_scene()?;
+    let menu_scene = menu_scene::compose_scene()?;
     let game_scene = game_scene::compose_scene()?;
     GameWorld::new()
-        .with_scene(main_menu_scene)
+        .with_scene(menu_scene)
         .with_scene(game_scene)
         .start(settings)
 }
