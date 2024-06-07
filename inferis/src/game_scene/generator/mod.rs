@@ -171,6 +171,7 @@ impl GameSystem for GeneratorSystem {
         _event: engine::game_scene::SceneEvent,
         params: &engine::game_scene::SceneParameters,
     ) -> EngineResult<()> {
+        storage.set(self.player_id, Some(ControllerState::default()));
         let is_invalidated = params.contains_key(SCENE_PARAM_INVALIDATE);
         if is_invalidated {
             self.generate_level(0, storage)?;

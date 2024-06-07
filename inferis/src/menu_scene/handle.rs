@@ -2,14 +2,14 @@ use engine::{
     fetch_first,
     game_scene::SceneParameters,
     systems::{GameSystem, GameSystemCommand},
-    ComponentStorage, EngineError, EngineResult, EntityID,
+    ComponentStorage, EngineError, EngineResult, EntityID, Query,
 };
 
 use crate::resource::{SCENE_GAME_PLAY, SCENE_PARAM_INVALIDATE, SCENE_PARAM_PAUSE};
 
 use super::{
     active_menu_items,
-    components::{self, CursorTag, Position},
+    components::{self, CursorTag, MenuAction, MenuItemTag, Position},
 };
 
 const INPUT_DELAY_FRAMES: usize = 10;
@@ -52,7 +52,6 @@ impl GameSystem for HandleSystem {
             return Ok(GameSystemCommand::Nothing);
         }
         if input.select_pressed {
-            storage.set(cursor_id, Some(components::ControllerState::default()));
             return Ok(on_select(storage, &entities, position));
         }
         let mut new_selection: Option<usize> = None;
@@ -88,8 +87,13 @@ impl GameSystem for HandleSystem {
         _event: engine::game_scene::SceneEvent,
         params: &engine::game_scene::SceneParameters,
     ) -> EngineResult<()> {
+        let cursor_id = fetch_first::<CursorTag>(storage).ok_or(EngineError::unexpected_state(
+            "[v2.menu.handle] cursor entity not found",
+        ))?;
+        storage.set(cursor_id, Some(components::ControllerState::default()));
+
         let is_paused = params.contains_key(SCENE_PARAM_PAUSE);
-        println!("is paused {}", is_paused);
+        update_continue_action(storage, is_paused)?;
         Ok(())
     }
 }
@@ -98,6 +102,21 @@ impl HandleSystem {
     pub fn new() -> Self {
         Self {}
     }
+}
+
+fn update_continue_action(
+    storage: &mut engine::ComponentStorage,
+    is_visible: bool,
+) -> EngineResult<()> {
+    let query = Query::new().with_component::<MenuItemTag>();
+    let entities = storage.fetch_entities(&query);
+    for id in entities {
+        if let Some(MenuAction::Continue) = storage.get(id).map(|x| *x) {
+            storage.set(id, Some(components::Visible(is_visible)));
+            break;
+        }
+    }
+    Ok(())
 }
 
 fn input_delay(storage: &engine::ComponentStorage, cursor_id: EntityID) -> usize {
