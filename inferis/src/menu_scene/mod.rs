@@ -1,4 +1,7 @@
-use engine::{game_scene::GameScene, ComponentStorage, EngineResult, EntityBundle};
+use components::MenuAction;
+use engine::{
+    game_scene::GameScene, ComponentStorage, EngineResult, EntityBundle, EntityID, Query,
+};
 use handle::HandleSystem;
 
 use crate::{
@@ -29,6 +32,13 @@ mod components {
         pub down_pressed: bool,
         pub select_pressed: bool,
     }
+
+    #[derive(Clone, Copy)]
+    pub enum MenuAction {
+        NewGame,
+        Continue,
+        Exit,
+    }
 }
 
 fn compose_component_storage() -> EngineResult<ComponentStorage> {
@@ -39,14 +49,25 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<components::Visible>()?;
     storage.register_component::<components::Texture>()?;
     storage.register_component::<components::ControllerState>()?;
+    storage.register_component::<components::MenuAction>()?;
     Ok(storage)
 }
 
 pub fn compose_scene() -> EngineResult<GameScene> {
     let mut storage = compose_component_storage()?;
-    storage.append(&menu_item(0, false, &MENU_LABEL_CONTINUE));
-    storage.append(&menu_item(1, true, &MENU_LABEL_NEW_GAME));
-    storage.append(&menu_item(0xff, true, &MENU_LABEL_EXIT));
+    storage.append(&menu_item(
+        0,
+        false,
+        &MENU_LABEL_CONTINUE,
+        MenuAction::Continue,
+    ));
+    storage.append(&menu_item(
+        1,
+        true,
+        &MENU_LABEL_NEW_GAME,
+        MenuAction::NewGame,
+    ));
+    storage.append(&menu_item(0xff, true, &MENU_LABEL_EXIT, MenuAction::Exit));
     storage.append(&cursor_entity(1));
     let mut scene = GameScene::new(
         SCENE_MAIN_MENU,
@@ -58,12 +79,18 @@ pub fn compose_scene() -> EngineResult<GameScene> {
     Ok(scene)
 }
 
-fn menu_item(position: u8, is_visible: bool, asset_id: &'static str) -> EntityBundle {
+fn menu_item(
+    position: u8,
+    is_visible: bool,
+    asset_id: &'static str,
+    action: components::MenuAction,
+) -> EntityBundle {
     EntityBundle::new()
         .put(components::MenuItemTag)
         .put(components::Position(position))
         .put(components::Visible(is_visible))
         .put(components::Texture(asset_id))
+        .put(action)
 }
 
 fn cursor_entity(position: u8) -> EntityBundle {
@@ -72,4 +99,27 @@ fn cursor_entity(position: u8) -> EntityBundle {
         .put(components::Position(position))
         .put(components::Texture(MENU_CURSOR))
         .put(components::ControllerState::default())
+}
+
+pub fn active_menu_items(storage: &ComponentStorage) -> Vec<EntityID> {
+    let query = Query::new().with_component::<components::MenuItemTag>();
+    let mut entities = storage
+        .fetch_entities(&query)
+        .iter()
+        .filter(|id| {
+            storage
+                .get::<components::Visible>(**id)
+                .map(|x| x.0)
+                .unwrap_or_default()
+        })
+        .map(|id| {
+            let pos = storage
+                .get::<components::Position>(*id)
+                .map(|x| x.0)
+                .unwrap_or_default();
+            (pos, *id)
+        })
+        .collect::<Vec<(u8, EntityID)>>();
+    entities.sort_by_key(|x| x.0);
+    entities.into_iter().map(|(_, id)| id).collect()
 }

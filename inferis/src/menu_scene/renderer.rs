@@ -9,7 +9,10 @@ use engine::{
 
 use crate::resource::MENU_BACKGROUND;
 
-use super::components::{self, CursorTag, MenuItemTag, Position, Texture, Visible};
+use super::{
+    active_menu_items,
+    components::{self, CursorTag, MenuItemTag, Position, Texture, Visible},
+};
 
 pub struct MenuRendererSystem {
     layers: RendererLayersPtr,
@@ -74,26 +77,7 @@ impl MenuRendererSystem {
             ));
         };
 
-        let query = Query::new().with_component::<MenuItemTag>();
-        let mut entities = storage
-            .fetch_entities(&query)
-            .iter()
-            .filter(|id| {
-                storage
-                    .get::<Visible>(**id)
-                    .map(|x| x.0)
-                    .unwrap_or_default()
-            })
-            .map(|id| {
-                let pos = storage
-                    .get::<Position>(*id)
-                    .map(|x| x.0)
-                    .unwrap_or_default();
-                (pos, *id)
-            })
-            .collect::<Vec<(u8, EntityID)>>();
-        entities.sort_by_key(|x| x.0);
-
+        let entities = active_menu_items(storage);
         // TODO: create layout constants
         let y_offset = 100;
         let spacing = 35;
@@ -101,7 +85,7 @@ impl MenuRendererSystem {
 
         let mut y = y_offset;
         let mut layers = self.layers.borrow_mut();
-        for (_, id) in entities {
+        for id in entities {
             let Some(position) = storage.get::<Position>(id).map(|x| x.0) else {
                 return Err(EngineError::component_not_found("cursor position"));
             };
