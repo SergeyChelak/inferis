@@ -95,7 +95,18 @@ impl GameSystem for HandleSystem {
         storage.set(cursor_id, Some(components::ControllerState::default()));
 
         let is_paused = params.contains_key(SCENE_PARAM_PAUSE);
-        update_continue_action(storage, is_paused)?;
+        if let Some(continue_id) = continue_menu_item(storage) {
+            storage.set(continue_id, Some(components::Visible(is_paused)));
+            if let Some(pos) = storage.get::<Position>(continue_id).and_then(|x| {
+                if is_paused {
+                    Some(x.0)
+                } else {
+                    None
+                }
+            }) {
+                storage.set(cursor_id, Some(components::Position(pos)));
+            }
+        }
 
         let is_win = params.contains_key(SCENE_PARAM_WIN);
         let label_id = fetch_first::<LabelTag>(storage).ok_or(EngineError::unexpected_state(
@@ -112,19 +123,15 @@ impl HandleSystem {
     }
 }
 
-fn update_continue_action(
-    storage: &mut engine::ComponentStorage,
-    is_visible: bool,
-) -> EngineResult<()> {
+fn continue_menu_item(storage: &mut engine::ComponentStorage) -> Option<EntityID> {
     let query = Query::new().with_component::<MenuItemTag>();
     let entities = storage.fetch_entities(&query);
     for id in entities {
         if let Some(MenuAction::Continue) = storage.get(id).map(|x| *x) {
-            storage.set(id, Some(components::Visible(is_visible)));
-            break;
+            return Some(id);
         }
     }
-    Ok(())
+    None
 }
 
 fn input_delay(storage: &engine::ComponentStorage, cursor_id: EntityID) -> usize {
