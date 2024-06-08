@@ -1,7 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use engine::{
-    assets::texture_size,
     pixels::Color,
     ray_cast,
     rect::{Point, Rect},

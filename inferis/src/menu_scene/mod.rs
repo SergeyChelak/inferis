@@ -64,16 +64,16 @@ pub fn compose_scene() -> EngineResult<GameScene> {
     storage.append(&menu_item(
         0,
         false,
-        &MENU_LABEL_CONTINUE,
+        MENU_LABEL_CONTINUE,
         MenuAction::Continue,
     ));
     storage.append(&menu_item(
         1,
         true,
-        &MENU_LABEL_NEW_GAME,
+        MENU_LABEL_NEW_GAME,
         MenuAction::NewGame,
     ));
-    storage.append(&menu_item(0xff, true, &MENU_LABEL_EXIT, MenuAction::Exit));
+    storage.append(&menu_item(0xff, true, MENU_LABEL_EXIT, MenuAction::Exit));
     storage.append(&cursor_entity(1));
 
     storage.append(&win_label_entity());

@@ -109,7 +109,7 @@ impl ComponentStorage {
 
     pub fn register_component<T: Any>(&mut self) -> EngineResult<()> {
         let key = TypeId::of::<T>();
-        if self.raw.get(&key).is_some() {
+        if self.raw.contains_key(&key) {
             return Err(EngineError::ComponentAlreadyRegistered);
         }
         let position = self.type_position_map.len();
