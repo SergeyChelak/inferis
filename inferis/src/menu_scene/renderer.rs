@@ -4,14 +4,14 @@ use engine::{
     fetch_first,
     rect::Rect,
     systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
-    EngineError, EngineResult, EntityID, Query, SizeU32,
+    EngineError, EngineResult, EntityID, SizeU32,
 };
 
 use crate::resource::MENU_BACKGROUND;
 
 use super::{
     active_menu_items,
-    components::{self, CursorTag, MenuItemTag, Position, Texture, Visible},
+    components::{self, CursorTag, LabelTag, Position, Texture, Visible},
 };
 
 // layout constants
@@ -121,6 +121,44 @@ impl MenuRendererSystem {
         }
         Ok(())
     }
+
+    fn render_label(&self, storage: &engine::ComponentStorage) -> EngineResult<()> {
+        let Some(label_id) = fetch_first::<LabelTag>(storage) else {
+            return Ok(());
+        };
+        let is_visible = storage
+            .get::<Visible>(label_id)
+            .map(|x| x.0)
+            .unwrap_or_default();
+        if !is_visible {
+            return Ok(());
+        }
+        let asset_id =
+            storage
+                .get::<Texture>(label_id)
+                .map(|x| x.0)
+                .ok_or(EngineError::unexpected_state(
+                    "texture not found for label item",
+                ))?;
+        let Some(size) = self.texture_size.get(asset_id) else {
+            return Err(EngineError::unexpected_state(
+                "texture size not calculated for label item",
+            ));
+        };
+        let mut layers = self.layers.borrow_mut();
+
+        let x = (self.window_size.width - size.width) >> 1;
+
+        let destination = Rect::new(x as i32, 50, size.width, size.height);
+        let source = Rect::new(0, 0, size.width, size.height);
+        let effect = RendererEffect::Texture {
+            asset_id: asset_id.to_string(),
+            source,
+            destination,
+        };
+        layers.push_hud(effect);
+        Ok(())
+    }
 }
 
 impl GameRendererSystem for MenuRendererSystem {
@@ -147,6 +185,7 @@ impl GameRendererSystem for MenuRendererSystem {
         self.layers.borrow_mut().clear();
         self.render_background()?;
         self.render_menu(storage)?;
+        self.render_label(storage)?;
         Ok(self.layers.clone())
     }
 }

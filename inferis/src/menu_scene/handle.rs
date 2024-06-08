@@ -11,7 +11,7 @@ use crate::resource::{
 
 use super::{
     active_menu_items,
-    components::{self, CursorTag, MenuAction, MenuItemTag, Position},
+    components::{self, CursorTag, LabelTag, MenuAction, MenuItemTag, Position},
 };
 
 const INPUT_DELAY_FRAMES: usize = 10;
@@ -98,6 +98,10 @@ impl GameSystem for HandleSystem {
         update_continue_action(storage, is_paused)?;
 
         let is_win = params.contains_key(SCENE_PARAM_WIN);
+        let label_id = fetch_first::<LabelTag>(storage).ok_or(EngineError::unexpected_state(
+            "[v2.menu.handle] label entity not found",
+        ))?;
+        storage.set(label_id, Some(components::Visible(is_win)));
         Ok(())
     }
 }

@@ -7,7 +7,8 @@ use handle::HandleSystem;
 use crate::{
     menu_scene::{controller::MenuControlSystem, renderer::MenuRendererSystem},
     resource::{
-        MENU_CURSOR, MENU_LABEL_CONTINUE, MENU_LABEL_EXIT, MENU_LABEL_NEW_GAME, SCENE_MAIN_MENU,
+        MENU_CURSOR, MENU_LABEL_CONTINUE, MENU_LABEL_EXIT, MENU_LABEL_NEW_GAME, MENU_LABEL_WIN,
+        SCENE_MAIN_MENU,
     },
 };
 
@@ -23,6 +24,7 @@ mod components {
     pub struct Visible(pub bool);
 
     pub struct MenuItemTag;
+    pub struct LabelTag;
 
     pub struct CursorTag;
 
@@ -53,6 +55,7 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<components::ControllerState>()?;
     storage.register_component::<components::MenuAction>()?;
     storage.register_component::<components::Delay>()?;
+    storage.register_component::<components::LabelTag>()?;
     Ok(storage)
 }
 
@@ -72,6 +75,8 @@ pub fn compose_scene() -> EngineResult<GameScene> {
     ));
     storage.append(&menu_item(0xff, true, &MENU_LABEL_EXIT, MenuAction::Exit));
     storage.append(&cursor_entity(1));
+
+    storage.append(&win_label_entity());
     let mut scene = GameScene::new(
         SCENE_MAIN_MENU,
         storage,
@@ -102,6 +107,13 @@ fn cursor_entity(position: u8) -> EntityBundle {
         .put(components::Position(position))
         .put(components::Texture(MENU_CURSOR))
         .put(components::ControllerState::default())
+}
+
+fn win_label_entity() -> EntityBundle {
+    EntityBundle::new()
+        .put(components::LabelTag)
+        .put(components::Visible(false))
+        .put(components::Texture(MENU_LABEL_WIN))
 }
 
 pub fn active_menu_items(storage: &ComponentStorage) -> Vec<EntityID> {
