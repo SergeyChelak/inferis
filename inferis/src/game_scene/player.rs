@@ -240,9 +240,7 @@ impl GameSystem for PlayerSystem {
         }
 
         let input = self.handle_controls(delta_time, storage)?;
-        if is_actor_dead(storage, self.player_id) {
-            // TODO: perform special actions...
-        } else {
+        if !is_actor_dead(storage, self.player_id) {
             storage.set(self.player_id, Some(input.movement));
             if input.is_shooting {
                 self.handle_shot(storage)?;
