@@ -10,6 +10,7 @@ pub const SCENE_MAIN_MENU: SceneID = 2;
 
 pub const SCENE_PARAM_INVALIDATE: &str = "invalidate";
 pub const SCENE_PARAM_PAUSE: &str = "pause";
+pub const SCENE_PARAM_WIN: &str = "win";
 
 // world
 pub const WORLD_WALL1: &str = "wall1";

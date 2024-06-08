@@ -14,6 +14,11 @@ use super::{
     components::{self, CursorTag, MenuItemTag, Position, Texture, Visible},
 };
 
+// layout constants
+const MENU_Y_OFFSET: i32 = 250;
+const MENU_SPACING: i32 = 35;
+const MENU_X_OFFSET: i32 = 50;
+
 pub struct MenuRendererSystem {
     layers: RendererLayersPtr,
     texture_size: HashMap<String, SizeU32>,
@@ -78,12 +83,7 @@ impl MenuRendererSystem {
         };
 
         let entities = active_menu_items(storage);
-        // TODO: create layout constants
-        let y_offset = 100;
-        let spacing = 35;
-        let x_offset = 50;
-
-        let mut y = y_offset;
+        let mut y = MENU_Y_OFFSET;
         let mut layers = self.layers.borrow_mut();
         for id in entities {
             let Some(position) = storage.get::<Position>(id).map(|x| x.0) else {
@@ -99,7 +99,8 @@ impl MenuRendererSystem {
             };
             if position == cursor_position {
                 let source = Rect::new(0, 0, cursor_size.width, cursor_size.height);
-                let destination = Rect::new(x_offset, y, cursor_size.width, cursor_size.height);
+                let destination =
+                    Rect::new(MENU_X_OFFSET, y, cursor_size.width, cursor_size.height);
                 let effect = RendererEffect::Texture {
                     asset_id: cursor_texture_id.to_string(),
                     source,
@@ -107,7 +108,7 @@ impl MenuRendererSystem {
                 };
                 layers.push_hud(effect);
             }
-            let x = cursor_size.width as i32 + x_offset + spacing;
+            let x = cursor_size.width as i32 + MENU_X_OFFSET + MENU_SPACING;
             let destination = Rect::new(x, y, size.width, size.height);
             let source = Rect::new(0, 0, size.width, size.height);
             let effect = RendererEffect::Texture {
@@ -116,7 +117,7 @@ impl MenuRendererSystem {
                 destination,
             };
             layers.push_hud(effect);
-            y += size.height as i32 + spacing;
+            y += size.height as i32 + MENU_SPACING;
         }
         Ok(())
     }

@@ -57,9 +57,9 @@ impl GameControlSystem for MenuControlSystem {
             };
             use Keycode::*;
             match code {
-                Up | W => state.up_pressed = *pressed,
-                Down | S => state.down_pressed = *pressed,
-                X | KpEnter => state.select_pressed = *pressed,
+                Up => state.up_pressed = *pressed,
+                Down => state.down_pressed = *pressed,
+                Return => state.select_pressed = *pressed,
                 _ => {
                     // no op
                 }

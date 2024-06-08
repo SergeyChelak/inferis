@@ -1,20 +1,23 @@
 use components::SoundFx;
 use engine::{
-    fetch_first, systems::GameSystem, ComponentStorage, EngineError, EngineResult, EntityID, Float,
-    Query, Vec2f,
+    fetch_first, game_scene::SceneParameters, systems::GameSystem, ComponentStorage, EngineError,
+    EngineResult, EntityID, Float, Query, Vec2f,
 };
 
 use crate::{
     game_scene::subsystems::{can_shoot, get_actor_state, update_weapon_state},
     resource::{
         NPC_SOLDIER_ATTACK, NPC_SOLDIER_DAMAGE, NPC_SOLDIER_DEATH, NPC_SOLDIER_IDLE,
-        NPC_SOLDIER_WALK, SOUND_NPC_ATTACK, SOUND_NPC_DEATH, SOUND_NPC_PAIN,
+        NPC_SOLDIER_WALK, SCENE_MAIN_MENU, SCENE_PARAM_WIN, SOUND_NPC_ATTACK, SOUND_NPC_DEATH,
+        SOUND_NPC_PAIN,
     },
 };
 
 use super::{
     components::{self, ActorState, Sprite},
-    subsystems::{fetch_player_id, ray_cast_from_entity, replace_actor_state, updated_state},
+    subsystems::{
+        fetch_player_id, is_actor_dead, ray_cast_from_entity, replace_actor_state, updated_state,
+    },
 };
 
 pub const NPC_SOLDIER_SHOT_DEADLINE: usize = 10;
@@ -246,9 +249,22 @@ impl GameSystem for NpcSystem {
 
         let query = Query::new().with_component::<components::NpcTag>();
         let entities = storage.fetch_entities(&query);
+        let mut alive_npc = false;
         for entity_id in entities {
             self.update_npc(storage, entity_id)?;
+            alive_npc |= !is_actor_dead(storage, entity_id);
         }
-        Ok(engine::systems::GameSystemCommand::Nothing)
+
+        let command = if alive_npc {
+            engine::systems::GameSystemCommand::Nothing
+        } else {
+            let mut params = SceneParameters::default();
+            params.insert(SCENE_PARAM_WIN.to_string(), "".to_string());
+            engine::systems::GameSystemCommand::SwitchScene {
+                id: SCENE_MAIN_MENU,
+                params,
+            }
+        };
+        Ok(command)
     }
 }

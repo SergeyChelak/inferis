@@ -5,7 +5,9 @@ use engine::{
     ComponentStorage, EngineError, EngineResult, EntityID, Query,
 };
 
-use crate::resource::{SCENE_GAME_PLAY, SCENE_PARAM_INVALIDATE, SCENE_PARAM_PAUSE};
+use crate::resource::{
+    SCENE_GAME_PLAY, SCENE_PARAM_INVALIDATE, SCENE_PARAM_PAUSE, SCENE_PARAM_WIN,
+};
 
 use super::{
     active_menu_items,
@@ -94,6 +96,8 @@ impl GameSystem for HandleSystem {
 
         let is_paused = params.contains_key(SCENE_PARAM_PAUSE);
         update_continue_action(storage, is_paused)?;
+
+        let is_win = params.contains_key(SCENE_PARAM_WIN);
         Ok(())
     }
 }
