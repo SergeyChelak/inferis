@@ -29,6 +29,10 @@ pub fn update_weapon_state(
         state => state,
     };
     if new_state != weapon.state {
+        if let (Ready(_), Recharge(_)) = (weapon.state, new_state) {
+            let mut_weapon = weapon.borrow_mut();
+            mut_weapon.ammo_count = mut_weapon.ammo_count.saturating_sub(1);
+        }
         weapon.borrow_mut().state = new_state;
         Some(new_state)
     } else {
@@ -102,7 +106,7 @@ pub fn can_shoot(storage: &ComponentStorage, entity_id: EntityID) -> bool {
     let Some(weapon) = storage.get::<components::Weapon>(entity_id) else {
         return false;
     };
-    matches!(weapon.state, components::WeaponState::Ready(_))
+    matches!(weapon.state, components::WeaponState::Ready(_)) && weapon.ammo_count > 0
 }
 
 pub fn ray_cast_from_entity(
