@@ -52,16 +52,15 @@ impl GameControlSystem for ControlSystem {
         for event in events {
             match event {
                 InputEvent::Keyboard { code, pressed } => {
-                    use Keycode::*;
-                    match code {
-                        Up | W => state.forward_pressed = *pressed,
-                        Down | S => state.backward_pressed = *pressed,
-                        A => state.left_pressed = *pressed,
-                        D => state.right_pressed = *pressed,
-                        Left => state.rotate_left_pressed = *pressed,
-                        Right => state.rotate_right_pressed = *pressed,
-                        X => state.shot_pressed = *pressed,
-                        Escape => state.pause_pressed = *pressed,
+                    match *code {
+                        Keycode::UP | Keycode::W => state.forward_pressed = *pressed,
+                        Keycode::DOWN | Keycode::S => state.backward_pressed = *pressed,
+                        Keycode::A => state.left_pressed = *pressed,
+                        Keycode::D => state.right_pressed = *pressed,
+                        Keycode::LEFT => state.rotate_left_pressed = *pressed,
+                        Keycode::RIGHT => state.rotate_right_pressed = *pressed,
+                        Keycode::X => state.shot_pressed = *pressed,
+                        Keycode::ESCAPE => state.pause_pressed = *pressed,
                         _ => {
                             // println!("Key {code} pressed {pressed}")
                         }

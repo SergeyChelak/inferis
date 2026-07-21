@@ -175,7 +175,7 @@ impl<'a> AssetManager<'a> {
         Ok(())
     }
 
-    pub fn texture(&self, key: &str) -> Option<&Texture> {
+    pub fn texture(&self, key: &str) -> Option<&Texture<'_>> {
         self.textures.get(key)
     }
 
@@ -263,7 +263,7 @@ fn create_gradient_texture(
     from: Color,
     to: Color,
     height: u32,
-) -> EngineResult<Texture> {
+) -> EngineResult<Texture<'_>> {
     let mut texture = texture_creator
         .create_texture_streaming(PixelFormatEnum::RGB24, 1, height)
         .map_err(|e| EngineError::Sdl(e.to_string()))?;
@@ -296,17 +296,11 @@ fn create_gradient_texture(
 }
 
 fn create_sound_chunk(data: &[u8]) -> EngineResult<Chunk> {
-    unsafe {
-        let src = RWops::from_bytes(data).map_err(|e| {
-            let msg = format!("Failed to create sound chunk source: {e}");
-            EngineError::sdl(msg)
-        })?;
-        let raw = sdl2::sys::mixer::Mix_LoadWAV_RW(src.raw(), 0);
-        if raw.is_null() {
-            return Err(EngineError::sdl("Failed to load sound chunk"));
-        }
-        Ok(Chunk { raw, owned: true })
-    }
+    let src = RWops::from_bytes(data).map_err(|e| {
+        let msg = format!("Failed to create sound chunk source: {e}");
+        EngineError::sdl(msg)
+    })?;
+    src.load_wav().map_err(|e| EngineError::sdl(e))
 }
 
 pub fn texture_size(texture: &Texture) -> SizeU32 {

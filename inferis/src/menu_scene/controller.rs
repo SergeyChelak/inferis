@@ -55,11 +55,10 @@ impl GameControlSystem for MenuControlSystem {
             let InputEvent::Keyboard { code, pressed } = event else {
                 continue;
             };
-            use Keycode::*;
-            match code {
-                Up => state.up_pressed = *pressed,
-                Down => state.down_pressed = *pressed,
-                Return => state.select_pressed = *pressed,
+            match *code {
+                Keycode::UP => state.up_pressed = *pressed,
+                Keycode::DOWN => state.down_pressed = *pressed,
+                Keycode::RETURN => state.select_pressed = *pressed,
                 _ => {
                     // no op
                 }

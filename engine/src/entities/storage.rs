@@ -171,7 +171,7 @@ impl ComponentStorage {
         true
     }
 
-    pub fn get<T: Any>(&self, entity_id: EntityID) -> Option<Ref<T>> {
+    pub fn get<T: Any>(&self, entity_id: EntityID) -> Option<Ref<'_, T>> {
         let val = self.get_component::<T>(entity_id)?;
         let Ok(borrowed) = val.try_borrow() else {
             return None;
@@ -183,7 +183,7 @@ impl ComponentStorage {
         Some(ref_val)
     }
 
-    pub fn get_mut<T: Any>(&self, entity_id: EntityID) -> Option<RefMut<T>> {
+    pub fn get_mut<T: Any>(&self, entity_id: EntityID) -> Option<RefMut<'_, T>> {
         let val = self.get_component::<T>(entity_id)?;
         let Ok(borrowed) = val.try_borrow_mut() else {
             return None;
