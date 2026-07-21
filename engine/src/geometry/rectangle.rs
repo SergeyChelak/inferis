@@ -33,6 +33,57 @@ impl Rectangle {
         seg_x.has_intersection(&other_seg_x) && seg_y.has_intersection(&other_seg_y)
     }
 
+    pub fn ray_intersect(&self, ray_pos: Vec2f, ray_dir: Vec2f) -> Option<Float> {
+        let inv_dir_x = 1.0 / ray_dir.x;
+        let inv_dir_y = 1.0 / ray_dir.y;
+
+        let mut tmin = (self.position.x - ray_pos.x) * inv_dir_x;
+        let mut tmax = (self.position.x + self.size.width - ray_pos.x) * inv_dir_x;
+
+        if inv_dir_x < 0.0 {
+            std::mem::swap(&mut tmin, &mut tmax);
+        }
+
+        let mut tymin = (self.position.y - ray_pos.y) * inv_dir_y;
+        let mut tymax = (self.position.y + self.size.height - ray_pos.y) * inv_dir_y;
+
+        if inv_dir_y < 0.0 {
+            std::mem::swap(&mut tymin, &mut tymax);
+        }
+
+        if tmin.is_nan() {
+            tmin = 0.0;
+        }
+        if tmax.is_nan() {
+            tmax = 0.0;
+        }
+        if tymin.is_nan() {
+            tymin = 0.0;
+        }
+        if tymax.is_nan() {
+            tymax = 0.0;
+        }
+
+        if (tmin > tymax) || (tymin > tmax) {
+            return None;
+        }
+
+        if tymin > tmin {
+            tmin = tymin;
+        }
+
+        if tymax < tmax {
+            tmax = tymax;
+        }
+
+        if tmax < 0.0 {
+            return None;
+        }
+
+        let t = if tmin < 0.0 { tmax } else { tmin };
+        Some(t)
+    }
+
     fn segments(&self) -> (Segment<Float>, Segment<Float>) {
         (
             Segment::new(self.position.x, self.size.width),

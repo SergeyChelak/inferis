@@ -1,8 +1,7 @@
 use std::borrow::BorrowMut;
 
 use engine::{
-    fetch_first, ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Rectangle,
-    SizeFloat, Vec2f,
+    fetch_first, ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Rectangle, Vec2f,
 };
 
 use crate::game_scene::components;
@@ -115,49 +114,61 @@ pub fn ray_cast_from_entity(
     maze_id: EntityID,
     position: Vec2f,
     angle: Float,
-    detection_sensitivity: Float,
 ) -> EngineResult<Option<EntityID>> {
     let query = Query::new().with_component::<components::BoundingBox>();
     let entities = storage.fetch_entities(&query);
-    if entities.is_empty() {
-        return Ok(None);
-    }
-    let detection_size = SizeFloat {
-        width: detection_sensitivity,
-        height: detection_sensitivity,
-    };
-    let check = |point: Vec2f| {
+
+    let check_wall = |point: Vec2f| {
         if point.x < 0.0 || point.y < 0.0 {
             return None;
         }
-        for target_id in &entities {
-            if *target_id == entity_id {
-                continue;
-            }
-            let Some(pos) = storage.get::<components::Position>(*target_id).map(|x| x.0) else {
-                continue;
-            };
-            let Some(target_size) = storage.get::<BoundingBox>(*target_id).map(|x| x.0) else {
-                continue;
-            };
-            let rect1 = Rectangle::with_pole(pos, target_size);
-            let rect2 = Rectangle::with_pole(point, detection_size);
-            if rect1.has_intersection(&rect2) {
-                return Some(*target_id);
-            }
-        }
-        // --- TEMPORARY
         if let Some(true) = storage
             .get::<components::Maze>(maze_id)
             .map(|x| x.is_wall(point))
         {
-            return Some(maze_id);
-        };
-        // ---
-        None
+            Some(maze_id)
+        } else {
+            None
+        }
     };
-    let result = ray_cast(position, angle, &check);
-    Ok(result.value)
+
+    let ray_result = ray_cast(position, angle, &check_wall);
+    let mut min_dist = if ray_result.value.is_some() {
+        ray_result.depth
+    } else {
+        Float::INFINITY
+    };
+    let mut closest_entity = None;
+
+    if !entities.is_empty() {
+        let ray_dir = Vec2f::new(angle.cos(), angle.sin());
+        for target_id in entities {
+            if target_id == entity_id {
+                continue;
+            }
+            let Some(pos) = storage.get::<components::Position>(target_id).map(|x| x.0) else {
+                continue;
+            };
+            let Some(target_size) = storage.get::<BoundingBox>(target_id).map(|x| x.0) else {
+                continue;
+            };
+            let rect = Rectangle::with_pole(pos, target_size);
+            if let Some(t) = rect.ray_intersect(position, ray_dir) {
+                if t >= 0.0 && t < min_dist {
+                    min_dist = t;
+                    closest_entity = Some(target_id);
+                }
+            }
+        }
+    }
+
+    if let Some(target) = closest_entity {
+        Ok(Some(target))
+    } else if ray_result.value.is_some() {
+        Ok(Some(maze_id))
+    } else {
+        Ok(None)
+    }
 }
 
 pub fn fetch_player_id(storage: &ComponentStorage) -> Option<EntityID> {
