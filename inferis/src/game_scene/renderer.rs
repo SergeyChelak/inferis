@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use engine::{
     pixels::Color,
@@ -25,7 +25,7 @@ const MAP_SCALE: u32 = 6;
 struct SpriteViewData {
     size: SizeU32,
     source: Rect,
-    texture_id: String,
+    texture_id: std::borrow::Cow<'static, str>,
 }
 
 pub struct RendererSystem {
@@ -222,7 +222,7 @@ impl RendererSystem {
                 let data = SpriteViewData {
                     size,
                     source,
-                    texture_id: asset_id.to_string(),
+                    texture_id: Cow::Borrowed(asset_id),
                 };
                 Some(data)
             }
@@ -254,7 +254,7 @@ impl RendererSystem {
                 let data = SpriteViewData {
                     size: frame_size,
                     source,
-                    texture_id: params.texture_id.to_string(),
+                    texture_id: Cow::Owned(params.texture_id.clone()),
                 };
                 Some(data)
             }
@@ -277,7 +277,7 @@ impl RendererSystem {
             let Some(texture_id) = result.value else {
                 continue;
             };
-            let Some(texture_size) = self.texture_size.get(&texture_id) else {
+            let Some(texture_size) = self.texture_size.get(texture_id) else {
                 continue;
             };
             // get rid of fishbowl effect
@@ -299,7 +299,7 @@ impl RendererSystem {
                 h,
             );
             let effect = RendererEffect::Texture {
-                asset_id: texture_id,
+                asset_id: Cow::Borrowed(texture_id),
                 source: src,
                 destination: dst,
             };
@@ -320,7 +320,7 @@ impl RendererSystem {
         let source = Rect::new(0, 0, size.width, size.height);
         let mut layers = self.layers.borrow_mut();
         let effect = RendererEffect::Texture {
-            asset_id: WORLD_FLOOR_GRADIENT.to_string(),
+            asset_id: Cow::Borrowed(WORLD_FLOOR_GRADIENT),
             source,
             destination,
         };
@@ -361,7 +361,7 @@ impl RendererSystem {
         let mut layers = self.layers.borrow_mut();
         for destination in destinations {
             let effect = RendererEffect::Texture {
-                asset_id: WORLD_SKY.to_string(),
+                asset_id: Cow::Borrowed(WORLD_SKY),
                 source,
                 destination,
             };

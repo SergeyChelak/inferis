@@ -265,15 +265,24 @@ impl ComponentStorage {
         footprint
     }
 
+    pub fn fetch_first_entity(&self, query: &Query) -> Option<EntityID> {
+        let query_footprint = self.footprint(&query.types);
+        for entity_id in &self.indices {
+            let Some(entity_footprint) = self.entity_footprint.get(entity_id) else {
+                continue;
+            };
+            if query_footprint.is_matches(entity_footprint) {
+                return Some(*entity_id);
+            }
+        }
+        None
+    }
+
     pub fn fetch_entities(&self, query: &Query) -> Vec<EntityID> {
         let mut entities = Vec::new();
         let query_footprint = self.footprint(&query.types);
         for entity_id in &self.indices {
-            let Some(entity_footprint) = self
-                .indices
-                .get(entity_id)
-                .and_then(|index| self.entity_footprint.get(index))
-            else {
+            let Some(entity_footprint) = self.entity_footprint.get(entity_id) else {
                 println!("[ComponentStorage] fetch: footprint isn't registered for entity");
                 continue;
             };

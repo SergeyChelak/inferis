@@ -136,10 +136,8 @@ lazy_static! {
 }
 
 impl Maze {
-    pub fn wall_texture(&self, point: Vec2f) -> Option<String> {
-        WALL_TEXTURES
-            .get(self.value_at(point)?)
-            .map(|x| x.to_string())
+    pub fn wall_texture(&self, point: Vec2f) -> Option<&'static str> {
+        WALL_TEXTURES.get(self.value_at(point)?).copied()
     }
 
     pub fn value_at(&self, point: Vec2f) -> Option<&i32> {

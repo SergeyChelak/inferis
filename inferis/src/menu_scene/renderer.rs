@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 
 use engine::{
     fetch_first,
@@ -61,7 +61,7 @@ impl MenuRendererSystem {
         let source = Rect::new(0, 0, size.width, size.height);
         let mut layers = self.layers.borrow_mut();
         let effect = RendererEffect::Texture {
-            asset_id: asset_id.to_string(),
+            asset_id: Cow::Borrowed(asset_id),
             source,
             destination,
         };
@@ -102,7 +102,7 @@ impl MenuRendererSystem {
                 let destination =
                     Rect::new(MENU_X_OFFSET, y, cursor_size.width, cursor_size.height);
                 let effect = RendererEffect::Texture {
-                    asset_id: cursor_texture_id.to_string(),
+                    asset_id: Cow::Borrowed(cursor_texture_id),
                     source,
                     destination,
                 };
@@ -112,7 +112,7 @@ impl MenuRendererSystem {
             let destination = Rect::new(x, y, size.width, size.height);
             let source = Rect::new(0, 0, size.width, size.height);
             let effect = RendererEffect::Texture {
-                asset_id: asset_id.to_string(),
+                asset_id: Cow::Borrowed(asset_id),
                 source,
                 destination,
             };
@@ -152,7 +152,7 @@ impl MenuRendererSystem {
         let destination = Rect::new(x as i32, 50, size.width, size.height);
         let source = Rect::new(0, 0, size.width, size.height);
         let effect = RendererEffect::Texture {
-            asset_id: asset_id.to_string(),
+            asset_id: Cow::Borrowed(asset_id),
             source,
             destination,
         };

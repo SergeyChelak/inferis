@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{borrow::Cow, cell::RefCell, rc::Rc};
 
 use sdl2::{
     keyboard::Keycode,
@@ -71,7 +71,7 @@ pub trait GameControlSystem {
 
 pub enum RendererEffect {
     Texture {
-        asset_id: String,
+        asset_id: Cow<'static, str>,
         source: Rect,
         destination: Rect,
     },

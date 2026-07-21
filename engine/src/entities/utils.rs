@@ -43,7 +43,7 @@ impl Query {
 
 pub fn fetch_first<T: Any>(storage: &ComponentStorage) -> Option<EntityID> {
     let query = Query::new().with_component::<T>();
-    storage.fetch_entities(&query).first().copied()
+    storage.fetch_first_entity(&query)
 }
 
 pub fn cleanup_component<T: Any>(storage: &mut ComponentStorage) -> EngineResult<()> {
