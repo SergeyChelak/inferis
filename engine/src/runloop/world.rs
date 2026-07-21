@@ -13,8 +13,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-const TARGET_FPS: u128 = 60;
-const FRAME_DURATION: u128 = 1000 / TARGET_FPS;
+const TARGET_FPS: u64 = 60;
+const FRAME_DURATION: Duration = Duration::from_micros(1_000_000 / TARGET_FPS);
 
 #[derive(Default)]
 pub struct GameWorld {
@@ -105,17 +105,21 @@ fn run(
     for (_, scene) in scenes.iter_mut() {
         scene.setup_systems(&asset_manager, settings.window.size)?;
     }
-    let mut time = Instant::now();
+    let mut last_time = Instant::now();
     let mut is_running = true;
+    let mut events = Vec::with_capacity(32);
     while is_running {
         let frame_start = Instant::now();
+        let delta_time = frame_start.duration_since(last_time).as_secs_f32();
+        last_time = frame_start;
+
         let commands = {
             let Some(scene) = scenes.get_mut(&current_scene) else {
                 return Err(EngineError::SceneNotFound);
             };
-            let events = get_events(&mut event_pump);
+            events.clear();
+            get_events(&mut event_pump, &mut events);
             scene.push_events(&events)?;
-            let delta_time = time.elapsed().as_secs_f32();
             let commands = scene.update(delta_time, &asset_manager)?;
             let effects = scene.render(&asset_manager)?;
             render_effects(&mut canvas, &asset_manager, effects)?;
@@ -133,7 +137,6 @@ fn run(
             }
             _ => {}
         });
-        time = Instant::now();
         frame_delay(&frame_start);
     }
     Ok(())
@@ -142,15 +145,21 @@ fn run(
 /// delay the rest of the time if needed
 #[inline(always)]
 fn frame_delay(frame_start: &Instant) {
-    let suspend_ms = FRAME_DURATION.saturating_sub(frame_start.elapsed().as_millis());
-    if suspend_ms > 0 {
-        let duration = Duration::from_millis(suspend_ms as u64);
-        std::thread::sleep(duration);
+    let elapsed = frame_start.elapsed();
+    if elapsed < FRAME_DURATION {
+        let remaining = FRAME_DURATION - elapsed;
+        // OS sleep granularity is often ~1-15ms.
+        // Sleep for most of the time, then spin-wait for the last millisecond for precision.
+        if remaining > Duration::from_millis(1) {
+            std::thread::sleep(remaining - Duration::from_millis(1));
+        }
+        while frame_start.elapsed() < FRAME_DURATION {
+            std::hint::spin_loop();
+        }
     }
 }
 
-fn get_events(event_pump: &mut EventPump) -> Vec<InputEvent> {
-    let mut events = Vec::new();
+fn get_events(event_pump: &mut EventPump, events: &mut Vec<InputEvent>) {
     for event in event_pump.poll_iter() {
         match event {
             Event::Quit { .. } => {
@@ -187,7 +196,6 @@ fn get_events(event_pump: &mut EventPump) -> Vec<InputEvent> {
             _ => {}
         }
     }
-    events
 }
 
 fn play_sound_effects(effects: &[SoundEffect], asset_manager: &AssetManager) -> EngineResult<()> {
@@ -219,7 +227,7 @@ fn render_effects(
 
     layers
         .depth
-        .sort_by(|a, b| b.depth.partial_cmp(&a.depth).unwrap_or(Ordering::Equal));
+        .sort_unstable_by(|a, b| b.depth.partial_cmp(&a.depth).unwrap_or(Ordering::Equal));
     for depth_effect in &layers.depth {
         render_effect(canvas, asset_manager, &depth_effect.effect)?;
     }
