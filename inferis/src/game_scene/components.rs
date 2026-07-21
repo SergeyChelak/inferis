@@ -10,20 +10,15 @@ use std::{
 pub struct PlayerTag;
 pub struct NpcTag;
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum ActorState {
+    #[default]
     Undefined,
     Idle(usize),
     Dead(usize),
     Attack(usize),
     Walk(usize),
     Damaged(usize),
-}
-
-impl Default for ActorState {
-    fn default() -> Self {
-        Self::Undefined
-    }
 }
 
 impl Display for ActorState {

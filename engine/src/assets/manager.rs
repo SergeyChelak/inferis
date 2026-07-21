@@ -300,7 +300,7 @@ fn create_sound_chunk(data: &[u8]) -> EngineResult<Chunk> {
         let msg = format!("Failed to create sound chunk source: {e}");
         EngineError::sdl(msg)
     })?;
-    src.load_wav().map_err(|e| EngineError::sdl(e))
+    src.load_wav().map_err(EngineError::sdl)
 }
 
 pub fn texture_size(texture: &Texture) -> SizeU32 {
