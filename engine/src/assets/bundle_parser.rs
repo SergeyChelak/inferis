@@ -21,27 +21,29 @@ pub fn raw_assets_from_bundle(path: &str) -> EngineResult<Vec<RawAsset>> {
     })?;
     let mut assets = Vec::new();
     loop {
-        let result = read_raw_asset(&mut file);
-        if let Err(e) = &result {
-            if matches!(e.kind(), ErrorKind::UnexpectedEof) {
-                break;
-            }
-        }
-        let asset = result.map_err(|e| {
-            let msg = format!("asset bundle looks like damaged. Error: {e}");
-            EngineError::ResourceParseError(msg)
-        })?;
+        // EOF is a clean end of the bundle only at a record boundary,
+        // i.e. on the very first read of the next record
+        let raw_type = match read_type_id(&mut file) {
+            Ok(value) => value,
+            Err(e) if matches!(e.kind(), ErrorKind::UnexpectedEof) => break,
+            Err(e) => return Err(damaged_bundle(e)),
+        };
+        // any failure past this point, including EOF, means a truncated
+        // or corrupted record
+        let asset = read_raw_asset(&mut file, raw_type).map_err(damaged_bundle)?;
         assets.push(asset);
     }
     Ok(assets)
 }
 
-fn read_raw_asset(file: &mut File) -> io::Result<RawAsset> {
-    let asset_type = {
-        let raw = read_type_id(file)?;
-        Type::try_from(raw)
-            .map_err(|_| io::Error::new(ErrorKind::InvalidData, "can't parse asset type"))
-    }?;
+fn damaged_bundle(e: io::Error) -> EngineError {
+    let msg = format!("asset bundle looks like damaged. Error: {e}");
+    EngineError::ResourceParseError(msg)
+}
+
+fn read_raw_asset(file: &mut File, raw_type: TypeID) -> io::Result<RawAsset> {
+    let asset_type = Type::try_from(raw_type)
+        .map_err(|_| io::Error::new(ErrorKind::InvalidData, "can't parse asset type"))?;
 
     let id = {
         let len = read_len(file)?;

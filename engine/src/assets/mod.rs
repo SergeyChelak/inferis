@@ -1,6 +1,7 @@
 mod bundle_parser;
 mod manager;
 mod text_parser;
+pub use bundle_parser::raw_assets_from_bundle;
 pub use manager::*;
 pub use text_parser::raw_assets_from_text;
 
