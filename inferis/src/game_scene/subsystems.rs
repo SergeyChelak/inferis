@@ -118,17 +118,16 @@ pub fn ray_cast_from_entity(
     let query = Query::new().with_component::<components::BoundingBox>();
     let entities = storage.fetch_entities(&query);
 
+    // borrow the maze once: fetching the component inside the closure
+    // costs a map lookup, RefCell borrow and downcast on every ray step
+    let maze = storage.get::<components::Maze>(maze_id);
     let check_wall = |point: Vec2f| {
         if point.x < 0.0 || point.y < 0.0 {
             return None;
         }
-        if let Some(true) = storage
-            .get::<components::Maze>(maze_id)
-            .map(|x| x.is_wall(point))
-        {
-            Some(maze_id)
-        } else {
-            None
+        match &maze {
+            Some(maze) if maze.is_wall(point) => Some(maze_id),
+            _ => None,
         }
     };
 
