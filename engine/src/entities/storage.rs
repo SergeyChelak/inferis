@@ -39,16 +39,18 @@ mod allocator {
         }
 
         pub fn deallocate(&mut self, index: Index) -> bool {
-            let idx = index.index;
-            if self.recycled.contains(&idx) {
-                return false;
-            }
-            let Some(entry) = self.entries.get_mut(idx) else {
+            let Some(entry) = self.entries.get_mut(index.index) else {
                 return false;
             };
+            // the entry itself knows whether it is alive: no need to
+            // scan the recycled list; the generation check also rejects
+            // stale handles whose slot was already reused
+            if !entry.is_alive || entry.generation != index.generation {
+                return false;
+            }
             self.count -= 1;
             entry.is_alive = false;
-            self.recycled.push(idx);
+            self.recycled.push(index.index);
             true
         }
 
