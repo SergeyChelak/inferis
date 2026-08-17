@@ -113,6 +113,22 @@ impl GameSystem for HandleSystem {
             "[v2.menu.handle] label entity not found",
         ))?;
         storage.set(label_id, Some(components::Visible(is_win)));
+
+        // the cursor may point at an item that just became hidden;
+        // move it to the first visible item so the menu stays usable
+        let entities = active_menu_items(storage);
+        let cursor_position = storage
+            .get::<Position>(cursor_id)
+            .map(|x| x.0)
+            .unwrap_or_default();
+        if selected_index(storage, &entities, cursor_position).is_none() {
+            if let Some(pos) = entities
+                .first()
+                .and_then(|id| storage.get::<Position>(*id).map(|x| x.0))
+            {
+                storage.set(cursor_id, Some(components::Position(pos)));
+            }
+        }
         Ok(())
     }
 }
