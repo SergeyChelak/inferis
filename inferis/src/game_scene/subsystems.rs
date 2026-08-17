@@ -93,7 +93,7 @@ fn updated_state_if_time(
     use components::ActorState::*;
     let result = match state {
         Undefined => Some(Idle(usize::MAX)),
-        Damaged(deadline) if deadline == frame => Some(Idle(usize::MAX)),
+        Damaged(deadline) if deadline <= frame => Some(Idle(usize::MAX)),
         _ => None,
     };
     Ok(result)

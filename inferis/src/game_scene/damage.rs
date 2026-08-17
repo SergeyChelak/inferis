@@ -37,9 +37,11 @@ impl DamageSystem {
         let Some(shot) = storage.get::<components::Shot>(entity_id).map(|x| *x) else {
             return Ok(());
         };
-        if shot.deadline != self.frames {
+        if self.frames < shot.deadline {
             return Ok(());
         }
+        // consume the shot so it can't be applied twice
+        storage.set::<components::Shot>(entity_id, None);
         // TODO: it's a lazy implementation to obtain the shot damage value
         // The correct approach is to provide the damage value as part of the Shot component
         // In the future, user can change weapon type but damaged will be calculated based on
