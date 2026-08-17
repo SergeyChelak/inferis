@@ -265,19 +265,22 @@ impl ComponentStorage {
         self.len() == 0
     }
 
-    fn footprint(&self, types: &HashSet<TypeId>) -> Footprint {
+    /// Returns None if any of the query types isn't registered:
+    /// such a query can't be matched by any entity
+    fn footprint(&self, types: &HashSet<TypeId>) -> Option<Footprint> {
         let mut footprint = Footprint::new();
         for item in types {
-            let Some(&pos) = self.type_position_map.get(item) else {
-                continue;
-            };
+            let &pos = self.type_position_map.get(item)?;
             footprint.set(pos, true);
         }
-        footprint
+        Some(footprint)
     }
 
     pub fn fetch_first_entity(&self, query: &Query) -> Option<EntityID> {
-        let query_footprint = self.footprint(&query.types);
+        let Some(query_footprint) = self.footprint(&query.types) else {
+            println!("[ComponentStorage] fetch: query contains unregistered component type");
+            return None;
+        };
         for entity_id in &self.indices {
             let Some(entity_footprint) = self.entity_footprint.get(entity_id) else {
                 continue;
@@ -291,7 +294,10 @@ impl ComponentStorage {
 
     pub fn fetch_entities(&self, query: &Query) -> Vec<EntityID> {
         let mut entities = Vec::new();
-        let query_footprint = self.footprint(&query.types);
+        let Some(query_footprint) = self.footprint(&query.types) else {
+            println!("[ComponentStorage] fetch: query contains unregistered component type");
+            return entities;
+        };
         for entity_id in &self.indices {
             let Some(entity_footprint) = self.entity_footprint.get(entity_id) else {
                 println!("[ComponentStorage] fetch: footprint isn't registered for entity");
