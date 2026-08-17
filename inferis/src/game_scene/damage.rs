@@ -56,6 +56,11 @@ impl DamageSystem {
         else {
             return Ok(());
         };
+        // the ray caster reports the maze entity on a wall hit;
+        // walls consume the shot without taking damage
+        if target_id == self.maze_id {
+            return Ok(());
+        }
         // println!("[v2.damage] targeted {}", target_id.index());
         // accumulate damages
         let total_damage = weapon_damage
