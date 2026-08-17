@@ -51,9 +51,11 @@ fn write_asset(file: &mut File, asset: &RawAsset) -> io::Result<()> {
 }
 
 fn write_buffer(file: &mut File, id: TypeID, buffer: &[u8]) -> io::Result<()> {
-    file.write_all(&id.to_ne_bytes())?;
-    let len = buffer.len();
-    file.write_all(&len.to_ne_bytes())?;
+    file.write_all(&id.to_le_bytes())?;
+    // lengths are stored as fixed-width little-endian u64 so bundles
+    // are readable regardless of the platform they were built on
+    let len = buffer.len() as u64;
+    file.write_all(&len.to_le_bytes())?;
     file.write_all(buffer)
 }
 
