@@ -36,11 +36,27 @@ impl MovementSystem {
         if let Some(mut position) = storage.get_mut::<components::Position>(entity_id) {
             let mut x = position.0.x;
             let mut y = position.0.y;
-            if self.check_collisions(storage, entity_id, Vec2f::new(x + movement.x, y)) {
-                x += movement.x;
-            }
-            if self.check_collisions(storage, entity_id, Vec2f::new(x, y + movement.y)) {
-                y += movement.y;
+            // entities without a bounding box don't move
+            if let Some(size) = storage
+                .get::<components::BoundingBox>(entity_id)
+                .map(|b| b.0)
+            {
+                // gather the collision context once instead of on every axis check
+                let obstacles = obstacle_rects(storage, entity_id);
+                let Some(maze) = storage.get::<components::Maze>(self.maze_id) else {
+                    panic!("[v2.movement] maze not found")
+                };
+                let can_move = |target: Vec2f| {
+                    let rect = Rectangle::with_pole(target, size);
+                    obstacles.iter().all(|other| !rect.has_intersection(other))
+                        && !maze.is_wall(target)
+                };
+                if can_move(Vec2f::new(x + movement.x, y)) {
+                    x += movement.x;
+                }
+                if can_move(Vec2f::new(x, y + movement.y)) {
+                    y += movement.y;
+                }
             }
             let pos = position.borrow_mut();
             pos.0 = Vec2f::new(x, y);
@@ -57,54 +73,26 @@ impl MovementSystem {
         storage.set::<components::Movement>(entity_id, None);
         Ok(())
     }
+}
 
-    fn check_collisions(
-        &self,
-        storage: &ComponentStorage,
-        entity_id: EntityID,
-        position: Vec2f,
-    ) -> bool {
-        // TODO: implement these steps for collider:
-        // 1) add bounding box for all objects that are obstacles
-        // 2) get list of objects with bounding boxes, take into account id of transformable object to avoid check with itself
-        // 3) check box collisions
-        let Some(entity_rect) = storage
-            .get::<components::BoundingBox>(entity_id)
-            .map(|x| Rectangle::with_pole(position, x.0))
-        else {
-            return false;
-        };
-        let query = Query::new()
-            .with_component::<components::BoundingBox>()
-            .with_component::<components::Position>();
-        let entities = storage.fetch_entities(&query);
-        for other_id in entities {
-            if other_id == entity_id {
-                continue;
-            }
-            let Some(other_box) = storage
-                .get::<components::BoundingBox>(other_id)
-                .map(|x| x.0)
-            else {
-                continue;
-            };
-            let Some(other_position) = storage.get::<components::Position>(other_id).map(|x| x.0)
-            else {
-                continue;
-            };
-            let other_rect = Rectangle::with_pole(other_position, other_box);
-            if entity_rect.has_intersection(&other_rect) {
-                return false;
-            }
-        }
-        {
-            // TEMPORARY: now just check the wall collisions
-            let Some(maze) = storage.get::<components::Maze>(self.maze_id) else {
-                panic!("[v2.movement] maze not found")
-            };
-            !maze.is_wall(position)
-        }
-    }
+// TODO: implement these steps for collider:
+// 1) add bounding box for all objects that are obstacles
+// 2) get list of objects with bounding boxes, take into account id of transformable object to avoid check with itself
+// 3) check box collisions
+fn obstacle_rects(storage: &ComponentStorage, entity_id: EntityID) -> Vec<Rectangle> {
+    let query = Query::new()
+        .with_component::<components::BoundingBox>()
+        .with_component::<components::Position>();
+    storage
+        .fetch_entities(&query)
+        .into_iter()
+        .filter(|id| *id != entity_id)
+        .filter_map(|id| {
+            let size = storage.get::<components::BoundingBox>(id).map(|x| x.0)?;
+            let position = storage.get::<components::Position>(id).map(|x| x.0)?;
+            Some(Rectangle::with_pole(position, size))
+        })
+        .collect()
 }
 
 impl GameSystem for MovementSystem {
