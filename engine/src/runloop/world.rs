@@ -102,7 +102,7 @@ fn run(
     let mut asset_manager = AssetManager::default();
     asset_manager.setup(&settings.asset_source, &texture_creator)?;
     // setup all scenes
-    for (_, scene) in scenes.iter_mut() {
+    for scene in scenes.values_mut() {
         scene.setup_systems(&asset_manager, settings.window.size)?;
     }
     let mut last_time = Instant::now();
