@@ -113,12 +113,12 @@ fn run(
         let delta_time = frame_start.duration_since(last_time).as_secs_f32();
         last_time = frame_start;
 
+        events.clear();
+        let quit_requested = get_events(&mut event_pump, &mut events);
         let commands = {
             let Some(scene) = scenes.get_mut(&current_scene) else {
                 return Err(EngineError::SceneNotFound);
             };
-            events.clear();
-            get_events(&mut event_pump, &mut events);
             scene.push_events(&events)?;
             let commands = scene.update(delta_time, &asset_manager)?;
             let effects = scene.render(&asset_manager)?;
@@ -137,6 +137,11 @@ fn run(
             }
             _ => {}
         });
+        // leave the loop instead of calling process::exit so that
+        // destructors run and SDL shuts down cleanly
+        if quit_requested {
+            is_running = false;
+        }
         frame_delay(&frame_start);
     }
     Ok(())
@@ -159,11 +164,15 @@ fn frame_delay(frame_start: &Instant) {
     }
 }
 
-fn get_events(event_pump: &mut EventPump, events: &mut Vec<InputEvent>) {
+/// Polls pending SDL events into `events`.
+/// Returns true if the application was asked to quit.
+fn get_events(event_pump: &mut EventPump, events: &mut Vec<InputEvent>) -> bool {
+    let mut quit_requested = false;
     for event in event_pump.poll_iter() {
         match event {
             Event::Quit { .. } => {
-                std::process::exit(0);
+                quit_requested = true;
+                events.push(InputEvent::Quit);
             }
             Event::KeyDown {
                 keycode: Some(keycode),
@@ -196,6 +205,7 @@ fn get_events(event_pump: &mut EventPump, events: &mut Vec<InputEvent>) {
             _ => {}
         }
     }
+    quit_requested
 }
 
 fn play_sound_effects(effects: &[SoundEffect], asset_manager: &AssetManager) -> EngineResult<()> {
