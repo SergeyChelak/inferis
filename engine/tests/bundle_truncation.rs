@@ -33,8 +33,20 @@ fn empty_bundle_is_valid() {
 #[test]
 fn complete_bundle_parses() {
     let mut data = Vec::new();
-    write_record(&mut data, TYPE_ID_COLOR, "clr1", REPRESENTATION_TEXT, b"1,2,3");
-    write_record(&mut data, TYPE_ID_COLOR, "clr2", REPRESENTATION_TEXT, b"4,5,6");
+    write_record(
+        &mut data,
+        TYPE_ID_COLOR,
+        "clr1",
+        REPRESENTATION_TEXT,
+        b"1,2,3",
+    );
+    write_record(
+        &mut data,
+        TYPE_ID_COLOR,
+        "clr2",
+        REPRESENTATION_TEXT,
+        b"4,5,6",
+    );
     let path = temp_bundle("complete.bin", &data);
     let assets = raw_assets_from_bundle(path.to_str().unwrap()).expect("bundle must parse");
     assert_eq!(assets.len(), 2);
@@ -44,8 +56,20 @@ fn complete_bundle_parses() {
 #[test]
 fn truncated_record_is_rejected() {
     let mut data = Vec::new();
-    write_record(&mut data, TYPE_ID_COLOR, "clr1", REPRESENTATION_TEXT, b"1,2,3");
-    write_record(&mut data, TYPE_ID_COLOR, "clr2", REPRESENTATION_TEXT, b"4,5,6");
+    write_record(
+        &mut data,
+        TYPE_ID_COLOR,
+        "clr1",
+        REPRESENTATION_TEXT,
+        b"1,2,3",
+    );
+    write_record(
+        &mut data,
+        TYPE_ID_COLOR,
+        "clr2",
+        REPRESENTATION_TEXT,
+        b"4,5,6",
+    );
     // cut the last record in half
     data.truncate(data.len() - 3);
     let path = temp_bundle("truncated.bin", &data);
@@ -57,7 +81,13 @@ fn truncated_record_is_rejected() {
 #[test]
 fn record_cut_at_length_field_is_rejected() {
     let mut data = Vec::new();
-    write_record(&mut data, TYPE_ID_COLOR, "clr1", REPRESENTATION_TEXT, b"1,2,3");
+    write_record(
+        &mut data,
+        TYPE_ID_COLOR,
+        "clr1",
+        REPRESENTATION_TEXT,
+        b"1,2,3",
+    );
     // a new record starts (type id present) but EOF hits inside the id length
     data.push(TYPE_ID_COLOR);
     data.extend_from_slice(&[0u8; 3]);
