@@ -62,6 +62,11 @@ mod allocator {
         pub fn len(&self) -> usize {
             self.count
         }
+
+        /// Total number of allocated slots, including dead ones
+        pub fn entries_count(&self) -> usize {
+            self.entries.len()
+        }
     }
 
     #[derive(Default)]
@@ -117,7 +122,11 @@ impl ComponentStorage {
             return Err(EngineError::ComponentCountOverflow);
         }
         self.type_position_map.insert(key, position);
-        self.raw.insert(key, Vec::with_capacity(STORAGE_CAPACITY));
+        // the row must cover all already allocated entities to keep
+        // every row indexable by any live entity id
+        let mut row: Vec<Option<ComponentEntry>> = Vec::with_capacity(STORAGE_CAPACITY);
+        row.resize_with(self.allocator.entries_count(), || None);
+        self.raw.insert(key, row);
         Ok(())
     }
 
@@ -127,7 +136,9 @@ impl ComponentStorage {
             if entity_id.index() < v.len() {
                 v[entity_id.index()] = None;
             } else {
-                v.push(None);
+                // resize instead of push: rows may be shorter than the
+                // allocated index (e.g. component registered late)
+                v.resize_with(entity_id.index() + 1, || None);
             }
         });
         self.indices.insert(entity_id);
