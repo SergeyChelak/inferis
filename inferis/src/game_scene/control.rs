@@ -1,12 +1,11 @@
-use std::borrow::BorrowMut;
-
 use engine::{
     prelude::Keycode,
+    refresh_cached_entity,
     systems::{GameControlSystem, InputEvent},
-    ComponentStorage, EngineError, EngineResult, EntityID,
+    ComponentStorage, EngineResult, EntityID,
 };
 
-use super::{components, subsystems::fetch_player_id};
+use super::components;
 
 #[derive(Default)]
 pub struct ControlSystem {
@@ -19,13 +18,11 @@ impl ControlSystem {
     }
 
     fn update_storage_cache(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
-        if storage.is_alive(self.player_id) {
-            return Ok(());
-        }
-        self.player_id = fetch_player_id(storage).ok_or(EngineError::unexpected_state(
-            "[v2.controller] player entity not found",
-        ))?;
-        Ok(())
+        refresh_cached_entity::<components::PlayerTag>(
+            storage,
+            &mut self.player_id,
+            "[v2.controller] player",
+        )
     }
 }
 
@@ -46,7 +43,7 @@ impl GameControlSystem for ControlSystem {
             println!("[v2.controller] warn: controller component isn't associated with player");
             return Ok(());
         };
-        let state = comp.borrow_mut();
+        let state = &mut *comp;
         state.mouse_x_relative = 0;
         state.mouse_y_relative = 0;
         for event in events {

@@ -14,26 +14,15 @@ impl Vec2f {
         }
     }
 
-    pub fn subtract(&self, other: &Self) -> Self {
-        Self {
-            x: self.x - other.x,
-            y: self.y - other.y,
-        }
-    }
-
-    pub fn add(&self, other: &Self) -> Self {
-        Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-        }
-    }
-
-    pub fn square_dist(&self) -> Float {
+    /// Squared magnitude of the vector. Prefer it over [`Self::length`] when
+    /// only comparing magnitudes: it skips the square root.
+    pub fn length_squared(&self) -> Float {
         self.x * self.x + self.y * self.y
     }
 
-    pub fn hypotenuse(&self) -> Float {
-        self.square_dist().sqrt()
+    /// Magnitude of the vector.
+    pub fn length(&self) -> Float {
+        self.length_squared().sqrt()
     }
 }
 

@@ -206,7 +206,7 @@ impl<'a> AssetManager<'a> {
         let ids = self.texture_ids();
         for id in ids {
             let Some(texture) = self.texture(&id) else {
-                let msg = format!("[v2.renderer] texture id: {}", id);
+                let msg = format!("[AssetManager] texture id: {}", id);
                 return Err(EngineError::TextureNotFound(msg));
             };
             let size = texture_size(texture);

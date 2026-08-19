@@ -3,6 +3,7 @@ use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 use engine::{
     fetch_first,
     prelude::Rect,
+    refresh_cached_entity,
     systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
     EngineError, EngineResult, EntityID, SizeU32,
 };
@@ -43,13 +44,11 @@ impl MenuRendererSystem {
     }
 
     fn update_storage_cache(&mut self, storage: &engine::ComponentStorage) -> EngineResult<()> {
-        if storage.is_alive(self.cursor_id) {
-            return Ok(());
-        }
-        self.cursor_id = fetch_first::<CursorTag>(storage).ok_or(EngineError::unexpected_state(
-            "[v2.menu.renderer] cursor entity not found",
-        ))?;
-        Ok(())
+        refresh_cached_entity::<CursorTag>(
+            storage,
+            &mut self.cursor_id,
+            "[v2.menu.renderer] cursor",
+        )
     }
 
     fn render_background(&self) -> EngineResult<()> {

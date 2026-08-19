@@ -1,10 +1,8 @@
-use std::borrow::BorrowMut;
-
 use engine::{
-    fetch_first,
     prelude::Keycode,
+    refresh_cached_entity,
     systems::{GameControlSystem, InputEvent},
-    EngineError, EngineResult, EntityID,
+    EngineResult, EntityID,
 };
 
 use super::components::{self, CursorTag};
@@ -21,13 +19,11 @@ impl MenuControlSystem {
     }
 
     fn update_storage_cache(&mut self, storage: &engine::ComponentStorage) -> EngineResult<()> {
-        if storage.is_alive(self.cursor_id) {
-            return Ok(());
-        }
-        self.cursor_id = fetch_first::<CursorTag>(storage).ok_or(EngineError::unexpected_state(
-            "[v2.menu.controller] cursor entity not found",
-        ))?;
-        Ok(())
+        refresh_cached_entity::<CursorTag>(
+            storage,
+            &mut self.cursor_id,
+            "[v2.menu.controller] cursor",
+        )
     }
 }
 
@@ -50,7 +46,7 @@ impl GameControlSystem for MenuControlSystem {
             );
             return Ok(());
         };
-        let state = comp.borrow_mut();
+        let state = &mut *comp;
         for event in events {
             let InputEvent::Keyboard { code, pressed } = event else {
                 continue;

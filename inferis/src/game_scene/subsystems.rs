@@ -1,8 +1,4 @@
-use std::borrow::BorrowMut;
-
-use engine::{
-    fetch_first, ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Rectangle, Vec2f,
-};
+use engine::{ray_cast, ComponentStorage, EngineResult, EntityID, Float, Query, Rectangle, Vec2f};
 
 use crate::game_scene::components;
 
@@ -29,10 +25,9 @@ pub fn update_weapon_state(
     };
     if new_state != weapon.state {
         if let (Ready(_), Recharge(_)) = (weapon.state, new_state) {
-            let mut_weapon = weapon.borrow_mut();
-            mut_weapon.ammo_count = mut_weapon.ammo_count.saturating_sub(1);
+            weapon.ammo_count = weapon.ammo_count.saturating_sub(1);
         }
-        weapon.borrow_mut().state = new_state;
+        weapon.state = new_state;
         Some(new_state)
     } else {
         None
@@ -67,9 +62,8 @@ fn state_if_damaged(
                 "[actor state] Health",
             ));
         };
-        let health = comp.borrow_mut();
-        health.0 = health.0.saturating_sub(damage);
-        health.0
+        comp.0 = comp.0.saturating_sub(damage);
+        comp.0
     };
     let state = if health > 0 {
         components::ActorState::Damaged(damage_deadline)
@@ -168,10 +162,6 @@ pub fn ray_cast_from_entity(
     } else {
         Ok(None)
     }
-}
-
-pub fn fetch_player_id(storage: &ComponentStorage) -> Option<EntityID> {
-    fetch_first::<components::PlayerTag>(storage)
 }
 
 pub fn get_actor_state(storage: &ComponentStorage, entity_id: EntityID) -> components::ActorState {

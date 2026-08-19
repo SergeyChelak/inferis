@@ -2,7 +2,7 @@ use std::{borrow::Cow, cell::RefCell, collections::HashMap, f32::consts::PI, rc:
 
 use engine::{
     prelude::{BlendMode, Color, Point, Rect},
-    ray_cast,
+    ray_cast, refresh_cached_entity,
     systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float, Query, SizeU32,
     Vec2f, RAY_CASTER_TOL,
@@ -10,11 +10,7 @@ use engine::{
 
 use crate::resource::{PLAYER_PLAYER_DAMAGE_COLOR, WORLD_FLOOR_GRADIENT, WORLD_SKY};
 
-use super::{
-    components::{self, ActorState},
-    fetch_first,
-    subsystems::fetch_player_id,
-};
+use super::components::{self, ActorState};
 
 const FIELD_OF_VIEW: Float = PI / 3.0;
 const HALF_FIELD_OF_VIEW: Float = FIELD_OF_VIEW * 0.5;
@@ -73,17 +69,12 @@ impl RendererSystem {
     }
 
     fn update_storage_cache(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
-        if storage.is_alive(self.player_id) && storage.is_alive(self.maze_id) {
-            return Ok(());
-        }
-        self.player_id = fetch_player_id(storage).ok_or(EngineError::unexpected_state(
-            "[v2.renderer] player entity not found",
-        ))?;
-
-        self.maze_id = fetch_first::<components::Maze>(storage).ok_or(
-            EngineError::unexpected_state("[v2.renderer] maze entity not found"),
+        refresh_cached_entity::<components::PlayerTag>(
+            storage,
+            &mut self.player_id,
+            "[v2.renderer] player",
         )?;
-        Ok(())
+        refresh_cached_entity::<components::Maze>(storage, &mut self.maze_id, "[v2.renderer] maze")
     }
 
     // ------------------------------------------------------------------------------------------------------------
@@ -137,7 +128,7 @@ impl RendererSystem {
         };
         let delta_rays = delta / self.ray_angle_step;
         let x = ((self.rays_count >> 1) as Float + delta_rays) * self.scale;
-        let norm_distance = vector.hypotenuse() * delta.cos();
+        let norm_distance = vector.length() * delta.cos();
         let SizeU32 {
             width: w,
             height: h,

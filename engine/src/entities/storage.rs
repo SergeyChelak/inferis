@@ -87,10 +87,6 @@ mod allocator {
         pub fn index(&self) -> usize {
             self.index
         }
-
-        pub fn id_key(&self) -> String {
-            format!("{}:{}", self.generation, self.index)
-        }
     }
 }
 
@@ -310,27 +306,5 @@ impl ComponentStorage {
             }
         }
         entities
-    }
-
-    pub fn fetch_components(&self, query: &Query) -> HashMap<TypeId, Vec<ComponentEntry>> {
-        let idx_array = self
-            .fetch_entities(query)
-            .iter()
-            .map(|item| item.index())
-            .collect::<Vec<usize>>();
-        let mut result: HashMap<TypeId, Vec<ComponentEntry>> = HashMap::new();
-        for type_id in query.types.iter() {
-            let Some(row) = self.raw.get(type_id) else {
-                panic!("[ComponentStorage] fetch: failed to get component row");
-            };
-            let entry = result.entry(*type_id).or_default();
-            for entity_id in &idx_array {
-                let Some(component) = row.get(*entity_id).and_then(|x| x.as_ref()) else {
-                    panic!("[ComponentStorage] fetch: component is none");
-                };
-                entry.push(component.clone());
-            }
-        }
-        result
     }
 }

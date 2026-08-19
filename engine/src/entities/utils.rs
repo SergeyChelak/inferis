@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{ComponentEntry, ComponentStorage, EngineResult, EntityID};
+use crate::{ComponentEntry, ComponentStorage, EngineError, EngineResult, EntityID};
 
 #[derive(Default)]
 pub struct EntityBundle {
@@ -44,6 +44,26 @@ impl Query {
 pub fn fetch_first<T: Any>(storage: &ComponentStorage) -> Option<EntityID> {
     let query = Query::new().with_component::<T>();
     storage.fetch_first_entity(&query)
+}
+
+/// Re-runs the lookup for a cached entity id, but only once the entity it
+/// points at is gone.
+///
+/// Systems hold on to the id of a single distinguished entity (the player, the
+/// maze, the menu cursor) across frames instead of scanning the storage every
+/// update. `label` names that entity in the error raised when the storage holds
+/// no replacement, e.g. `"[v2.npc] maze"`.
+pub fn refresh_cached_entity<T: Any>(
+    storage: &ComponentStorage,
+    cached_id: &mut EntityID,
+    label: &str,
+) -> EngineResult<()> {
+    if storage.is_alive(*cached_id) {
+        return Ok(());
+    }
+    *cached_id = fetch_first::<T>(storage)
+        .ok_or_else(|| EngineError::unexpected_state(format!("{label} entity not found")))?;
+    Ok(())
 }
 
 pub fn cleanup_component<T: Any>(storage: &mut ComponentStorage) -> EngineResult<()> {

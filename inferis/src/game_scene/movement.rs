@@ -1,11 +1,12 @@
-use std::{borrow::BorrowMut, f32::consts::PI};
+use std::f32::consts::PI;
 
 use engine::{
+    refresh_cached_entity,
     systems::{GameSystem, GameSystemCommand},
     ComponentStorage, EngineError, EngineResult, EntityID, Query, Rectangle, Vec2f,
 };
 
-use super::{components, fetch_first};
+use super::components;
 
 #[derive(Default)]
 pub struct MovementSystem {
@@ -18,13 +19,7 @@ impl MovementSystem {
     }
 
     fn update_storage_cache(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
-        if storage.is_alive(self.maze_id) {
-            return Ok(());
-        }
-        self.maze_id = fetch_first::<components::Maze>(storage).ok_or(
-            EngineError::unexpected_state("[v2.movement] maze entity not found"),
-        )?;
-        Ok(())
+        refresh_cached_entity::<components::Maze>(storage, &mut self.maze_id, "[v2.movement] maze")
     }
 
     fn move_entity(&self, storage: &mut ComponentStorage, entity_id: EntityID) -> EngineResult<()> {
@@ -44,7 +39,9 @@ impl MovementSystem {
                 // gather the collision context once instead of on every axis check
                 let obstacles = obstacle_rects(storage, entity_id);
                 let Some(maze) = storage.get::<components::Maze>(self.maze_id) else {
-                    panic!("[v2.movement] maze not found")
+                    return Err(EngineError::unexpected_state(
+                        "[v2.movement] maze component not found",
+                    ));
                 };
                 let can_move = |target: Vec2f| {
                     let rect = Rectangle::with_pole(target, size);
@@ -58,17 +55,15 @@ impl MovementSystem {
                     y += movement.y;
                 }
             }
-            let pos = position.borrow_mut();
-            pos.0 = Vec2f::new(x, y);
+            position.0 = Vec2f::new(x, y);
         }
 
         if let Some(mut angle_comp) = storage.get_mut::<components::Angle>(entity_id) {
-            let angle = angle_comp.borrow_mut();
-            let mut val = (angle.0 + movement.angle) % (2.0 * PI);
+            let mut val = (angle_comp.0 + movement.angle) % (2.0 * PI);
             if val < 0.0 {
                 val += 2.0 * PI;
             }
-            angle.0 = val;
+            angle_comp.0 = val;
         }
         storage.set::<components::Movement>(entity_id, None);
         Ok(())

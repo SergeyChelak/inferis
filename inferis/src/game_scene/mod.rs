@@ -10,7 +10,7 @@ mod renderer;
 mod sound;
 mod subsystems;
 
-use engine::{fetch_first, game_scene::GameScene, ComponentStorage, EngineResult};
+use engine::{game_scene::GameScene, ComponentStorage, EngineResult};
 
 use crate::resource::SCENE_GAME_PLAY;
 

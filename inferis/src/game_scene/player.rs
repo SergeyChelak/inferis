@@ -1,5 +1,6 @@
 use engine::{
     game_scene::SceneParameters,
+    refresh_cached_entity,
     systems::{GameSystem, GameSystemCommand},
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float,
 };
@@ -14,7 +15,7 @@ use crate::{
 
 use super::{
     components::{self, ControllerState, Movement, Shot},
-    subsystems::{can_shoot, fetch_player_id, is_actor_dead, updated_state},
+    subsystems::{can_shoot, is_actor_dead, updated_state},
 };
 
 pub const PLAYER_SHOT_DEADLINE: usize = 3;
@@ -52,13 +53,11 @@ impl PlayerSystem {
     }
 
     fn update_storage_cache(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
-        if storage.is_alive(self.player_id) {
-            return Ok(());
-        }
-        self.player_id = fetch_player_id(storage).ok_or(EngineError::unexpected_state(
-            "[v2.player] player entity not found",
-        ))?;
-        Ok(())
+        refresh_cached_entity::<components::PlayerTag>(
+            storage,
+            &mut self.player_id,
+            "[v2.player] player",
+        )
     }
 
     fn prefetch(&mut self, storage: &ComponentStorage) -> EngineResult<()> {

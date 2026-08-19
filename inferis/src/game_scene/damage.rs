@@ -1,7 +1,7 @@
 use engine::{
-    fetch_first,
+    refresh_cached_entity,
     systems::{GameSystem, GameSystemCommand},
-    AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float, Query,
+    AssetManager, ComponentStorage, EngineResult, EntityID, Float, Query,
 };
 
 use super::{components, subsystems::ray_cast_from_entity};
@@ -20,13 +20,7 @@ impl DamageSystem {
     }
 
     fn update_storage_cache(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
-        if storage.is_alive(self.maze_id) {
-            return Ok(());
-        }
-        self.maze_id = fetch_first::<components::Maze>(storage).ok_or(
-            EngineError::unexpected_state("[v2.damage] maze entity not found"),
-        )?;
-        Ok(())
+        refresh_cached_entity::<components::Maze>(storage, &mut self.maze_id, "[v2.damage] maze")
     }
 
     fn process_shot(

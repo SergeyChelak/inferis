@@ -1,7 +1,7 @@
 use components::SoundFx;
 use engine::{
-    fetch_first, game_scene::SceneParameters, systems::GameSystem, ComponentStorage, EngineError,
-    EngineResult, EntityID, Query, Vec2f,
+    game_scene::SceneParameters, refresh_cached_entity, systems::GameSystem, ComponentStorage,
+    EngineError, EngineResult, EntityID, Query, Vec2f,
 };
 
 use crate::{
@@ -15,9 +15,7 @@ use crate::{
 
 use super::{
     components::{self, ActorState, Sprite},
-    subsystems::{
-        fetch_player_id, is_actor_dead, ray_cast_from_entity, replace_actor_state, updated_state,
-    },
+    subsystems::{is_actor_dead, ray_cast_from_entity, replace_actor_state, updated_state},
 };
 
 pub const NPC_SOLDIER_SHOT_DEADLINE: usize = 10;
@@ -39,23 +37,19 @@ impl NpcSystem {
     }
 
     fn update_storage_cache(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
-        if storage.is_alive(self.player_id) {
-            return Ok(());
-        }
-        self.player_id = fetch_player_id(storage).ok_or(EngineError::unexpected_state(
-            "[v2.npc] player entity not found",
-        ))?;
-        self.maze_id = fetch_first::<components::Maze>(storage).ok_or(
-            EngineError::unexpected_state("[v2.npc] maze entity not found"),
+        refresh_cached_entity::<components::PlayerTag>(
+            storage,
+            &mut self.player_id,
+            "[v2.npc] player",
         )?;
-        Ok(())
+        refresh_cached_entity::<components::Maze>(storage, &mut self.maze_id, "[v2.npc] maze")
     }
 
     fn prefetch(&mut self, storage: &ComponentStorage) -> EngineResult<()> {
         self.player_position = storage
             .get::<components::Position>(self.player_id)
             .map(|x| x.0)
-            .ok_or(EngineError::component_not_found("[v2.player] Velocity"))?;
+            .ok_or(EngineError::component_not_found("[v2.npc] player Position"))?;
         Ok(())
     }
 
@@ -156,7 +150,7 @@ impl NpcSystem {
             ray_cast_from_entity(entity_id, storage, self.maze_id, npc_position, angle)?;
         let new_state = match target_id {
             Some(id) if self.player_id == id => {
-                if vector.hypotenuse() < 5.0 {
+                if vector.length() < 5.0 {
                     components::ActorState::Attack(usize::MAX)
                 } else {
                     components::ActorState::Walk(usize::MAX)
