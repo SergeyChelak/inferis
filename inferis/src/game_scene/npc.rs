@@ -138,7 +138,14 @@ impl NpcSystem {
             } else if matches!(state, ActorState::Damaged(_)) {
                 self.react_to_damage(storage, entity_id)?;
             }
-            self.apply_state(storage, entity_id, state)?;
+            // Damage and death are applied here, not through apply_state:
+            // state_if_damaged has already written the component, so asking
+            // replace_actor_state to change it reports "no change" and the
+            // death animation, the pain animation and both sounds are all
+            // skipped. That is what leaves a killed soldier standing.
+            storage.set(entity_id, Some(state))?;
+            self.update_npc_view(storage, entity_id, &state)?;
+            self.update_npc_sound(storage, entity_id, &state)?;
             _ = update_weapon_state(self.frames, storage, entity_id);
             return Ok(());
         }
@@ -157,7 +164,11 @@ impl NpcSystem {
         Ok(())
     }
 
-    /// Records a state change and brings the sprite and sound with it.
+    /// Records a change of state and brings the sprite and sound with it.
+    ///
+    /// Only for states derived from what the soldier chose to do, where
+    /// nothing should happen if the state is the one it already had --
+    /// otherwise the walk animation restarts on every step.
     fn apply_state(
         &mut self,
         storage: &mut engine::ComponentStorage,
