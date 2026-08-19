@@ -1,13 +1,20 @@
 use super::{
     game_scene::GameScene,
-    systems::{GameSystemCommand, RendererEffect, RendererLayersPtr, SoundEffect},
+    systems::{GameSystemCommand, RasterBuffer, RendererEffect, RendererLayersPtr, SoundEffect},
 };
 use crate::{
     game_scene::SceneEvent, systems::InputEvent, AssetManager, AudioSettings, EngineError,
     EngineResult, EngineSettings, SceneID, SizeU32, WindowSettings,
 };
 use log::warn;
-use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, EventPump, Sdl};
+use sdl2::{
+    event::Event,
+    mixer::InitFlag,
+    pixels::{Color, PixelFormatEnum},
+    render::{Texture, TextureCreator, WindowCanvas},
+    video::WindowContext,
+    EventPump, Sdl,
+};
 use std::{
     cmp::Ordering,
     collections::HashMap,
@@ -104,6 +111,49 @@ impl SDLSystems {
     }
 }
 
+/// Holds the streaming texture that CPU-drawn rasters are uploaded through,
+/// so a frame does not allocate one.
+struct RasterUpload<'a> {
+    creator: &'a TextureCreator<WindowContext>,
+    texture: Option<Texture<'a>>,
+    size: SizeU32,
+}
+
+impl<'a> RasterUpload<'a> {
+    fn new(creator: &'a TextureCreator<WindowContext>) -> Self {
+        Self {
+            creator,
+            texture: None,
+            size: SizeU32::new(0, 0),
+        }
+    }
+
+    /// Uploads `buffer` and returns the texture holding it, reallocating only
+    /// when the buffer's size changes.
+    fn upload(&mut self, buffer: &RasterBuffer) -> EngineResult<&Texture<'a>> {
+        if self.texture.is_none() || self.size != buffer.size {
+            let texture = self
+                .creator
+                .create_texture_streaming(
+                    PixelFormatEnum::ABGR8888,
+                    buffer.size.width,
+                    buffer.size.height,
+                )
+                .map_err(|err| EngineError::Sdl(err.to_string()))?;
+            self.texture = Some(texture);
+            self.size = buffer.size;
+        }
+        let texture = self
+            .texture
+            .as_mut()
+            .ok_or_else(|| EngineError::unexpected_state("raster texture missing"))?;
+        texture
+            .update(None, &buffer.pixels, (buffer.size.width * 4) as usize)
+            .map_err(|err| EngineError::Sdl(err.to_string()))?;
+        Ok(texture)
+    }
+}
+
 fn run(
     systems: SDLSystems,
     settings: &EngineSettings,
@@ -122,8 +172,14 @@ fn run(
         }
     };
     let texture_creator = canvas.texture_creator();
+    let mut raster = RasterUpload::new(&texture_creator);
     let mut asset_manager = AssetManager::default();
-    asset_manager.setup(&settings.asset_source, &texture_creator, max_texture)?;
+    asset_manager.setup(
+        &settings.asset_source,
+        &texture_creator,
+        max_texture,
+        &settings.sampled_textures,
+    )?;
     // setup all scenes
     for scene in scenes.values_mut() {
         scene.setup_systems(&asset_manager, settings.window.size)?;
@@ -156,7 +212,7 @@ fn run(
                 }
             }
             let effects = scene.render(&asset_manager)?;
-            render_effects(&mut canvas, &asset_manager, effects)?;
+            render_effects(&mut canvas, &asset_manager, &mut raster, effects)?;
             let sound_effects = scene.sound_effects(&asset_manager)?;
             play_sound_effects(&sound_effects, &asset_manager)?;
             commands
@@ -271,24 +327,25 @@ fn play_sound_effects(effects: &[SoundEffect], asset_manager: &AssetManager) -> 
 fn render_effects(
     canvas: &mut WindowCanvas,
     asset_manager: &AssetManager,
+    raster: &mut RasterUpload,
     layers_ptr: RendererLayersPtr,
 ) -> EngineResult<()> {
     let mut layers = layers_ptr.borrow_mut();
     canvas.set_draw_color(Color::BLACK);
     canvas.clear();
     for effect in &layers.background {
-        render_effect(canvas, asset_manager, effect)?;
+        render_effect(canvas, asset_manager, raster, effect)?;
     }
 
     layers
         .depth
         .sort_unstable_by(|a, b| b.depth.partial_cmp(&a.depth).unwrap_or(Ordering::Equal));
     for depth_effect in &layers.depth {
-        render_effect(canvas, asset_manager, &depth_effect.effect)?;
+        render_effect(canvas, asset_manager, raster, &depth_effect.effect)?;
     }
 
     for effect in &layers.hud {
-        render_effect(canvas, asset_manager, effect)?;
+        render_effect(canvas, asset_manager, raster, effect)?;
     }
     canvas.present();
     Ok(())
@@ -298,10 +355,21 @@ fn render_effects(
 fn render_effect(
     canvas: &mut WindowCanvas,
     asset_manager: &AssetManager,
+    raster: &mut RasterUpload,
     effect: &RendererEffect,
 ) -> EngineResult<()> {
     use RendererEffect::*;
     match effect {
+        Raster {
+            buffer,
+            destination,
+        } => {
+            let buffer = buffer.borrow();
+            let texture = raster.upload(&buffer)?;
+            canvas
+                .copy(texture, None, *destination)
+                .map_err(EngineError::sdl)
+        }
         Texture {
             texture,
             source,

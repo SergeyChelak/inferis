@@ -5,6 +5,9 @@ pub struct EngineSettings {
     pub window: WindowSettings,
     pub asset_source: AssetSource,
     pub audio_setting: AudioSettings,
+    /// Textures the game samples itself, pixel by pixel, and so needs a
+    /// main-memory copy of. Everything else lives only on the GPU.
+    pub sampled_textures: Vec<String>,
 }
 pub struct WindowSettings {
     pub title: String,

@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Sub};
+use std::ops::{Add, AddAssign, Mul, Sub};
 
 #[derive(Copy, Clone, Default, PartialEq, Eq, Debug)]
 pub struct Vec2<T> {
@@ -80,5 +80,21 @@ where
 
     fn sub(self, rhs: Self) -> Self::Output {
         self.sub(&rhs)
+    }
+}
+
+// -----
+impl<T> Mul<T> for Vec2<T>
+where
+    T: Copy + Mul<Output = T>,
+{
+    type Output = Self;
+
+    /// Scales both components.
+    fn mul(self, rhs: T) -> Self::Output {
+        Self {
+            x: self.x * rhs,
+            y: self.y * rhs,
+        }
     }
 }

@@ -100,6 +100,66 @@ scaling it to 4096x738. Re-export it smaller to keep full detail.
 
 A renderer reporting `0x0`, as the software one does, means no limit.
 
+## Floor and ceiling
+
+> Experimental, on the `experiment/floor-ceiling` branch. It replaces the
+> scrolling sky and the floor gradient, which imitated a ceiling and a floor
+> without either being at a real place in the world.
+
+A wall is one blit per column because every pixel of a column samples the
+same column of texture. Floors are not like that — each pixel sees a
+different point of the texture — so there is nothing to blit and the image
+is built a pixel at a time into a `RendererEffect::Raster`, which the run
+loop uploads through a streaming texture.
+
+The geometry falls out of the wall projection, which is what makes floor,
+ceiling and wall meet without a seam. A wall bottom at depth `d` sits
+
+```text
+p = screen_distance / (2 d)
+```
+
+pixels below the horizon, so a row `p` from the horizon shows depth
+`d = screen_distance / (2 p)`. Rows mirror about the horizon: the ceiling
+row that far above shows the same distance.
+
+Across a row the world position runs linearly from the left edge of the view
+to the right:
+
+```rust
+let left = dir - plane;              // plane = perp(dir) * tan(fov/2)
+let mut point = player_pos + left * depth;
+let step = (plane * (2.0 / width)) * depth;
+for pixel in row { sample(point); point += step; }
+```
+
+One add per pixel, and no fisheye correction needed — the interpolated
+direction already has unit length along the view axis.
+
+### Cost
+
+The cast is per pixel, so it is the one part of the renderer that scales
+with resolution rather than with the scene:
+
+| Resolution | Pixels | Cost |
+| --- | --- | --- |
+| full 1600×900 | 1.44 M | ~26 ms — far past a frame |
+| quarter 400×225 | 90 k | ~0.95 ms |
+
+Quarter resolution scaled up is the default (`RASTER_DIVISOR`). The blur is
+mostly hidden by the floor being underfoot and the ceiling overhead.
+
+Two things keep the inner loop cheap. Texture wrap is a mask rather than a
+modulo, which needs power-of-two texture dimensions — every wall texture in
+the bundle is 512 square, and anything else falls back to a remainder and a
+division per pixel. Distance shading is 8.8 fixed point, so the loop stays
+integer. Together those took it from 2.0 ms to 0.95 ms.
+
+Textures are sampled from main memory, since a texture uploaded to the GPU
+cannot be read back. `EngineSettings::sampled_textures` names the ids that
+need a CPU copy — only those, because a decoded sprite sheet can run to tens
+of megabytes.
+
 ## Sprites
 
 Sprites are billboards. Their screen position comes from the angle between

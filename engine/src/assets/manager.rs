@@ -34,6 +34,28 @@ pub struct Animation {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TextureId(usize);
 
+/// A texture's pixels kept in main memory, RGBA, row-major.
+///
+/// A texture uploaded to the GPU cannot be read back, so anything the game
+/// samples itself -- a floor or ceiling cast, which reads a different texel
+/// per pixel -- needs its own copy. Kept only for the ids a game asks for,
+/// since a decoded sprite sheet can run to tens of megabytes.
+pub struct TextureData {
+    pub size: SizeU32,
+    pub pixels: Vec<u8>,
+}
+
+impl TextureData {
+    /// The texel at `(x, y)`, wrapping, as `(r, g, b)`.
+    #[inline(always)]
+    pub fn texel(&self, x: u32, y: u32) -> (u8, u8, u8) {
+        let x = x % self.size.width;
+        let y = y % self.size.height;
+        let i = ((y * self.size.width + x) * 4) as usize;
+        (self.pixels[i], self.pixels[i + 1], self.pixels[i + 2])
+    }
+}
+
 /// What a renderer needs to know about a texture up front: how to ask for
 /// it later, and how big it is.
 #[derive(Debug, Clone, Copy)]
@@ -46,6 +68,7 @@ pub struct TextureInfo {
 pub struct AssetManager<'a> {
     textures: Vec<Texture<'a>>,
     texture_ids: HashMap<String, TextureId>,
+    texture_data: HashMap<String, TextureData>,
     colors: HashMap<String, Color>,
     animations: HashMap<String, Animation>,
     binaries: HashMap<String, Data>,
@@ -58,11 +81,12 @@ impl<'a> AssetManager<'a> {
         source: &AssetSource,
         texture_creator: &'a TextureCreator<WindowContext>,
         max_texture: SizeU32,
+        sampled: &[String],
     ) -> EngineResult<()> {
         let raw_assets = load_assets(source)?;
         for asset in &raw_assets {
             match asset.asset_type {
-                Type::Texture => self.add_texture(asset, texture_creator, max_texture)?,
+                Type::Texture => self.add_texture(asset, texture_creator, max_texture, sampled)?,
                 Type::Animation => self.add_animation(asset)?,
                 Type::Binary => self.add_binary(asset)?,
                 Type::Color => self.add_color(asset)?,
@@ -78,6 +102,7 @@ impl<'a> AssetManager<'a> {
         raw_asset: &RawAsset,
         texture_creator: &'a TextureCreator<WindowContext>,
         max_texture: SizeU32,
+        sampled: &[String],
     ) -> EngineResult<()> {
         let Representation::Binary { value } = &raw_asset.representation else {
             return Err(EngineError::UnexpectedState(format!(
@@ -96,6 +121,10 @@ impl<'a> AssetManager<'a> {
                 ))
             })?;
         let image = fit_within(image, max_texture, &raw_asset.id)?;
+        if sampled.iter().any(|id| id == &raw_asset.id) {
+            self.texture_data
+                .insert(raw_asset.id.clone(), texture_data(&image, &raw_asset.id)?);
+        }
         let texture = texture_creator
             .create_texture_from_surface(&image)
             .map_err(|err| {
@@ -230,6 +259,11 @@ impl<'a> AssetManager<'a> {
         self.texture_ids.get(key).copied()
     }
 
+    /// Main-memory pixels for a texture named in `EngineSettings::sampled_textures`.
+    pub fn texture_data(&self, key: &str) -> Option<&TextureData> {
+        self.texture_data.get(key)
+    }
+
     pub fn color(&self, key: &str) -> Option<&Color> {
         self.colors.get(key)
     }
@@ -360,6 +394,25 @@ fn fit_within(
         EngineError::ResourceParseError(format!("Failed to resize '{asset_id}': {err}"))
     })?;
     Ok(scaled)
+}
+
+/// Copies a surface's pixels into main memory as RGBA.
+fn texture_data(image: &Surface<'static>, asset_id: &str) -> EngineResult<TextureData> {
+    let converted = image
+        .convert_format(PixelFormatEnum::ABGR8888)
+        .map_err(|err| {
+            EngineError::ResourceParseError(format!("Failed to convert '{asset_id}': {err}"))
+        })?;
+    let size = SizeU32::new(converted.width(), converted.height());
+    let pitch = converted.pitch() as usize;
+    let row = (size.width * 4) as usize;
+    let mut pixels = Vec::with_capacity(row * size.height as usize);
+    converted.with_lock(|raw: &[u8]| {
+        for y in 0..size.height as usize {
+            pixels.extend_from_slice(&raw[y * pitch..y * pitch + row]);
+        }
+    });
+    Ok(TextureData { size, pixels })
 }
 
 fn create_gradient_texture(

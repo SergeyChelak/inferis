@@ -2,21 +2,69 @@ use log::info;
 use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use engine::{
-    assets::{TextureId, TextureInfo},
+    assets::{TextureData, TextureId, TextureInfo},
     prelude::{BlendMode, Color, Point, Rect},
     ray_cast_dir, refresh_cached_entity,
-    systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
+    systems::{
+        GameRendererSystem, RasterBuffer, RasterBufferPtr, RendererEffect, RendererLayers,
+        RendererLayersPtr,
+    },
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float, Query, SizeU32,
     Vec2f, RAY_CASTER_TOL,
 };
 
-use crate::resource::{PLAYER_PLAYER_DAMAGE_COLOR, WORLD_FLOOR_GRADIENT, WORLD_SKY};
+use crate::resource::{PLAYER_PLAYER_DAMAGE_COLOR, WORLD_CEILING_TEXTURE, WORLD_FLOOR_TEXTURE};
 
 use super::components::{self, ActorState};
 
 const FIELD_OF_VIEW: Float = PI / 3.0;
 const HALF_FIELD_OF_VIEW: Float = FIELD_OF_VIEW * 0.5;
 const MAP_SCALE: u32 = 6;
+
+/// The floor and ceiling are cast at the window size divided by this and
+/// scaled back up. The cast costs one texture read per pixel, so full
+/// resolution is 1.4M reads a frame; a quarter of that is 90k.
+const RASTER_DIVISOR: u32 = 4;
+/// How quickly the floor and ceiling fall off into the dark. Without it the
+/// texture tiles all the way to the horizon and the repetition is obvious.
+const RASTER_FALLOFF: Float = 0.09;
+
+/// A texture prepared for per-pixel sampling.
+///
+/// The wrap is a mask rather than a modulo, which needs power-of-two
+/// dimensions. Every wall texture in the bundle is 512 square; anything else
+/// falls back to a remainder, which costs a division per pixel.
+struct Sampler<'a> {
+    pixels: &'a [u8],
+    width: i32,
+    height: i32,
+    /// `Some(mask)` when the dimension is a power of two.
+    wrap: Option<(i32, i32)>,
+}
+
+impl<'a> Sampler<'a> {
+    fn new(data: &'a TextureData) -> Self {
+        let (w, h) = (data.size.width as i32, data.size.height as i32);
+        let pow2 = w > 0 && h > 0 && w & (w - 1) == 0 && h & (h - 1) == 0;
+        Self {
+            pixels: &data.pixels,
+            width: w,
+            height: h,
+            wrap: pow2.then_some((w - 1, h - 1)),
+        }
+    }
+
+    /// Byte offset of the texel at fixed-point texture coordinates.
+    #[inline(always)]
+    fn offset(&self, u: i32, v: i32) -> usize {
+        let (x, y) = match self.wrap {
+            // two's complement makes the mask wrap negatives correctly
+            Some((mx, my)) => (u & mx, v & my),
+            None => (u.rem_euclid(self.width), v.rem_euclid(self.height)),
+        };
+        ((y * self.width + x) * 4) as usize
+    }
+}
 
 struct SpriteViewData {
     size: SizeU32,
@@ -48,6 +96,9 @@ pub struct RendererSystem {
     /// map. `None` where the texture is missing -- dropping those would
     /// shift the indices and paint walls with each other's textures.
     wall_textures: Vec<Option<TextureInfo>>,
+    /// Floor and ceiling, drawn a pixel at a time into this buffer and then
+    /// scaled up to the window.
+    raster: RasterBufferPtr,
     scale: Float,
     screen_distance: Float,
 }
@@ -72,6 +123,7 @@ impl Default for RendererSystem {
             ray_angle_step: Default::default(),
             ray_offsets: Default::default(),
             wall_textures: Default::default(),
+            raster: Rc::new(RefCell::new(RasterBuffer::new(SizeU32::new(1, 1)))),
             scale: Default::default(),
             screen_distance: Default::default(),
         }
@@ -320,63 +372,87 @@ impl RendererSystem {
     }
 
     // ------------------------------------------------------------------------------------------------------------
-    fn render_floor(&self) -> EngineResult<()> {
-        let half_height = self.window_size.height >> 1;
-        let destination = Rect::new(0, half_height as i32, self.window_size.width, half_height);
-        // gradient floor
-        let Some(floor) = self.textures.get(WORLD_FLOOR_GRADIENT) else {
+    /// Casts the floor and the ceiling, a pixel at a time.
+    ///
+    /// A wall is one blit per column because every pixel of a column samples
+    /// the same texture column. Floors are not like that: each pixel sees a
+    /// different point of the texture, so there is nothing to blit and the
+    /// image has to be built by hand.
+    ///
+    /// For a screen row `p` pixels from the horizon, everything drawn there
+    /// lies at the same perpendicular distance. That distance comes from the
+    /// same projection the walls use, so floor, ceiling and walls agree at
+    /// the seam:
+    ///
+    /// ```text
+    ///   wall bottom at depth d sits p = screen_distance / (2 d) below the
+    ///   horizon, so a row p from the horizon shows depth
+    ///       d = screen_distance / (2 p)
+    /// ```
+    ///
+    /// Across the row the world position runs linearly from the left edge of
+    /// the view to the right, which is what makes it one add per pixel and
+    /// also what removes the fisheye: the interpolated direction already has
+    /// unit length along the view axis.
+    fn render_floor_ceiling(&self, asset_manager: &AssetManager) -> EngineResult<()> {
+        let (Some(floor), Some(ceiling)) = (
+            asset_manager.texture_data(WORLD_FLOOR_TEXTURE),
+            asset_manager.texture_data(WORLD_CEILING_TEXTURE),
+        ) else {
             return Ok(());
         };
-        let source = Rect::new(0, 0, floor.size.width, floor.size.height);
-        let mut layers = self.layers.borrow_mut();
-        let effect = RendererEffect::Texture {
-            texture: floor.id,
-            source,
-            destination,
-        };
-        layers.push_background(effect);
-        Ok(())
-    }
-
-    fn render_sky(&self) -> EngineResult<()> {
-        let Some(sky) = self.textures.get(WORLD_SKY) else {
-            return Ok(());
-        };
-        let offset = {
-            let w = self.window_size.width as Float;
-            let offset = -(1.5 * self.angle * w / PI) % w;
-            offset as i32
-        };
+        let floor = Sampler::new(floor);
+        let ceiling = Sampler::new(ceiling);
+        let mut raster = self.raster.borrow_mut();
         let SizeU32 {
             width: w,
             height: h,
-        } = sky.size;
-        let source = Rect::new(0, 0, w, h);
-        let half_height = self.window_size.height >> 1;
-        let destinations = [
-            Rect::new(offset, 0, self.window_size.width, half_height),
-            Rect::new(
-                offset - self.window_size.width as i32,
-                0,
-                self.window_size.width,
-                half_height,
-            ),
-            Rect::new(
-                offset + self.window_size.width as i32,
-                0,
-                self.window_size.width,
-                half_height,
-            ),
-        ];
-        let mut layers = self.layers.borrow_mut();
-        for destination in destinations {
-            let effect = RendererEffect::Texture {
-                texture: sky.id,
-                source,
-                destination,
-            };
-            layers.push_background(effect)
+        } = raster.size;
+        if w == 0 || h == 0 {
+            return Ok(());
         }
+
+        // the view direction, and half the camera plane at its right edge
+        let (sin, cos) = self.angle.sin_cos();
+        let dir = Vec2f::new(cos, sin);
+        let plane = Vec2f::new(-sin, cos) * HALF_FIELD_OF_VIEW.tan();
+        let left = dir - plane;
+        let span = plane * (2.0 / w as Float);
+        // the raster has its own width, so its own projection distance
+        let screen_distance = (w as Float * 0.5) / HALF_FIELD_OF_VIEW.tan();
+        let horizon = h as Float * 0.5;
+        let row_bytes = (w * 4) as usize;
+
+        for (y, row) in raster.pixels.chunks_exact_mut(row_bytes).enumerate() {
+            // rows mirror about the horizon: the ceiling row this far above
+            // it shows the same distance as the floor row below
+            let offset = y as Float + 0.5 - horizon;
+            let depth = screen_distance / (2.0 * offset.abs().max(0.5));
+            // shading in 8.8 fixed point, so the inner loop stays integer
+            let shade = ((1.0 / (1.0 + depth * RASTER_FALLOFF)) * 256.0) as u32;
+            let texture = if offset >= 0.0 { &floor } else { &ceiling };
+
+            let mut point = self.player_pos + left * depth;
+            let step = span * depth;
+            let (su, sv) = (texture.width as Float, texture.height as Float);
+            for pixel in row.chunks_exact_mut(4) {
+                let at = texture.offset((point.x * su) as i32, (point.y * sv) as i32);
+                let texel = &texture.pixels[at..at + 3];
+                pixel[0] = ((texel[0] as u32 * shade) >> 8) as u8;
+                pixel[1] = ((texel[1] as u32 * shade) >> 8) as u8;
+                pixel[2] = ((texel[2] as u32 * shade) >> 8) as u8;
+                pixel[3] = 0xff;
+                point += step;
+            }
+        }
+        drop(raster);
+
+        let destination = Rect::new(0, 0, self.window_size.width, self.window_size.height);
+        let effect = RendererEffect::Raster {
+            buffer: self.raster.clone(),
+            destination,
+        };
+        self.layers.borrow_mut().push_background(effect);
         Ok(())
     }
 
@@ -523,6 +599,10 @@ impl GameRendererSystem for RendererSystem {
             .iter()
             .map(|name| self.textures.get(*name).copied())
             .collect();
+        self.raster = Rc::new(RefCell::new(RasterBuffer::new(SizeU32::new(
+            (window_size.width / RASTER_DIVISOR).max(1),
+            (window_size.height / RASTER_DIVISOR).max(1),
+        ))));
         self.ray_offsets = (0..self.rays_count)
             .map(|ray| (ray as Float * self.ray_angle_step - HALF_FIELD_OF_VIEW).sin_cos())
             .collect();
@@ -552,8 +632,7 @@ impl GameRendererSystem for RendererSystem {
 
         self.layers.borrow_mut().clear();
         // background layer
-        self.render_floor()?;
-        self.render_sky()?;
+        self.render_floor_ceiling(asset_manager)?;
         // depth layer
         self.render_walls(storage)?;
         self.render_sprites(storage, asset_manager)?;

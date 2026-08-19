@@ -31,3 +31,18 @@ impl Display for Vec2f {
         write!(f, "[{:5.3}; {:5.3}]", self.x, self.y)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn scaling_multiplies_both_components() {
+        let v = Vec2f::new(3.0, -4.0);
+        assert_eq!(v * 2.0, Vec2f::new(6.0, -8.0));
+        assert_eq!(v * 0.0, Vec2f::new(0.0, 0.0));
+        // scaling by the reciprocal of the length gives a unit vector
+        let unit = v * (1.0 / v.length());
+        assert!((unit.length() - 1.0).abs() < 1e-6);
+    }
+}

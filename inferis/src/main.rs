@@ -7,7 +7,9 @@ use engine::{
     assets::AssetSource, world::GameWorld, AudioSettings, EngineError, EngineResult,
     EngineSettings, SizeU32, WindowSettings,
 };
-use resource::{FILE_ASSET_BUNDLE, FILE_ASSET_REGISTRY};
+use resource::{
+    FILE_ASSET_BUNDLE, FILE_ASSET_REGISTRY, WORLD_CEILING_TEXTURE, WORLD_FLOOR_TEXTURE,
+};
 mod game_scene;
 mod menu_scene;
 mod resource;
@@ -45,6 +47,11 @@ fn engine_settings() -> EngineResult<EngineSettings> {
             },
         },
         audio_setting: AudioSettings::default(),
+        // the floor and ceiling cast reads these per pixel
+        sampled_textures: vec![
+            WORLD_FLOOR_TEXTURE.to_string(),
+            WORLD_CEILING_TEXTURE.to_string(),
+        ],
     })
 }
 

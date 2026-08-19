@@ -64,7 +64,36 @@ pub trait GameControlSystem {
     ) -> EngineResult<()>;
 }
 
+/// An image drawn a pixel at a time by a renderer system, in RGBA order.
+///
+/// Blitting cannot express a textured floor or ceiling: every pixel of one
+/// samples a different point of the texture, so there is no source rectangle
+/// that describes a row. This is the way out -- the system fills a buffer and
+/// the run loop uploads it.
+pub struct RasterBuffer {
+    pub size: SizeU32,
+    pub pixels: Vec<u8>,
+}
+
+impl RasterBuffer {
+    pub fn new(size: SizeU32) -> Self {
+        Self {
+            size,
+            pixels: vec![0; (size.width * size.height * 4) as usize],
+        }
+    }
+}
+
+pub type RasterBufferPtr = Rc<RefCell<RasterBuffer>>;
+
 pub enum RendererEffect {
+    /// A CPU-drawn image, stretched over `destination`. Usually smaller than
+    /// the window: the cost is per pixel, so it is drawn at a fraction of
+    /// the resolution and scaled up.
+    Raster {
+        buffer: RasterBufferPtr,
+        destination: Rect,
+    },
     Texture {
         texture: TextureId,
         source: Rect,

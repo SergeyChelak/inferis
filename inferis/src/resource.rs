@@ -18,8 +18,16 @@ pub const WORLD_WALL2: &str = "wall2";
 pub const WORLD_WALL3: &str = "wall3";
 pub const WORLD_WALL4: &str = "wall4";
 pub const WORLD_WALL5: &str = "wall5";
+// The sky and the floor gradient were the imitation the cast replaces. Both
+// are still in the bundle; kept named so a comparison is one edit away.
+#[allow(dead_code)]
 pub const WORLD_SKY: &str = "sky";
+#[allow(dead_code)]
 pub const WORLD_FLOOR_GRADIENT: &str = "floor_grad";
+// Textures the floor and ceiling cast samples. They are wall textures for
+// now, because the bundle has no dedicated ones; swap the ids once it does.
+pub const WORLD_FLOOR_TEXTURE: &str = "wall4";
+pub const WORLD_CEILING_TEXTURE: &str = "wall2";
 pub const WORLD_TORCH_RED_ANIM: &str = "anim_torch_red";
 pub const WORLD_TORCH_GREEN_ANIM: &str = "anim_torch_green";
 pub const WORLD_GAME_OVER: &str = "game_over";
