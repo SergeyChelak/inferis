@@ -294,12 +294,12 @@ fn render_effect(
     use RendererEffect::*;
     match effect {
         Texture {
-            asset_id,
+            texture,
             source,
             destination,
         } => {
-            let Some(texture) = asset_manager.texture(asset_id) else {
-                let msg = format!("[run_loop] texture not found {}", asset_id);
+            let Some(texture) = asset_manager.texture(*texture) else {
+                let msg = format!("[run_loop] unknown texture handle {:?}", texture);
                 return Err(EngineError::TextureNotFound(msg));
             };
             canvas

@@ -1,7 +1,8 @@
-use std::{borrow::Cow, cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::prelude::{BlendMode, Color, Keycode, Point, Rect};
 use crate::{
+    assets::TextureId,
     game_scene::{SceneEvent, SceneParameters},
     AssetManager, ComponentStorage, EngineResult, Float, SceneID, SizeU32,
 };
@@ -65,7 +66,7 @@ pub trait GameControlSystem {
 
 pub enum RendererEffect {
     Texture {
-        asset_id: Cow<'static, str>,
+        texture: TextureId,
         source: Rect,
         destination: Rect,
     },

@@ -24,9 +24,26 @@ pub struct Animation {
     pub texture_id: String,
 }
 
+/// Stable handle to a loaded texture.
+///
+/// Resolving a texture by name costs a string hash, which a renderer
+/// submitting hundreds of quads a frame pays hundreds of times. Handles are
+/// resolved once and drawn by index.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TextureId(usize);
+
+/// What a renderer needs to know about a texture up front: how to ask for
+/// it later, and how big it is.
+#[derive(Debug, Clone, Copy)]
+pub struct TextureInfo {
+    pub id: TextureId,
+    pub size: SizeU32,
+}
+
 #[derive(Default)]
 pub struct AssetManager<'a> {
-    textures: HashMap<String, Texture<'a>>,
+    textures: Vec<Texture<'a>>,
+    texture_ids: HashMap<String, TextureId>,
     colors: HashMap<String, Color>,
     animations: HashMap<String, Animation>,
     binaries: HashMap<String, Data>,
@@ -70,7 +87,7 @@ impl<'a> AssetManager<'a> {
                 raw_asset.id
             )));
         };
-        self.textures.insert(raw_asset.id.clone(), texture);
+        self.put_texture(&raw_asset.id, texture);
         Ok(())
     }
 
@@ -159,8 +176,21 @@ impl<'a> AssetManager<'a> {
                 "Failed to create texture gradient '{value}'"
             )));
         };
-        self.textures.insert(raw_asset.id.clone(), texture);
+        self.put_texture(&raw_asset.id, texture);
         Ok(())
+    }
+
+    /// Stores a texture under `key`, replacing any texture already there so
+    /// that a handle handed out earlier keeps pointing at the right asset.
+    fn put_texture(&mut self, key: &str, texture: Texture<'a>) {
+        match self.texture_ids.get(key) {
+            Some(&TextureId(index)) => self.textures[index] = texture,
+            None => {
+                self.texture_ids
+                    .insert(key.to_string(), TextureId(self.textures.len()));
+                self.textures.push(texture);
+            }
+        }
     }
 
     fn add_audio_chunk(&mut self, raw_asset: &RawAsset) -> EngineResult<()> {
@@ -175,8 +205,12 @@ impl<'a> AssetManager<'a> {
         Ok(())
     }
 
-    pub fn texture(&self, key: &str) -> Option<&Texture<'_>> {
-        self.textures.get(key)
+    pub fn texture(&self, id: TextureId) -> Option<&Texture<'_>> {
+        self.textures.get(id.0)
+    }
+
+    pub fn texture_id(&self, key: &str) -> Option<TextureId> {
+        self.texture_ids.get(key).copied()
     }
 
     pub fn color(&self, key: &str) -> Option<&Color> {
@@ -195,22 +229,26 @@ impl<'a> AssetManager<'a> {
         self.audio_chunks.get(key)
     }
 
-    pub fn texture_ids(&self) -> Vec<String> {
-        self.textures
-            .keys()
-            .map(|x| x.to_string())
-            .collect::<Vec<String>>()
+    pub fn texture_names(&self) -> Vec<String> {
+        self.texture_ids.keys().cloned().collect::<Vec<String>>()
     }
 
-    pub fn cache_textures_info(&self, output: &mut HashMap<String, SizeU32>) -> EngineResult<()> {
-        let ids = self.texture_ids();
-        for id in ids {
-            let Some(texture) = self.texture(&id) else {
-                let msg = format!("[AssetManager] texture id: {}", id);
+    /// Fills `output` with the handle and size of every loaded texture, so a
+    /// renderer can resolve the names it draws once instead of per frame.
+    pub fn cache_textures_info(
+        &self,
+        output: &mut HashMap<String, TextureInfo>,
+    ) -> EngineResult<()> {
+        for (name, &id) in &self.texture_ids {
+            let Some(texture) = self.texture(id) else {
+                let msg = format!("[AssetManager] texture id: {}", name);
                 return Err(EngineError::TextureNotFound(msg));
             };
-            let size = texture_size(texture);
-            output.insert(id, size);
+            let info = TextureInfo {
+                id,
+                size: texture_size(texture),
+            };
+            output.insert(name.clone(), info);
         }
         Ok(())
     }

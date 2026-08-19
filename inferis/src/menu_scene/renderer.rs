@@ -1,7 +1,8 @@
 use log::info;
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use engine::{
+    assets::TextureInfo,
     fetch_first,
     prelude::Rect,
     refresh_cached_entity,
@@ -23,7 +24,7 @@ const MENU_X_OFFSET: i32 = 50;
 
 pub struct MenuRendererSystem {
     layers: RendererLayersPtr,
-    texture_size: HashMap<String, SizeU32>,
+    textures: HashMap<String, TextureInfo>,
     window_size: SizeU32,
     //
     cursor_id: EntityID,
@@ -38,7 +39,7 @@ impl MenuRendererSystem {
         };
         Self {
             layers: Rc::new(RefCell::new(layers)),
-            texture_size: Default::default(),
+            textures: Default::default(),
             window_size: Default::default(),
             cursor_id: Default::default(),
         }
@@ -54,14 +55,14 @@ impl MenuRendererSystem {
 
     fn render_background(&self) -> EngineResult<()> {
         let destination = Rect::new(0, 0, self.window_size.width, self.window_size.height);
-        let asset_id = MENU_BACKGROUND;
-        let Some(size) = self.texture_size.get(asset_id) else {
+        let Some(background) = self.textures.get(MENU_BACKGROUND) else {
             return Ok(());
         };
+        let size = background.size;
         let source = Rect::new(0, 0, size.width, size.height);
         let mut layers = self.layers.borrow_mut();
         let effect = RendererEffect::Texture {
-            asset_id: Cow::Borrowed(asset_id),
+            texture: background.id,
             source,
             destination,
         };
@@ -76,11 +77,12 @@ impl MenuRendererSystem {
         let Some(cursor_texture_id) = storage.get::<Texture>(self.cursor_id).map(|x| x.0) else {
             return Err(EngineError::component_not_found("cursor texture"));
         };
-        let Some(cursor_size) = self.texture_size.get(cursor_texture_id) else {
+        let Some(&cursor) = self.textures.get(cursor_texture_id) else {
             return Err(EngineError::unexpected_state(
                 "image size not found for menu cursor",
             ));
         };
+        let cursor_size = cursor.size;
 
         let entities = active_menu_items(storage);
         let mut y = MENU_Y_OFFSET;
@@ -92,17 +94,18 @@ impl MenuRendererSystem {
             let Some(asset_id) = storage.get::<components::Texture>(id).map(|x| x.0) else {
                 return Err(EngineError::component_not_found("menu texture"));
             };
-            let Some(size) = self.texture_size.get(asset_id) else {
+            let Some(&item) = self.textures.get(asset_id) else {
                 return Err(EngineError::unexpected_state(
                     "image size not found for menu item",
                 ));
             };
+            let size = item.size;
             if position == cursor_position {
                 let source = Rect::new(0, 0, cursor_size.width, cursor_size.height);
                 let destination =
                     Rect::new(MENU_X_OFFSET, y, cursor_size.width, cursor_size.height);
                 let effect = RendererEffect::Texture {
-                    asset_id: Cow::Borrowed(cursor_texture_id),
+                    texture: cursor.id,
                     source,
                     destination,
                 };
@@ -112,7 +115,7 @@ impl MenuRendererSystem {
             let destination = Rect::new(x, y, size.width, size.height);
             let source = Rect::new(0, 0, size.width, size.height);
             let effect = RendererEffect::Texture {
-                asset_id: Cow::Borrowed(asset_id),
+                texture: item.id,
                 source,
                 destination,
             };
@@ -140,11 +143,12 @@ impl MenuRendererSystem {
                 .ok_or(EngineError::unexpected_state(
                     "texture not found for label item",
                 ))?;
-        let Some(size) = self.texture_size.get(asset_id) else {
+        let Some(&label) = self.textures.get(asset_id) else {
             return Err(EngineError::unexpected_state(
                 "texture size not calculated for label item",
             ));
         };
+        let size = label.size;
         let mut layers = self.layers.borrow_mut();
 
         let x = (self.window_size.width - size.width) >> 1;
@@ -152,7 +156,7 @@ impl MenuRendererSystem {
         let destination = Rect::new(x as i32, 50, size.width, size.height);
         let source = Rect::new(0, 0, size.width, size.height);
         let effect = RendererEffect::Texture {
-            asset_id: Cow::Borrowed(asset_id),
+            texture: label.id,
             source,
             destination,
         };
@@ -168,7 +172,7 @@ impl GameRendererSystem for MenuRendererSystem {
         asset_manager: &engine::AssetManager,
         window_size: engine::SizeU32,
     ) -> engine::EngineResult<()> {
-        asset_manager.cache_textures_info(&mut self.texture_size)?;
+        asset_manager.cache_textures_info(&mut self.textures)?;
         self.window_size = window_size;
         self.update_storage_cache(storage)?;
         info!("setup ok");

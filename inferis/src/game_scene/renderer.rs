@@ -1,7 +1,8 @@
 use log::info;
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use engine::{
+    assets::{TextureId, TextureInfo},
     prelude::{BlendMode, Color, Point, Rect},
     ray_cast_dir, refresh_cached_entity,
     systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
@@ -20,12 +21,12 @@ const MAP_SCALE: u32 = 6;
 struct SpriteViewData {
     size: SizeU32,
     source: Rect,
-    texture_id: std::borrow::Cow<'static, str>,
+    texture: TextureId,
 }
 
 pub struct RendererSystem {
     layers: RendererLayersPtr,
-    texture_size: HashMap<String, SizeU32>,
+    textures: HashMap<String, TextureInfo>,
     // short term cached values
     angle: Float,
     player_pos: Vec2f,
@@ -41,12 +42,12 @@ pub struct RendererSystem {
     /// derive every ray's direction from the player's without per-ray
     /// transcendentals -- and the cosine doubles as the fishbowl correction.
     ray_offsets: Vec<(Float, Float)>,
-    /// Name and size of each wall texture, one entry per
+    /// Handle and size of each wall texture, one entry per
     /// [`components::WALL_TEXTURES`] entry and in the same order, so a ray
     /// that hits a wall indexes a slice instead of hashing a name into a
     /// map. `None` where the texture is missing -- dropping those would
     /// shift the indices and paint walls with each other's textures.
-    wall_textures: Vec<Option<(&'static str, SizeU32)>>,
+    wall_textures: Vec<Option<TextureInfo>>,
     scale: Float,
     screen_distance: Float,
 }
@@ -60,7 +61,7 @@ impl Default for RendererSystem {
         };
         Self {
             layers: Rc::new(RefCell::new(layers)),
-            texture_size: Default::default(),
+            textures: Default::default(),
             angle: Default::default(),
             player_pos: Default::default(),
             frames: Default::default(),
@@ -167,7 +168,7 @@ impl RendererSystem {
         let mut layers = self.layers.borrow_mut();
         let destination = Rect::new(sx as i32, sy as i32, proj_width as u32, proj_height as u32);
         let effect = RendererEffect::Texture {
-            asset_id: data.texture_id,
+            texture: data.texture,
             source: data.source,
             destination,
         };
@@ -203,7 +204,7 @@ impl RendererSystem {
 
         let mut layers = self.layers.borrow_mut();
         let effect = RendererEffect::Texture {
-            asset_id: texture_data.texture_id,
+            texture: texture_data.texture,
             source: texture_data.source,
             destination,
         };
@@ -220,12 +221,13 @@ impl RendererSystem {
         let sprite = storage.get::<components::Sprite>(entity_id)?;
         match sprite.view {
             components::SpriteView::Texture { asset_id } => {
-                let size = *self.texture_size.get(asset_id)?;
+                let info = *self.textures.get(asset_id)?;
+                let size = info.size;
                 let source = Rect::new(0, 0, size.width, size.height);
                 let data = SpriteViewData {
                     size,
                     source,
-                    texture_id: Cow::Borrowed(asset_id),
+                    texture: info.id,
                 };
                 Some(data)
             }
@@ -235,7 +237,8 @@ impl RendererSystem {
                 times,
             } => {
                 let params = asset_manager.animation(asset_id)?;
-                let size = *self.texture_size.get(&params.texture_id)?;
+                let info = *self.textures.get(&params.texture_id)?;
+                let size = info.size;
                 let frame_size = SizeU32 {
                     width: size.width / params.frames_count as u32,
                     height: size.height,
@@ -257,7 +260,7 @@ impl RendererSystem {
                 let data = SpriteViewData {
                     size: frame_size,
                     source,
-                    texture_id: Cow::Owned(params.texture_id.clone()),
+                    texture: info.id,
                 };
                 Some(data)
             }
@@ -284,7 +287,7 @@ impl RendererSystem {
             let Some(wall) = result.value else {
                 continue;
             };
-            let Some(&Some((texture_id, texture_size))) = self.wall_textures.get(wall) else {
+            let Some(&Some(wall_texture)) = self.wall_textures.get(wall) else {
                 continue;
             };
             // get rid of fishbowl effect: the angle between this ray and the
@@ -299,7 +302,7 @@ impl RendererSystem {
             let SizeU32 {
                 width: w,
                 height: h,
-            } = texture_size;
+            } = wall_texture.size;
             let src = Rect::new(
                 (result.offset * (w as Float - image_width as Float)) as i32,
                 0,
@@ -307,7 +310,7 @@ impl RendererSystem {
                 h,
             );
             let effect = RendererEffect::Texture {
-                asset_id: Cow::Borrowed(texture_id),
+                texture: wall_texture.id,
                 source: src,
                 destination: dst,
             };
@@ -321,13 +324,13 @@ impl RendererSystem {
         let half_height = self.window_size.height >> 1;
         let destination = Rect::new(0, half_height as i32, self.window_size.width, half_height);
         // gradient floor
-        let Some(size) = self.texture_size.get(WORLD_FLOOR_GRADIENT) else {
+        let Some(floor) = self.textures.get(WORLD_FLOOR_GRADIENT) else {
             return Ok(());
         };
-        let source = Rect::new(0, 0, size.width, size.height);
+        let source = Rect::new(0, 0, floor.size.width, floor.size.height);
         let mut layers = self.layers.borrow_mut();
         let effect = RendererEffect::Texture {
-            asset_id: Cow::Borrowed(WORLD_FLOOR_GRADIENT),
+            texture: floor.id,
             source,
             destination,
         };
@@ -336,7 +339,7 @@ impl RendererSystem {
     }
 
     fn render_sky(&self) -> EngineResult<()> {
-        let Some(texture_size) = self.texture_size.get(WORLD_SKY) else {
+        let Some(sky) = self.textures.get(WORLD_SKY) else {
             return Ok(());
         };
         let offset = {
@@ -347,7 +350,7 @@ impl RendererSystem {
         let SizeU32 {
             width: w,
             height: h,
-        } = *texture_size;
+        } = sky.size;
         let source = Rect::new(0, 0, w, h);
         let half_height = self.window_size.height >> 1;
         let destinations = [
@@ -368,7 +371,7 @@ impl RendererSystem {
         let mut layers = self.layers.borrow_mut();
         for destination in destinations {
             let effect = RendererEffect::Texture {
-                asset_id: Cow::Borrowed(WORLD_SKY),
+                texture: sky.id,
                 source,
                 destination,
             };
@@ -510,7 +513,7 @@ impl GameRendererSystem for RendererSystem {
         window_size: SizeU32,
     ) -> EngineResult<()> {
         self.update_storage_cache(storage)?;
-        asset_manager.cache_textures_info(&mut self.texture_size)?;
+        asset_manager.cache_textures_info(&mut self.textures)?;
         // precalculated values
         self.window_size = window_size;
         self.rays_count = window_size.width >> 1;
@@ -518,7 +521,7 @@ impl GameRendererSystem for RendererSystem {
         self.scale = window_size.width as Float / self.rays_count as Float;
         self.wall_textures = components::WALL_TEXTURES
             .iter()
-            .map(|id| self.texture_size.get(*id).map(|size| (*id, *size)))
+            .map(|name| self.textures.get(*name).copied())
             .collect();
         self.ray_offsets = (0..self.rays_count)
             .map(|ray| (ray as Float * self.ray_angle_step - HALF_FIELD_OF_VIEW).sin_cos())
