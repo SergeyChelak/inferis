@@ -42,13 +42,6 @@ const NPC_SOLDIER_WANDER_PAUSE: std::ops::Range<usize> = 30..150;
 const NPC_SOLDIER_DODGE_RANGE: std::ops::Range<Float> = 1.0..2.5;
 /// A dodge is hurried but not a flat run.
 const NPC_SOLDIER_DODGE_SPEED: Float = 0.6;
-/// How rarely a soldier may sidestep. It takes four shotgun hits to kill a
-/// soldier; dodging every one of them means re-acquiring the target four
-/// times, which is what makes them feel impossible to finish off.
-const NPC_SOLDIER_DODGE_COOLDOWN: usize = 150;
-/// How rarely a soldier may break off to hide. Without this a wounded one
-/// hides on every hit and can never be finished off.
-const NPC_SOLDIER_HIDE_COOLDOWN: usize = 15 * 60;
 /// Cap on the tiles one re-plan considers. A soldier only ever wanders
 /// locally, and the cap keeps the flood off the whole maze.
 const NPC_NAV_FLOOD_CELLS: usize = 400;
@@ -558,21 +551,11 @@ impl NpcSystem {
             .get::<components::Health>(entity_id)
             .map(|x| x.0)
             .unwrap_or_default();
-        let may_hide = storage
-            .get::<components::NpcPlan>(entity_id)
-            .map(|plan| self.frames >= plan.hide_ready_at)
-            .unwrap_or(true);
-        if health <= NPC_SOLDIER_CRITICAL_HEALTH && may_hide {
-            return self.set_hide_plan(storage, entity_id);
+        if health <= NPC_SOLDIER_CRITICAL_HEALTH {
+            self.set_hide_plan(storage, entity_id)
+        } else {
+            self.set_reposition_plan(storage, entity_id)
         }
-        let may_dodge = storage
-            .get::<components::NpcPlan>(entity_id)
-            .map(|plan| self.frames >= plan.dodge_ready_at)
-            .unwrap_or(true);
-        if may_dodge {
-            self.set_reposition_plan(storage, entity_id)?;
-        }
-        Ok(())
     }
 
     /// Heads for the nearest tile out of the player's sight, and stays there
@@ -590,7 +573,6 @@ impl NpcSystem {
             plan.intent = NpcIntent::Hide;
             plan.route = route.unwrap_or_default().into();
             plan.hold_until = self.frames + NPC_SOLDIER_HIDE_FRAMES;
-            plan.hide_ready_at = self.frames + NPC_SOLDIER_HIDE_COOLDOWN;
             plan.pause_after_route = 0;
             plan.progress_frame = self.frames;
             plan.last_position = Vec2f::default();
@@ -621,7 +603,6 @@ impl NpcSystem {
         });
         if let Some(mut plan) = storage.get_mut::<components::NpcPlan>(entity_id) {
             plan.intent = NpcIntent::Reposition;
-            plan.dodge_ready_at = self.frames + NPC_SOLDIER_DODGE_COOLDOWN;
             plan.route = route.unwrap_or_default().into();
             plan.hold_until = 0;
             plan.pause_after_route = 0;
