@@ -1,11 +1,7 @@
 use super::generator;
 use crate::resource::*;
 use engine::{Float, SizeFloat, Vec2f};
-use lazy_static::lazy_static;
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Display,
-};
+use std::{collections::HashSet, fmt::Display};
 
 pub struct PlayerTag;
 pub struct NpcTag;
@@ -121,23 +117,20 @@ pub struct Maze {
     pub contour: HashSet<generator::matrix::Position>,
 }
 
-lazy_static! {
-    pub static ref WALL_TEXTURES: HashMap<i32, &'static str> = {
-        vec![
-            (1, WORLD_WALL1),
-            (2, WORLD_WALL2),
-            (3, WORLD_WALL3),
-            (4, WORLD_WALL4),
-            (5, WORLD_WALL5),
-        ]
-        .into_iter()
-        .collect()
-    };
-}
+/// Wall texture per matrix value: the maze stores `0` for floor and
+/// `1..=WALL_TEXTURES.len()` for walls, so value `n` picks index `n - 1`.
+pub const WALL_TEXTURES: [&str; 5] = [
+    WORLD_WALL1,
+    WORLD_WALL2,
+    WORLD_WALL3,
+    WORLD_WALL4,
+    WORLD_WALL5,
+];
 
 impl Maze {
     pub fn wall_texture(&self, point: Vec2f) -> Option<&'static str> {
-        WALL_TEXTURES.get(self.value_at(point)?).copied()
+        let index = self.value_at(point)?.checked_sub(1)?;
+        WALL_TEXTURES.get(usize::try_from(index).ok()?).copied()
     }
 
     pub fn value_at(&self, point: Vec2f) -> Option<&i32> {
@@ -184,4 +177,37 @@ pub enum WeaponState {
     Undefined,
     Ready(usize),
     Recharge(usize),
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn maze(matrix: generator::matrix::Matrix) -> Maze {
+        Maze {
+            matrix,
+            contour: HashSet::new(),
+        }
+    }
+
+    #[test]
+    fn wall_texture_maps_matrix_value_to_texture() {
+        let maze = maze(vec![vec![0, 1, 2, 3, 4, 5, 6]]);
+        // 0 is floor, values past the last texture have none either
+        assert_eq!(maze.wall_texture(Vec2f::new(0.0, 0.0)), None);
+        assert_eq!(maze.wall_texture(Vec2f::new(6.0, 0.0)), None);
+        for (col, expected) in WALL_TEXTURES.iter().enumerate() {
+            let point = Vec2f::new(col as Float + 1.0, 0.0);
+            assert_eq!(maze.wall_texture(point), Some(*expected));
+        }
+    }
+
+    #[test]
+    fn wall_texture_outside_the_matrix_is_none() {
+        let maze = maze(vec![vec![1]]);
+        assert_eq!(maze.wall_texture(Vec2f::new(-1.0, 0.0)), None);
+        assert_eq!(maze.wall_texture(Vec2f::new(0.0, -1.0)), None);
+        assert_eq!(maze.wall_texture(Vec2f::new(1.0, 0.0)), None);
+        assert_eq!(maze.wall_texture(Vec2f::new(0.0, 1.0)), None);
+    }
 }

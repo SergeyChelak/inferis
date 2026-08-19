@@ -5,7 +5,7 @@ use engine::{
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityBundle, EntityID, Float,
     SizeFloat, Vec2f, RAY_CASTER_MAX_DEPTH,
 };
-use rand::{seq::SliceRandom, thread_rng};
+use rand::seq::SliceRandom;
 
 use crate::resource::{SCENE_PARAM_INVALIDATE, WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM};
 
@@ -68,7 +68,7 @@ impl GeneratorSystem {
             .iter()
             .map(|p| Vec2f::new(p.col as Float, p.row as Float))
             .collect::<Vec<Vec2f>>();
-        available_places.shuffle(&mut thread_rng());
+        available_places.shuffle(&mut rand::rng());
 
         let offset = Vec2f::new(0.5, 0.5);
         {

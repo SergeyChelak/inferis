@@ -78,10 +78,10 @@ pub fn noise_matrix(
     val_on: MatrixElement,
     val_off: MatrixElement,
 ) {
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     for row in matrix.iter_mut() {
         for elem in row {
-            let val: u8 = rng.gen_range(1..=100);
+            let val: u8 = rng.random_range(1..=100);
             *elem = if val < noise_density { val_on } else { val_off }
         }
     }
