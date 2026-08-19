@@ -2,7 +2,7 @@ use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 
 use engine::{
     fetch_first,
-    rect::Rect,
+    prelude::Rect,
     systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
     EngineError, EngineResult, EntityID, SizeU32,
 };

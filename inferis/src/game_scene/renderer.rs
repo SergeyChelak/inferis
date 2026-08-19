@@ -1,10 +1,8 @@
 use std::{borrow::Cow, cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use engine::{
-    pixels::Color,
+    prelude::{BlendMode, Color, Point, Rect},
     ray_cast,
-    rect::{Point, Rect},
-    render::BlendMode,
     systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float, Query, SizeU32,
     Vec2f, RAY_CASTER_TOL,

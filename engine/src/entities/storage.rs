@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{utils::*, EngineError, EngineResult};
+use crate::{entities::utils::*, EngineError, EngineResult};
 
 use super::footprint::Footprint;
 

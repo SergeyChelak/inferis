@@ -1,7 +1,7 @@
 use std::borrow::BorrowMut;
 
 use engine::{
-    keyboard::Keycode,
+    prelude::Keycode,
     systems::{GameControlSystem, InputEvent},
     ComponentStorage, EngineError, EngineResult, EntityID,
 };

@@ -2,7 +2,7 @@ use std::borrow::BorrowMut;
 
 use engine::{
     fetch_first,
-    keyboard::Keycode,
+    prelude::Keycode,
     systems::{GameControlSystem, InputEvent},
     EngineError, EngineResult, EntityID,
 };

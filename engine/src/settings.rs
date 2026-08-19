@@ -1,5 +1,4 @@
-use sdl2::mixer::AudioFormat;
-
+use crate::prelude::{AudioFormat, AUDIO_S16LSB, DEFAULT_CHANNELS};
 use crate::{assets::AssetSource, geometry::SizeU32};
 
 pub struct EngineSettings {
@@ -25,8 +24,8 @@ impl Default for AudioSettings {
     fn default() -> Self {
         Self {
             frequency: 44_100,
-            format: sdl2::mixer::AUDIO_S16LSB, // signed 16 bit samples, in little-endian byte order
-            channels: sdl2::mixer::DEFAULT_CHANNELS, // Stereo
+            format: AUDIO_S16LSB, // signed 16 bit samples, in little-endian byte order
+            channels: DEFAULT_CHANNELS, // Stereo
             chunk_size: 1024,
             mixing_channels: 16,
         }

@@ -1,12 +1,6 @@
 use std::{borrow::Cow, cell::RefCell, rc::Rc};
 
-use sdl2::{
-    keyboard::Keycode,
-    pixels::Color,
-    rect::{Point, Rect},
-    render::BlendMode,
-};
-
+use crate::prelude::{BlendMode, Color, Keycode, Point, Rect};
 use crate::{
     game_scene::{SceneEvent, SceneParameters},
     AssetManager, ComponentStorage, EngineResult, Float, SceneID, SizeU32,
