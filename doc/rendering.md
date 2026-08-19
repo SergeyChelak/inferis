@@ -119,6 +119,57 @@ by the wall columns in front of it.
 to its projection and how far down the screen it sits, so a soldier stands
 on the floor rather than floating at eye level.
 
+## The weapon
+
+The weapon is a HUD sprite pinned to the bottom middle of the screen, and it
+sways as the player walks: sideways through a full swing, and dipping twice
+per swing, once per footfall, as it crosses the middle.
+
+The cycle is driven by **how far the player has walked**, not by elapsed
+time:
+
+```rust
+let walked = (position - previous).length();
+self.weapon_sway_phase = (self.weapon_sway_phase + walked * TAU / WEAPON_SWAY_STRIDE) % TAU;
+```
+
+which is what keeps the swing in step with them. It stalls the moment they
+stop, slows when they scrape along a wall, and stays still while they turn
+on the spot — all of which a timer would walk straight through. It also
+cannot drift when rendered frames and fixed gameplay steps fail to line up
+one for one, which they generally don't.
+
+Two guards sit either side of that line. A jump larger than any walk could
+cover in one frame is a teleport — a new level, a scene switch — and does
+not advance the cycle. And how much of the swing is applied is eased in and
+out rather than switched, faster in than out, so the gun takes the walk up
+promptly and settles gently instead of stopping dead mid-swing.
+
+The sideways curve is a cosine with a little of its third harmonic
+subtracted, normalised by that sum's crest:
+
+```rust
+let swing = (phase.cos() - 0.12 * (3.0 * phase).cos()) / 0.8812;
+let dip = phase.sin().powi(2);
+```
+
+The harmonic is the part that matters. A bare cosine crosses the middle at
+the same measured pace it turns around at the ends, and reads as a
+metronome; this one flattens the ends into a hang and carries the gun
+through the middle around half again as fast, the way a carried arm loses
+and regains its swing. It stays light deliberately — the weight only has to
+break the evenness, and much past an eighth the gun snaps through the middle
+instead of gliding through it. Changing it means recomputing the crest along
+with it, which is what keeps the half-width below honest; there is a test on
+that. The dip is a squared sine rather than `|sin|`, which
+keeps the gun high for most of the stride and confines the drop to around
+the footfall — and, being never negative, it only ever sinks the weapon,
+never lifting it to open a gap along the bottom of the screen.
+
+`WEAPON_SWAY_STRIDE` is the one knob for the pace, in maze cells per swing;
+the other two are the swing's half-width and the dip's depth, both fractions
+of the weapon's own drawn size so they hold at any window size.
+
 ## Where the time goes
 
 Measured on a Raspberry Pi 5, per frame, with 20 soldiers:

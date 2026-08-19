@@ -1,5 +1,10 @@
 use log::info;
-use std::{cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    f32::consts::{PI, TAU},
+    rc::Rc,
+};
 
 use engine::{
     assets::{TextureId, TextureInfo},
@@ -17,6 +22,42 @@ use super::components::{self, ActorState};
 const FIELD_OF_VIEW: Float = PI / 3.0;
 const HALF_FIELD_OF_VIEW: Float = FIELD_OF_VIEW * 0.5;
 const MAP_SCALE: u32 = 6;
+
+/// Distance in maze cells the player covers per full swing of the weapon --
+/// out to one side, across to the other and back, two footfalls in all. At
+/// the player's walking speed of 7.5 cells a second that works out at three
+/// footfalls a second, and it is the one knob for the pace of the walk.
+const WEAPON_SWAY_STRIDE: Float = 5.0;
+/// Half-width of the swing, as a fraction of the weapon's drawn width.
+const WEAPON_SWAY_WIDTH_RATIO: Float = 0.07;
+/// Depth of the dip, as a fraction of the weapon's drawn height.
+const WEAPON_SWAY_HEIGHT_RATIO: Float = 0.04;
+/// Weight of the third harmonic mixed into the swing, which is what keeps
+/// the motion from reading as a metronome -- see
+/// [`RendererSystem::weapon_sway_offset`]. Kept light: it only has to break
+/// the evenness of a plain cosine, and much past an eighth the gun starts
+/// snapping through the middle rather than gliding through it.
+const WEAPON_SWAY_HARMONIC: Float = 0.12;
+/// Crest of `cos(p) - WEAPON_SWAY_HARMONIC * cos(3p)`, which the harmonic
+/// flattens and pulls below one. The curve is divided by it to keep
+/// [`WEAPON_SWAY_WIDTH_RATIO`] the true half-width of the swing. Recompute
+/// it alongside the harmonic -- the test below catches a stale value.
+const WEAPON_SWAY_HARMONIC_CREST: Float = 0.8812;
+/// Share of the gap to a full swing closed each frame while walking.
+const WEAPON_SWAY_RISE: Float = 0.15;
+/// Share of it given back each frame while standing still. The gun takes
+/// the swing up faster than it lets it go, so it settles gently rather than
+/// stopping dead -- and a rendered frame that happens to fall between two
+/// gameplay steps, and so sees no movement at all, barely dents it.
+const WEAPON_SWAY_FALL: Float = 0.06;
+/// Swing below which the weapon is put to rest outright. Giving back a
+/// share of what is left never quite reaches zero, and a swing this small
+/// cannot move the weapon by even a pixel.
+const WEAPON_SWAY_REST: Float = 0.002;
+/// Distance within one frame beyond which the player was moved rather than
+/// walked -- a new level, a scene switch. Walking cannot cover this even
+/// when the run loop catches up on several gameplay steps at once.
+const WEAPON_SWAY_TELEPORT: Float = 2.0;
 
 struct SpriteViewData {
     size: SizeU32,
@@ -50,6 +91,15 @@ pub struct RendererSystem {
     wall_textures: Vec<Option<TextureInfo>>,
     scale: Float,
     screen_distance: Float,
+    // weapon sway
+    /// Where the weapon is in its walking cycle, in radians.
+    weapon_sway_phase: Float,
+    /// How much of the swing is applied right now: 0 standing still, 1 at a
+    /// full walking pace.
+    weapon_sway_amount: Float,
+    /// The player's position last frame, which is what the distance walked
+    /// this frame is measured against. `None` until there is one.
+    weapon_sway_last_pos: Option<Vec2f>,
 }
 
 impl Default for RendererSystem {
@@ -74,6 +124,9 @@ impl Default for RendererSystem {
             wall_textures: Default::default(),
             scale: Default::default(),
             screen_distance: Default::default(),
+            weapon_sway_phase: Default::default(),
+            weapon_sway_amount: Default::default(),
+            weapon_sway_last_pos: Default::default(),
         }
     }
 }
@@ -195,9 +248,10 @@ impl RendererSystem {
         let w = (window_width as Float * 0.3) as u32;
         let h = (w as Float * ratio) as u32;
 
+        let (sway_x, sway_y) = self.weapon_sway_offset(w, h);
         let destination = Rect::new(
-            ((window_width - w) >> 1) as i32,
-            (window_height - h) as i32,
+            (((window_width - w) >> 1) as Float + sway_x) as i32,
+            ((window_height - h) as Float + sway_y) as i32,
             w,
             h,
         );
@@ -210,6 +264,69 @@ impl RendererSystem {
         };
         layers.push_hud(effect);
         Ok(())
+    }
+
+    /// Advances the weapon's walking sway by the distance the player covered
+    /// since the previous frame.
+    ///
+    /// Driving the cycle by distance walked rather than by elapsed time is
+    /// what keeps the swing in step with the player: it stalls the moment
+    /// they stop, slows when they scrape along a wall, and cannot drift out
+    /// of sync when rendered frames and fixed gameplay steps fail to line up
+    /// one for one. Turning on the spot moves nobody anywhere, and so leaves
+    /// the gun still, which is the point -- a swing driven by a timer would
+    /// keep going through both.
+    fn update_weapon_sway(&mut self, position: Vec2f) {
+        let walked = match self.weapon_sway_last_pos.replace(position) {
+            Some(previous) => {
+                let distance = (position - previous).length();
+                if distance > WEAPON_SWAY_TELEPORT {
+                    0.0
+                } else {
+                    distance
+                }
+            }
+            None => 0.0,
+        };
+        self.weapon_sway_phase = (self.weapon_sway_phase + walked * TAU / WEAPON_SWAY_STRIDE) % TAU;
+        if walked > 0.0 {
+            self.weapon_sway_amount += (1.0 - self.weapon_sway_amount) * WEAPON_SWAY_RISE;
+        } else {
+            self.weapon_sway_amount -= self.weapon_sway_amount * WEAPON_SWAY_FALL;
+            if self.weapon_sway_amount < WEAPON_SWAY_REST {
+                self.weapon_sway_amount = 0.0;
+            }
+        }
+    }
+
+    /// How far the weapon is displaced from its resting spot at this point
+    /// in the walking cycle, in pixels, scaled to the weapon's own size.
+    ///
+    /// Sideways it follows a cosine with a little of its third harmonic
+    /// subtracted. That harmonic is what stops the walk reading as a
+    /// metronome: a bare cosine crosses the middle at the same measured pace
+    /// it turns around at the ends, whereas this one flattens the ends into
+    /// a hang and carries the gun through the middle around half again as
+    /// fast, the way a carried arm loses and regains its swing.
+    ///
+    /// The dip is a squared sine, so it falls twice per swing -- once per
+    /// footfall, as the gun crosses the middle. Squaring keeps it high for
+    /// most of the stride and confines the drop to around the footfall
+    /// itself. It is never negative, so the weapon only ever sinks below
+    /// where it rests and never rises to open a gap along the bottom of the
+    /// screen.
+    fn weapon_sway_offset(&self, width: u32, height: u32) -> (Float, Float) {
+        if self.weapon_sway_amount <= 0.0 {
+            return (0.0, 0.0);
+        }
+        let phase = self.weapon_sway_phase;
+        let swing =
+            (phase.cos() - WEAPON_SWAY_HARMONIC * (3.0 * phase).cos()) / WEAPON_SWAY_HARMONIC_CREST;
+        let dip = phase.sin().powi(2);
+        (
+            self.weapon_sway_amount * swing * width as Float * WEAPON_SWAY_WIDTH_RATIO,
+            self.weapon_sway_amount * dip * height as Float * WEAPON_SWAY_HEIGHT_RATIO,
+        )
     }
     // ------------------------------------------------------------------------------------------------------------
     fn sprite_view_data(
@@ -549,6 +666,7 @@ impl GameRendererSystem for RendererSystem {
             .map(|x| x.0)
             .ok_or(EngineError::component_not_found("[v2.renderer] position"))?;
         self.frames = frames;
+        self.update_weapon_sway(self.player_pos);
 
         self.layers.borrow_mut().clear();
         // background layer
@@ -561,5 +679,84 @@ impl GameRendererSystem for RendererSystem {
         self.render_hud_damage(storage, asset_manager)?;
         self.render_hud_minimap(storage)?;
         Ok(self.layers.clone())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// Walks the player in a straight line, one frame per step.
+    fn walk(renderer: &mut RendererSystem, step: Float, frames: usize) {
+        let mut position = renderer.weapon_sway_last_pos.unwrap_or_default();
+        for _ in 0..frames {
+            position = Vec2f::new(position.x + step, position.y);
+            renderer.update_weapon_sway(position);
+        }
+    }
+
+    #[test]
+    fn half_a_stride_carries_the_swing_half_way_round_the_cycle() {
+        let mut renderer = RendererSystem::new();
+        // the first frame only records a position to measure the next against
+        renderer.update_weapon_sway(Vec2f::new(1.0, 1.0));
+        assert_eq!(renderer.weapon_sway_phase, 0.0);
+        let step = WEAPON_SWAY_STRIDE / 20.0;
+        walk(&mut renderer, step, 10);
+        assert!((renderer.weapon_sway_phase - PI).abs() < 1e-4);
+        // the phase is kept wrapped rather than accumulated, so it stays
+        // small enough for the trigonometry downstream to keep its precision
+        walk(&mut renderer, step, 400);
+        assert!((0.0..TAU).contains(&renderer.weapon_sway_phase));
+    }
+
+    #[test]
+    fn standing_still_holds_the_swing_and_lets_it_settle() {
+        let mut renderer = RendererSystem::new();
+        renderer.update_weapon_sway(Vec2f::new(4.0, 4.0));
+        walk(&mut renderer, 0.05, 120);
+        let phase = renderer.weapon_sway_phase;
+        assert!(renderer.weapon_sway_amount > 0.9);
+
+        let standing = renderer.weapon_sway_last_pos.unwrap();
+        for _ in 0..300 {
+            renderer.update_weapon_sway(standing);
+        }
+        // turning on the spot moves nobody anywhere, so the cycle is left
+        // where it was and only the amount fades out
+        assert_eq!(renderer.weapon_sway_phase, phase);
+        assert!(renderer.weapon_sway_amount < 1e-3);
+        assert_eq!(renderer.weapon_sway_offset(400, 300), (0.0, 0.0));
+    }
+
+    #[test]
+    fn being_moved_across_the_map_doesnt_jolt_the_swing() {
+        let mut renderer = RendererSystem::new();
+        renderer.update_weapon_sway(Vec2f::new(2.0, 2.0));
+        walk(&mut renderer, 0.1, 10);
+        let phase = renderer.weapon_sway_phase;
+        renderer.update_weapon_sway(Vec2f::new(40.0, 40.0));
+        assert_eq!(renderer.weapon_sway_phase, phase);
+    }
+
+    #[test]
+    fn the_weapon_stays_within_its_declared_travel() {
+        let mut renderer = RendererSystem::new();
+        renderer.update_weapon_sway(Vec2f::default());
+        walk(&mut renderer, 0.05, 200);
+        let (width, height) = (400u32, 300u32);
+        let mut widest: Float = 0.0;
+        for _ in 0..400 {
+            walk(&mut renderer, 0.05, 1);
+            let (x, y) = renderer.weapon_sway_offset(width, height);
+            widest = widest.max(x.abs());
+            // the dip only ever sinks the weapon, and never lifts it off the
+            // bottom of the screen to leave a gap under it
+            assert!((0.0..=height as Float * WEAPON_SWAY_HEIGHT_RATIO + 1e-3).contains(&y));
+            assert!(x.abs() <= width as Float * WEAPON_SWAY_WIDTH_RATIO + 1e-3);
+        }
+        // the harmonic's crest is normalised away, so the swing really does
+        // reach the half-width it advertises
+        assert!(widest > width as Float * WEAPON_SWAY_WIDTH_RATIO - 1e-2);
     }
 }
