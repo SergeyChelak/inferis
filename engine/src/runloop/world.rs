@@ -124,7 +124,7 @@ fn run(
             let effects = scene.render(&asset_manager)?;
             render_effects(&mut canvas, &asset_manager, effects)?;
             let sound_effects = scene.sound_effects(&asset_manager)?;
-            _ = play_sound_effects(&sound_effects, &asset_manager);
+            play_sound_effects(&sound_effects, &asset_manager)?;
             commands
         };
         for cmd in commands {
@@ -215,10 +215,16 @@ fn play_sound_effects(effects: &[SoundEffect], asset_manager: &AssetManager) -> 
     for effect in effects {
         match effect {
             SoundEffect::PlaySound { asset_id, loops } => {
-                if let Some(chunk) = asset_manager.sound_chunk(asset_id) {
-                    sdl2::mixer::Channel::all()
-                        .play(chunk, *loops)
-                        .map_err(EngineError::sdl)?;
+                // a missing chunk is a content bug, reported the same way
+                // render_effect reports a missing texture
+                let Some(chunk) = asset_manager.sound_chunk(asset_id) else {
+                    let msg = format!("[run_loop] sound chunk not found {}", asset_id);
+                    return Err(EngineError::ResourceNotFound(msg));
+                };
+                // every mixing channel being busy is ordinary saturation in a
+                // loud scene, not a reason to end the run: drop the sound
+                if let Err(err) = sdl2::mixer::Channel::all().play(chunk, *loops) {
+                    println!("[run_loop] warn: failed to play {}: {}", asset_id, err);
                 }
             }
         }
