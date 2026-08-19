@@ -42,6 +42,10 @@ const NPC_SOLDIER_WANDER_PAUSE: std::ops::Range<usize> = 30..150;
 const NPC_SOLDIER_DODGE_RANGE: std::ops::Range<Float> = 1.0..2.5;
 /// A dodge is hurried but not a flat run.
 const NPC_SOLDIER_DODGE_SPEED: Float = 0.6;
+/// How rarely a soldier may sidestep. It takes four shotgun hits to kill a
+/// soldier; dodging every one of them means re-acquiring the target four
+/// times, which is what makes them feel impossible to finish off.
+const NPC_SOLDIER_DODGE_COOLDOWN: usize = 150;
 /// How rarely a soldier may break off to hide. Without this a wounded one
 /// hides on every hit and can never be finished off.
 const NPC_SOLDIER_HIDE_COOLDOWN: usize = 15 * 60;
@@ -548,10 +552,16 @@ impl NpcSystem {
             .map(|plan| self.frames >= plan.hide_ready_at)
             .unwrap_or(true);
         if health <= NPC_SOLDIER_CRITICAL_HEALTH && may_hide {
-            self.set_hide_plan(storage, entity_id)
-        } else {
-            self.set_reposition_plan(storage, entity_id)
+            return self.set_hide_plan(storage, entity_id);
         }
+        let may_dodge = storage
+            .get::<components::NpcPlan>(entity_id)
+            .map(|plan| self.frames >= plan.dodge_ready_at)
+            .unwrap_or(true);
+        if may_dodge {
+            self.set_reposition_plan(storage, entity_id)?;
+        }
+        Ok(())
     }
 
     /// Heads for the nearest tile out of the player's sight, and stays there
@@ -600,6 +610,7 @@ impl NpcSystem {
         });
         if let Some(mut plan) = storage.get_mut::<components::NpcPlan>(entity_id) {
             plan.intent = NpcIntent::Reposition;
+            plan.dodge_ready_at = self.frames + NPC_SOLDIER_DODGE_COOLDOWN;
             plan.route = route.unwrap_or_default().into();
             plan.hold_until = 0;
             plan.pause_after_route = 0;
