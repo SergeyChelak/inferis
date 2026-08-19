@@ -1,7 +1,7 @@
 use components::SoundFx;
 use engine::{
     game_scene::SceneParameters, refresh_cached_entity, systems::GameSystem, ComponentStorage,
-    EngineError, EngineResult, EntityID, Query, Vec2f,
+    EngineError, EngineResult, EntityID, Float, Query, Vec2f,
 };
 use log::info;
 
@@ -21,6 +21,23 @@ use super::{
 
 pub const NPC_SOLDIER_SHOT_DEADLINE: usize = 10;
 pub const NPC_SOLDIER_DAMAGE_RECOVER: usize = 20;
+/// Distance at which a soldier stops closing in and starts shooting.
+const NPC_SOLDIER_ATTACK_DISTANCE: Float = 5.0;
+
+/// How many simulation steps a soldier may reuse its last line-of-sight
+/// verdict for, chosen by its distance to the player: `(distance below,
+/// steps between casts)`, first match wins.
+///
+/// The cast is the dominant per-step AI cost, and the further away the
+/// player is the longer a stale verdict goes unnoticed -- a soldier twenty
+/// tiles off that keeps walking for another fifth of a second after the
+/// player breaks line of sight looks no different. Inside attack range the
+/// cast still runs every step, where reaction time is actually visible.
+const TARGET_CHECK_INTERVALS: [(Float, usize); 3] = [
+    (NPC_SOLDIER_ATTACK_DISTANCE * 2.0, 1),
+    (15.0, 4),
+    (Float::INFINITY, 12),
+];
 
 #[derive(Default)]
 pub struct NpcSystem {
@@ -145,13 +162,22 @@ impl NpcSystem {
             return Ok(None);
         };
         let vector = self.player_position - npc_position;
+        let distance = vector.length();
+        // turning to face the player is cheap and keeps the chase smooth,
+        // so it stays on every step even when the cast below does not
         let angle = vector.y.atan2(vector.x);
         storage.set(entity_id, Some(components::Angle(angle)))?;
+
+        if !self.is_target_check_due(entity_id, distance) {
+            // no verdict this step: the soldier keeps acting on the last one
+            return Ok(None);
+        }
+
         let target_id =
             ray_cast_from_entity(entity_id, storage, self.maze_id, npc_position, angle)?;
         let new_state = match target_id {
             Some(id) if self.player_id == id => {
-                if vector.length() < 5.0 {
+                if distance < NPC_SOLDIER_ATTACK_DISTANCE {
                     components::ActorState::Attack(usize::MAX)
                 } else {
                     components::ActorState::Walk(usize::MAX)
@@ -160,6 +186,16 @@ impl NpcSystem {
             _ => ActorState::Idle(usize::MAX),
         };
         replace_actor_state(new_state, storage, entity_id)
+    }
+
+    /// Whether this soldier should re-cast toward the player on this step.
+    ///
+    /// The entity index offsets the phase so that soldiers sharing an
+    /// interval spread their casts across it rather than all firing on the
+    /// same step and spiking one frame.
+    fn is_target_check_due(&self, entity_id: EntityID, distance: Float) -> bool {
+        let interval = target_check_interval(distance);
+        interval <= 1 || (self.frames + entity_id.index()).is_multiple_of(interval)
     }
 
     fn update_npc_view(
@@ -212,6 +248,15 @@ impl NpcSystem {
     }
 }
 
+/// Steps between line-of-sight casts for a soldier at `distance`.
+fn target_check_interval(distance: Float) -> usize {
+    TARGET_CHECK_INTERVALS
+        .iter()
+        .find(|(below, _)| distance < *below)
+        .map(|(_, interval)| *interval)
+        .unwrap_or(1)
+}
+
 impl GameSystem for NpcSystem {
     fn setup(
         &mut self,
@@ -254,5 +299,63 @@ impl GameSystem for NpcSystem {
             }
         };
         Ok(command)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn inside_attack_range_the_cast_runs_every_step() {
+        assert_eq!(target_check_interval(0.0), 1);
+        assert_eq!(target_check_interval(NPC_SOLDIER_ATTACK_DISTANCE), 1);
+        assert_eq!(target_check_interval(9.9), 1);
+    }
+
+    #[test]
+    fn the_further_away_the_rarer_the_cast() {
+        assert_eq!(target_check_interval(10.0), 4);
+        assert_eq!(target_check_interval(14.9), 4);
+        assert_eq!(target_check_interval(15.0), 12);
+        assert_eq!(target_check_interval(1000.0), 12);
+    }
+
+    #[test]
+    fn no_interval_is_zero() {
+        // a zero interval would make every step look "not due", freezing the
+        // soldier on whatever verdict it happened to hold
+        assert!(TARGET_CHECK_INTERVALS.iter().all(|(_, steps)| *steps > 0));
+    }
+
+    #[test]
+    fn soldiers_sharing_an_interval_spread_their_casts_across_it() {
+        let mut storage = ComponentStorage::new();
+        let ids = (0..4).map(|_| storage.add_entity()).collect::<Vec<_>>();
+        let distance = 12.0;
+        let interval = target_check_interval(distance);
+        assert_eq!(interval, 4);
+
+        let mut system = NpcSystem::new();
+        // each soldier is due exactly once per interval ...
+        for id in &ids {
+            let mut due = 0;
+            for step in 0..interval {
+                system.frames = step;
+                if system.is_target_check_due(*id, distance) {
+                    due += 1;
+                }
+            }
+            assert_eq!(due, 1, "entity {} is due {} times", id.index(), due);
+        }
+        // ... and no single step carries more than its share
+        for step in 0..interval {
+            system.frames = step;
+            let due = ids
+                .iter()
+                .filter(|id| system.is_target_check_due(**id, distance))
+                .count();
+            assert_eq!(due, 1, "step {step} carries {due} casts");
+        }
     }
 }
