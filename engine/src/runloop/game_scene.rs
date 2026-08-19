@@ -83,6 +83,11 @@ impl GameScene {
         Ok(())
     }
 
+    /// Advances the scene by one simulation step.
+    ///
+    /// `frames` counts steps, not rendered images, so every frame-based
+    /// deadline in the game systems measures the same amount of real time
+    /// regardless of how often the scene is drawn.
     pub fn update(
         &mut self,
         delta_time: f32,
@@ -98,14 +103,13 @@ impl GameScene {
                 command_buffer.push(command);
             }
         }
+        self.frames += 1;
         Ok(command_buffer)
     }
 
-    pub fn render(&mut self, asset_manager: &AssetManager) -> EngineResult<RendererLayersPtr> {
+    pub fn render(&self, asset_manager: &AssetManager) -> EngineResult<RendererLayersPtr> {
         let mut system = self.renderer_system.borrow_mut();
-        let effects = system.render(self.frames, &self.storage, asset_manager)?;
-        self.frames += 1;
-        Ok(effects)
+        system.render(self.frames, &self.storage, asset_manager)
     }
 
     pub fn sound_effects(

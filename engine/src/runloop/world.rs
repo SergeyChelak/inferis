@@ -14,7 +14,20 @@ use std::{
 };
 
 const TARGET_FPS: u64 = 60;
-const FRAME_DURATION: Duration = Duration::from_micros(1_000_000 / TARGET_FPS);
+/// How much simulated time one gameplay step covers. Gameplay advances in
+/// whole steps of this size, so the frame-based deadlines the game systems
+/// use (weapon recharge, damage recovery, animation) always mean the same
+/// amount of real time -- vsync at any refresh rate only changes how often
+/// the world is drawn, never how fast it runs.
+const FIXED_STEP: Duration = Duration::from_micros(1_000_000 / TARGET_FPS);
+const FIXED_STEP_SECS: f32 = 1.0 / TARGET_FPS as f32;
+/// Upper bound on how much simulated time one iteration may catch up on. A
+/// long stall -- level generation, a dragged window, a breakpoint -- would
+/// otherwise queue a burst of steps and fast-forward the game.
+const MAX_CATCH_UP: Duration = Duration::from_micros(5 * 1_000_000 / TARGET_FPS);
+/// Upper bound on the render rate. Vsync usually paces the loop; this only
+/// matters when it is unavailable or the display refreshes faster.
+const FRAME_DURATION: Duration = FIXED_STEP;
 
 #[derive(Default)]
 pub struct GameWorld {
@@ -106,11 +119,12 @@ fn run(
         scene.setup_systems(&asset_manager, settings.window.size)?;
     }
     let mut last_time = Instant::now();
+    let mut accumulator = Duration::ZERO;
     let mut is_running = true;
     let mut events = Vec::with_capacity(32);
     while is_running {
         let frame_start = Instant::now();
-        let delta_time = frame_start.duration_since(last_time).as_secs_f32();
+        accumulator += frame_start.duration_since(last_time).min(MAX_CATCH_UP);
         last_time = frame_start;
 
         events.clear();
@@ -120,7 +134,17 @@ fn run(
                 return Err(EngineError::SceneNotFound);
             };
             scene.push_events(&events)?;
-            let commands = scene.update(delta_time, &asset_manager)?;
+            let mut commands = Vec::new();
+            while accumulator >= FIXED_STEP {
+                accumulator -= FIXED_STEP;
+                let step_commands = scene.update(FIXED_STEP_SECS, &asset_manager)?;
+                if !step_commands.is_empty() {
+                    // the scene is being left or the game is ending: run the
+                    // command before simulating this scene any further
+                    commands = step_commands;
+                    break;
+                }
+            }
             let effects = scene.render(&asset_manager)?;
             render_effects(&mut canvas, &asset_manager, effects)?;
             let sound_effects = scene.sound_effects(&asset_manager)?;
@@ -136,6 +160,11 @@ fn run(
                     };
                     scene.send_event(SceneEvent::Change, &params)?;
                     current_scene = id;
+                    // the handler may have rebuilt the level; start the new
+                    // scene on a clean clock rather than catching up on the
+                    // time the switch itself took
+                    accumulator = Duration::ZERO;
+                    last_time = Instant::now();
                 }
                 _ => {}
             }
@@ -150,20 +179,17 @@ fn run(
     Ok(())
 }
 
-/// delay the rest of the time if needed
+/// Sleeps out the rest of the frame if the loop ran ahead of the render cap.
+///
+/// Precision here no longer has to be exact: whatever the OS scheduler adds
+/// is absorbed by the fixed-step accumulator, so it costs a slightly uneven
+/// render cadence rather than a change in game speed. That makes a plain
+/// sleep preferable to burning a core on a spin-wait.
 #[inline(always)]
 fn frame_delay(frame_start: &Instant) {
     let elapsed = frame_start.elapsed();
     if elapsed < FRAME_DURATION {
-        let remaining = FRAME_DURATION - elapsed;
-        // OS sleep granularity is often ~1-15ms.
-        // Sleep for most of the time, then spin-wait for the last millisecond for precision.
-        if remaining > Duration::from_millis(1) {
-            std::thread::sleep(remaining - Duration::from_millis(1));
-        }
-        while frame_start.elapsed() < FRAME_DURATION {
-            std::hint::spin_loop();
-        }
+        std::thread::sleep(FRAME_DURATION - elapsed);
     }
 }
 
