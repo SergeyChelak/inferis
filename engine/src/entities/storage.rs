@@ -204,20 +204,27 @@ impl ComponentStorage {
         Some(ref_val)
     }
 
-    pub fn set<T: Any>(&mut self, entity_id: EntityID, value: Option<T>) -> bool {
+    /// Attaches `value` to the entity, or drops the component when `value` is
+    /// `None`.
+    ///
+    /// `T` is normally inferred from `value`, so a component type that was
+    /// never registered is easy to pass in by accident; together with a stale
+    /// entity id those are the two ways this can fail, and both used to be
+    /// silent no-ops.
+    pub fn set<T: Any>(&mut self, entity_id: EntityID, value: Option<T>) -> EngineResult<()> {
         if !self.is_alive(entity_id) {
-            return false;
+            return Err(EngineError::EntityNotAlive(entity_id));
         }
         let key = TypeId::of::<T>();
         let Some(row) = self.raw.get_mut(&key) else {
-            return false;
+            return Err(EngineError::ComponentNotRegistered);
         };
         let footprint = self
             .entity_footprint
             .entry(entity_id)
             .or_insert(Footprint::new());
         let Some(&position) = self.type_position_map.get(&key) else {
-            return false;
+            return Err(EngineError::ComponentNotRegistered);
         };
         row[entity_id.index()] = if let Some(x) = value {
             footprint.set(position, true);
@@ -226,7 +233,7 @@ impl ComponentStorage {
             footprint.set(position, false);
             None
         };
-        true
+        Ok(())
     }
 
     pub fn has_component<T: Any>(&self, entity_id: EntityID) -> bool {

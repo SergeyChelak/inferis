@@ -127,16 +127,19 @@ fn run(
             _ = play_sound_effects(&sound_effects, &asset_manager);
             commands
         };
-        commands.into_iter().for_each(|cmd| match cmd {
-            GameSystemCommand::Terminate => is_running = false,
-            GameSystemCommand::SwitchScene { id, params } => {
-                scenes
-                    .get_mut(&id)
-                    .map(|scene| scene.send_event(SceneEvent::Change, &params));
-                current_scene = id;
+        for cmd in commands {
+            match cmd {
+                GameSystemCommand::Terminate => is_running = false,
+                GameSystemCommand::SwitchScene { id, params } => {
+                    let Some(scene) = scenes.get_mut(&id) else {
+                        return Err(EngineError::SceneNotFound);
+                    };
+                    scene.send_event(SceneEvent::Change, &params)?;
+                    current_scene = id;
+                }
+                _ => {}
             }
-            _ => {}
-        });
+        }
         // leave the loop instead of calling process::exit so that
         // destructors run and SDL shuts down cleanly
         if quit_requested {

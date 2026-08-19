@@ -12,9 +12,9 @@ fn register_component_after_entities_exist() {
 
     // late registration: rows must stay indexable by existing entity ids
     storage.register_component::<CompB>().unwrap();
-    assert!(storage.set(e1, Some(CompB(7))));
+    storage.set(e1, Some(CompB(7))).unwrap();
     assert_eq!(storage.get::<CompB>(e1).map(|x| x.0), Some(7));
-    assert!(storage.set(e2, Some(CompB(8))));
+    storage.set(e2, Some(CompB(8))).unwrap();
     assert_eq!(storage.get::<CompB>(e2).map(|x| x.0), Some(8));
 
     let query = Query::new().with_component::<CompB>();
@@ -31,8 +31,8 @@ fn recycled_entity_works_with_late_registered_component() {
     // recycle the slot and use both rows through the new entity
     assert!(storage.remove_entity(e1));
     let e2 = storage.add_entity();
-    assert!(storage.set(e2, Some(CompA(1))));
-    assert!(storage.set(e2, Some(CompB(2))));
+    storage.set(e2, Some(CompA(1))).unwrap();
+    storage.set(e2, Some(CompB(2))).unwrap();
     assert_eq!(storage.get::<CompA>(e2).map(|x| x.0), Some(1));
     assert_eq!(storage.get::<CompB>(e2).map(|x| x.0), Some(2));
 }

@@ -35,7 +35,7 @@ impl DamageSystem {
             return Ok(());
         }
         // consume the shot so it can't be applied twice
-        storage.set::<components::Shot>(entity_id, None);
+        storage.set::<components::Shot>(entity_id, None)?;
         // TODO: it's a lazy implementation to obtain the shot damage value
         // The correct approach is to provide the damage value as part of the Shot component
         // In the future, user can change weapon type but damaged will be calculated based on
@@ -64,7 +64,7 @@ impl DamageSystem {
                 .get::<components::Damage>(target_id)
                 .map(|x| x.0)
                 .unwrap_or_default();
-        storage.set::<components::Damage>(target_id, Some(components::Damage(total_damage)));
+        storage.set::<components::Damage>(target_id, Some(components::Damage(total_damage)))?;
         Ok(())
     }
 }

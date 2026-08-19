@@ -70,9 +70,7 @@ pub fn cleanup_component<T: Any>(storage: &mut ComponentStorage) -> EngineResult
     let query = Query::new().with_component::<T>();
     let entities = storage.fetch_entities(&query);
     for id in entities {
-        if !storage.set::<T>(id, None) {
-            println!("[warn] failed to remove component {:?}", TypeId::of::<T>());
-        }
+        storage.set::<T>(id, None)?;
     }
     Ok(())
 }

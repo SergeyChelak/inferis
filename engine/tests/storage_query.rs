@@ -7,7 +7,7 @@ fn storage_with_one_entity() -> ComponentStorage {
     let mut storage = ComponentStorage::new();
     storage.register_component::<Registered>().unwrap();
     let id = storage.add_entity();
-    assert!(storage.set(id, Some(Registered)));
+    storage.set(id, Some(Registered)).unwrap();
     storage
 }
 

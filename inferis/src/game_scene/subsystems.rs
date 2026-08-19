@@ -55,7 +55,7 @@ fn state_if_damaged(
     let Some(damage) = storage.get::<components::Damage>(entity_id).map(|x| x.0) else {
         return Ok(None);
     };
-    storage.set::<components::Damage>(entity_id, None);
+    storage.set::<components::Damage>(entity_id, None)?;
     let health = {
         let Some(mut comp) = storage.get_mut::<components::Health>(entity_id) else {
             return Err(engine::EngineError::component_not_found(
@@ -70,7 +70,7 @@ fn state_if_damaged(
     } else {
         components::ActorState::Dead(usize::MAX)
     };
-    storage.set(entity_id, Some(state));
+    storage.set(entity_id, Some(state))?;
     Ok(Some(state))
 }
 
@@ -184,12 +184,12 @@ pub fn replace_actor_state(
     state: ActorState,
     storage: &mut ComponentStorage,
     entity_id: EntityID,
-) -> Option<ActorState> {
+) -> EngineResult<Option<ActorState>> {
     let current = get_actor_state(storage, entity_id);
     use std::mem;
     if mem::discriminant(&current) == mem::discriminant(&state) {
-        return None;
+        return Ok(None);
     }
-    storage.set(entity_id, Some(state));
-    Some(state)
+    storage.set(entity_id, Some(state))?;
+    Ok(Some(state))
 }

@@ -23,6 +23,7 @@ pub enum EngineError {
     ComponentAlreadyRegistered,
     ComponentCountOverflow,
     ComponentNotFound(String),
+    EntityNotAlive(EntityID),
     TextureNotFound(String),
     SceneNotFound,
     FileAccessError(String),

@@ -165,7 +165,7 @@ impl PlayerSystem {
                 usize::MAX,
             )),
         };
-        storage.set(self.player_id, sprite);
+        storage.set(self.player_id, sprite)?;
         Ok(())
     }
 
@@ -184,10 +184,10 @@ impl PlayerSystem {
             position,
             deadline: self.frames + PLAYER_SHOT_DEADLINE,
         };
-        storage.set(self.player_id, Some(shot));
+        storage.set(self.player_id, Some(shot))?;
 
         let sound_fx = components::SoundFx::once(SOUND_PLAYER_ATTACK);
-        storage.set(self.player_id, Some(sound_fx));
+        storage.set(self.player_id, Some(sound_fx))?;
 
         Ok(())
     }
@@ -221,16 +221,16 @@ impl GameSystem for PlayerSystem {
             self.player_id,
             PLAYER_DAMAGE_DAMAGE_RECOVER,
         )? {
-            storage.set(self.player_id, Some(new_state));
+            storage.set(self.player_id, Some(new_state))?;
             match new_state {
                 components::ActorState::Dead(_) => {
-                    storage.set::<components::BoundingBox>(self.player_id, None);
+                    storage.set::<components::BoundingBox>(self.player_id, None)?;
                     let sprite = Sprite::with_texture(WORLD_GAME_OVER);
-                    storage.set(self.player_id, Some(sprite));
+                    storage.set(self.player_id, Some(sprite))?;
                 }
                 components::ActorState::Damaged(_) => {
                     let sound_fx = components::SoundFx::once(SOUND_PLAYER_PAIN);
-                    storage.set(self.player_id, Some(sound_fx));
+                    storage.set(self.player_id, Some(sound_fx))?;
                 }
                 _ => {
                     // no op
@@ -240,7 +240,7 @@ impl GameSystem for PlayerSystem {
 
         let input = self.handle_controls(delta_time, storage)?;
         if !is_actor_dead(storage, self.player_id) {
-            storage.set(self.player_id, Some(input.movement));
+            storage.set(self.player_id, Some(input.movement))?;
             if input.is_shooting {
                 self.handle_shot(storage)?;
             }

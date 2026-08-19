@@ -21,7 +21,7 @@ fn stale_id_does_not_affect_recycled_slot() {
 
     // the slot is recycled under a new generation
     let new_id = storage.add_entity();
-    assert!(storage.set(new_id, Some(Comp(5))));
+    storage.set(new_id, Some(Comp(5))).unwrap();
 
     // the stale handle must be rejected and must not kill the new entity
     assert!(!storage.remove_entity(old_id));
@@ -36,7 +36,7 @@ fn remove_all_entities_clears_storage() {
     storage.register_component::<Comp>().unwrap();
     for i in 0..100 {
         let id = storage.add_entity();
-        storage.set(id, Some(Comp(i)));
+        storage.set(id, Some(Comp(i))).unwrap();
     }
     assert_eq!(storage.len(), 100);
     storage.remove_all_entities();

@@ -65,7 +65,7 @@ impl MovementSystem {
             }
             angle_comp.0 = val;
         }
-        storage.set::<components::Movement>(entity_id, None);
+        storage.set::<components::Movement>(entity_id, None)?;
         Ok(())
     }
 }

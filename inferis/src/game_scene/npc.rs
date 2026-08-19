@@ -64,11 +64,11 @@ impl NpcSystem {
         }
         if let Some(new_state) = state {
             if matches!(new_state, ActorState::Dead(_)) {
-                storage.set::<components::NpcTag>(entity_id, None);
-                storage.set::<components::BoundingBox>(entity_id, None);
-                storage.set::<components::Angle>(entity_id, None);
+                storage.set::<components::NpcTag>(entity_id, None)?;
+                storage.set::<components::BoundingBox>(entity_id, None)?;
+                storage.set::<components::Angle>(entity_id, None)?;
             }
-            storage.set(entity_id, Some(new_state));
+            storage.set(entity_id, Some(new_state))?;
             self.update_npc_view(storage, entity_id, &new_state)?;
             self.update_npc_sound(storage, entity_id, &new_state)?;
         }
@@ -93,7 +93,7 @@ impl NpcSystem {
                     y: dist * sin_a,
                     angle: 0.0,
                 };
-                storage.set(entity_id, Some(movement));
+                storage.set(entity_id, Some(movement))?;
             }
             Attack(_) => {
                 if !can_shoot(storage, entity_id) {
@@ -108,8 +108,8 @@ impl NpcSystem {
                     angle,
                     deadline: self.frames + NPC_SOLDIER_SHOT_DEADLINE,
                 };
-                storage.set(entity_id, Some(shot));
-                storage.set(entity_id, Some(SoundFx::once(SOUND_NPC_ATTACK)));
+                storage.set(entity_id, Some(shot))?;
+                storage.set(entity_id, Some(SoundFx::once(SOUND_NPC_ATTACK)))?;
             }
             Idle(_) => {
                 // TODO: path finding...
@@ -145,7 +145,7 @@ impl NpcSystem {
         };
         let vector = self.player_position - npc_position;
         let angle = vector.y.atan2(vector.x);
-        storage.set(entity_id, Some(components::Angle(angle)));
+        storage.set(entity_id, Some(components::Angle(angle)))?;
         let target_id =
             ray_cast_from_entity(entity_id, storage, self.maze_id, npc_position, angle)?;
         let new_state = match target_id {
@@ -158,7 +158,7 @@ impl NpcSystem {
             }
             _ => ActorState::Idle(usize::MAX),
         };
-        Ok(replace_actor_state(new_state, storage, entity_id))
+        replace_actor_state(new_state, storage, entity_id)
     }
 
     fn update_npc_view(
@@ -191,7 +191,7 @@ impl NpcSystem {
                 usize::MAX,
             )),
         };
-        storage.set(entity_id, animation);
+        storage.set(entity_id, animation)?;
         Ok(())
     }
 
@@ -206,7 +206,7 @@ impl NpcSystem {
             ActorState::Damaged(_) => Some(SoundFx::once(SOUND_NPC_PAIN)),
             _ => None,
         };
-        storage.set(entity_id, sound_fx);
+        storage.set(entity_id, sound_fx)?;
         Ok(())
     }
 }

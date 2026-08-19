@@ -66,7 +66,7 @@ impl GameSystem for HandleSystem {
         if let Some(new_selection) = new_selection {
             let delay = input_delay(storage, cursor_id);
             if delay > 0 {
-                update_input_delay(storage, cursor_id, delay - 1);
+                update_input_delay(storage, cursor_id, delay - 1)?;
                 return Ok(GameSystemCommand::Nothing);
             }
             let pos = storage
@@ -75,10 +75,10 @@ impl GameSystem for HandleSystem {
                 .ok_or(EngineError::unexpected_state(
                     "[v2.menu.handle] position component not found for menu item",
                 ))?;
-            storage.set(cursor_id, Some(Position(pos)));
-            update_input_delay(storage, cursor_id, INPUT_DELAY_FRAMES);
+            storage.set(cursor_id, Some(Position(pos)))?;
+            update_input_delay(storage, cursor_id, INPUT_DELAY_FRAMES)?;
         } else {
-            update_input_delay(storage, cursor_id, 0);
+            update_input_delay(storage, cursor_id, 0)?;
         }
         Ok(GameSystemCommand::Nothing)
     }
@@ -92,11 +92,11 @@ impl GameSystem for HandleSystem {
         let cursor_id = fetch_first::<CursorTag>(storage).ok_or(EngineError::unexpected_state(
             "[v2.menu.handle] cursor entity not found",
         ))?;
-        storage.set(cursor_id, Some(components::ControllerState::default()));
+        storage.set(cursor_id, Some(components::ControllerState::default()))?;
 
         let is_paused = params.contains_key(SCENE_PARAM_PAUSE);
         if let Some(continue_id) = continue_menu_item(storage) {
-            storage.set(continue_id, Some(components::Visible(is_paused)));
+            storage.set(continue_id, Some(components::Visible(is_paused)))?;
             if let Some(pos) = storage.get::<Position>(continue_id).and_then(|x| {
                 if is_paused {
                     Some(x.0)
@@ -104,7 +104,7 @@ impl GameSystem for HandleSystem {
                     None
                 }
             }) {
-                storage.set(cursor_id, Some(components::Position(pos)));
+                storage.set(cursor_id, Some(components::Position(pos)))?;
             }
         }
 
@@ -112,7 +112,7 @@ impl GameSystem for HandleSystem {
         let label_id = fetch_first::<LabelTag>(storage).ok_or(EngineError::unexpected_state(
             "[v2.menu.handle] label entity not found",
         ))?;
-        storage.set(label_id, Some(components::Visible(is_win)));
+        storage.set(label_id, Some(components::Visible(is_win)))?;
 
         // the cursor may point at an item that just became hidden;
         // move it to the first visible item so the menu stays usable
@@ -126,7 +126,7 @@ impl GameSystem for HandleSystem {
                 .first()
                 .and_then(|id| storage.get::<Position>(*id).map(|x| x.0))
             {
-                storage.set(cursor_id, Some(components::Position(pos)));
+                storage.set(cursor_id, Some(components::Position(pos)))?;
             }
         }
         Ok(())
@@ -157,8 +157,12 @@ fn input_delay(storage: &engine::ComponentStorage, cursor_id: EntityID) -> usize
         .unwrap_or_default()
 }
 
-fn update_input_delay(storage: &mut engine::ComponentStorage, cursor_id: EntityID, value: usize) {
-    storage.set(cursor_id, Some(components::Delay(value)));
+fn update_input_delay(
+    storage: &mut engine::ComponentStorage,
+    cursor_id: EntityID,
+    value: usize,
+) -> EngineResult<()> {
+    storage.set(cursor_id, Some(components::Delay(value)))
 }
 
 fn selected_index(
