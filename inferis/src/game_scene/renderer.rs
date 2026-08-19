@@ -3,7 +3,7 @@ use std::{borrow::Cow, cell::RefCell, collections::HashMap, f32::consts::PI, rc:
 
 use engine::{
     prelude::{BlendMode, Color, Point, Rect},
-    ray_cast, refresh_cached_entity,
+    ray_cast_dir, refresh_cached_entity,
     systems::{GameRendererSystem, RendererEffect, RendererLayers, RendererLayersPtr},
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float, Query, SizeU32,
     Vec2f, RAY_CASTER_TOL,
@@ -36,6 +36,17 @@ pub struct RendererSystem {
     window_size: SizeU32,
     rays_count: u32,
     ray_angle_step: Float,
+    /// (sin, cos) of each ray's angular offset from the view direction.
+    /// Fixed for the lifetime of the window, which is what lets a frame
+    /// derive every ray's direction from the player's without per-ray
+    /// transcendentals -- and the cosine doubles as the fishbowl correction.
+    ray_offsets: Vec<(Float, Float)>,
+    /// Name and size of each wall texture, one entry per
+    /// [`components::WALL_TEXTURES`] entry and in the same order, so a ray
+    /// that hits a wall indexes a slice instead of hashing a name into a
+    /// map. `None` where the texture is missing -- dropping those would
+    /// shift the indices and paint walls with each other's textures.
+    wall_textures: Vec<Option<(&'static str, SizeU32)>>,
     scale: Float,
     screen_distance: Float,
 }
@@ -58,6 +69,8 @@ impl Default for RendererSystem {
             window_size: Default::default(),
             rays_count: Default::default(),
             ray_angle_step: Default::default(),
+            ray_offsets: Default::default(),
+            wall_textures: Default::default(),
             scale: Default::default(),
             screen_distance: Default::default(),
         }
@@ -257,22 +270,26 @@ impl RendererSystem {
         };
         // dims
         let height = self.window_size.height as Float;
-        // ray
-        let mut ray_angle = self.angle - HALF_FIELD_OF_VIEW;
         let image_width = self.scale as u32;
-        let check = |point: Vec2f| component_maze.wall_texture(point);
+        let check = |point: Vec2f| component_maze.wall_index(point);
         let max_steps = component_maze.ray_cast_steps();
+        // every ray is the view direction turned by its own fixed offset, so
+        // the whole fan comes out of one sin_cos plus a rotation per ray
+        let (view_sin, view_cos) = self.angle.sin_cos();
         let mut layers = self.layers.borrow_mut();
-        for ray in 0..self.rays_count {
-            let result = ray_cast(self.player_pos, ray_angle, max_steps, &check);
-            let Some(texture_id) = result.value else {
+        for (ray, &(offset_sin, offset_cos)) in self.ray_offsets.iter().enumerate() {
+            let sin = view_sin * offset_cos + view_cos * offset_sin;
+            let cos = view_cos * offset_cos - view_sin * offset_sin;
+            let result = ray_cast_dir(self.player_pos, sin, cos, max_steps, &check);
+            let Some(wall) = result.value else {
                 continue;
             };
-            let Some(texture_size) = self.texture_size.get(texture_id) else {
+            let Some(&Some((texture_id, texture_size))) = self.wall_textures.get(wall) else {
                 continue;
             };
-            // get rid of fishbowl effect
-            let depth = result.depth * (self.angle - ray_angle).cos();
+            // get rid of fishbowl effect: the angle between this ray and the
+            // view direction is exactly its offset, whose cosine is in hand
+            let depth = result.depth * offset_cos;
             let projected_height = self.screen_distance / (depth + RAY_CASTER_TOL);
 
             let x = (ray as Float * self.scale) as i32;
@@ -282,7 +299,7 @@ impl RendererSystem {
             let SizeU32 {
                 width: w,
                 height: h,
-            } = *texture_size;
+            } = texture_size;
             let src = Rect::new(
                 (result.offset * (w as Float - image_width as Float)) as i32,
                 0,
@@ -295,7 +312,6 @@ impl RendererSystem {
                 destination: dst,
             };
             layers.push_depth(effect, depth);
-            ray_angle += self.ray_angle_step;
         }
         Ok(())
     }
@@ -500,6 +516,13 @@ impl GameRendererSystem for RendererSystem {
         self.rays_count = window_size.width >> 1;
         self.ray_angle_step = FIELD_OF_VIEW / self.rays_count as Float;
         self.scale = window_size.width as Float / self.rays_count as Float;
+        self.wall_textures = components::WALL_TEXTURES
+            .iter()
+            .map(|id| self.texture_size.get(*id).map(|size| (*id, *size)))
+            .collect();
+        self.ray_offsets = (0..self.rays_count)
+            .map(|ray| (ray as Float * self.ray_angle_step - HALF_FIELD_OF_VIEW).sin_cos())
+            .collect();
         self.screen_distance = (window_size.width >> 1) as Float / HALF_FIELD_OF_VIEW.tan();
         info!("setup ok");
         Ok(())

@@ -23,11 +23,47 @@ pub fn ray_cast<T>(
     max_steps: usize,
     check: &impl Fn(Vec2f) -> Option<T>,
 ) -> RayCastResult<T> {
-    let sin = ray_angle.sin();
-    let cos = ray_angle.cos();
+    let (sin, cos) = ray_angle.sin_cos();
+    ray_cast_dir(pos, sin, cos, max_steps, check)
+}
+
+/// [`ray_cast`] with the direction given as its sine and cosine.
+///
+/// Sweeping a field of view casts many rays whose angles differ by a fixed
+/// step, and each of those directions can be rotated out of the view
+/// direction with a few multiplications. That is markedly cheaper than the
+/// two transcendental calls [`ray_cast`] makes per ray.
+pub fn ray_cast_dir<T>(
+    pos: Vec2f,
+    sin: Float,
+    cos: Float,
+    max_steps: usize,
+    check: &impl Fn(Vec2f) -> Option<T>,
+) -> RayCastResult<T> {
     let tile = pos.floor();
-    let (h_val, h_depth, h_vec) = cast_horizontal(pos, tile, sin, cos, max_steps, check);
-    let (v_val, v_depth, v_vec) = cast_vertical(pos, tile, sin, cos, max_steps, check);
+    // A ray parallel to one axis never crosses that axis's grid lines. Its
+    // sweep would divide by zero and walk a line of infinities, which some
+    // `check` implementations answer with a hit -- and a hit at infinite
+    // depth would poison the cutoff below.
+    let (h_val, h_depth, h_vec) = if sin == 0.0 {
+        (None, Float::INFINITY, Vec2f::default())
+    } else {
+        cast_horizontal(pos, tile, sin, cos, max_steps, check)
+    };
+    // Whatever the vertical sweep might find beyond the horizontal hit loses
+    // the comparison at the bottom of this function, so walking that far is
+    // wasted: stop it there. With no horizontal hit there is nothing to
+    // compare against and it runs its full length.
+    let limit = if h_val.is_some() {
+        h_depth
+    } else {
+        Float::INFINITY
+    };
+    let (v_val, v_depth, v_vec) = if cos == 0.0 {
+        (None, Float::INFINITY, Vec2f::default())
+    } else {
+        cast_vertical(pos, tile, sin, cos, max_steps, limit, check)
+    };
     let vertical_result = {
         let vertical_y = v_vec.y % 1.0;
         let offset = if cos > 0.0 {
@@ -67,6 +103,8 @@ pub fn ray_cast<T>(
     }
 }
 
+/// Walks the crossings of the horizontal grid lines. This sweep runs first
+/// and so has nothing to cut it short.
 fn cast_horizontal<T>(
     pos: Vec2f,
     tile: Vec2f,
@@ -97,12 +135,15 @@ fn cast_horizontal<T>(
     (val, depth, Vec2f::new(x, y))
 }
 
+/// Walks the crossings of the vertical grid lines, stopping once it passes
+/// `limit` -- the depth of the horizontal sweep's hit, if it found one.
 fn cast_vertical<T>(
     pos: Vec2f,
     tile: Vec2f,
     sin: Float,
     cos: Float,
     max_steps: usize,
+    limit: Float,
     check: impl Fn(Vec2f) -> Option<T>,
 ) -> (Option<T>, Float, Vec2f) {
     let (mut x, dx) = if cos > 0.0 {
@@ -116,6 +157,9 @@ fn cast_vertical<T>(
     let dy = depth_delta * sin;
     let mut val: Option<T> = None;
     for _ in 0..max_steps {
+        if depth >= limit {
+            break;
+        }
         val = check(Vec2f::new(x, y));
         if val.is_some() {
             break;

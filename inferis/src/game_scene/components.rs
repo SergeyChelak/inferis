@@ -128,9 +128,14 @@ pub const WALL_TEXTURES: [&str; 5] = [
 ];
 
 impl Maze {
-    pub fn wall_texture(&self, point: Vec2f) -> Option<&'static str> {
-        let index = self.value_at(point)?.checked_sub(1)?;
-        WALL_TEXTURES.get(usize::try_from(index).ok()?).copied()
+    /// Index into [`WALL_TEXTURES`] of the wall at `point`, if there is one.
+    ///
+    /// Casting a fan of rays wants the index rather than the name: it looks
+    /// the wall's texture up in a slice instead of hashing a string.
+    pub fn wall_index(&self, point: Vec2f) -> Option<usize> {
+        let value = self.value_at(point)?.checked_sub(1)?;
+        let index = usize::try_from(value).ok()?;
+        (index < WALL_TEXTURES.len()).then_some(index)
     }
 
     pub fn value_at(&self, point: Vec2f) -> Option<&i32> {
@@ -203,14 +208,14 @@ mod test {
     }
 
     #[test]
-    fn wall_texture_maps_matrix_value_to_texture() {
+    fn wall_index_maps_matrix_value_to_texture() {
         let maze = maze(vec![vec![0, 1, 2, 3, 4, 5, 6]]);
-        // 0 is floor, values past the last texture have none either
-        assert_eq!(maze.wall_texture(Vec2f::new(0.0, 0.0)), None);
-        assert_eq!(maze.wall_texture(Vec2f::new(6.0, 0.0)), None);
-        for (col, expected) in WALL_TEXTURES.iter().enumerate() {
+        // 0 is floor, values past the last texture have no wall either
+        assert_eq!(maze.wall_index(Vec2f::new(0.0, 0.0)), None);
+        assert_eq!(maze.wall_index(Vec2f::new(6.0, 0.0)), None);
+        for (col, _) in WALL_TEXTURES.iter().enumerate() {
             let point = Vec2f::new(col as Float + 1.0, 0.0);
-            assert_eq!(maze.wall_texture(point), Some(*expected));
+            assert_eq!(maze.wall_index(point), Some(col));
         }
     }
 
@@ -224,11 +229,11 @@ mod test {
     }
 
     #[test]
-    fn wall_texture_outside_the_matrix_is_none() {
+    fn wall_index_outside_the_matrix_is_none() {
         let maze = maze(vec![vec![1]]);
-        assert_eq!(maze.wall_texture(Vec2f::new(-1.0, 0.0)), None);
-        assert_eq!(maze.wall_texture(Vec2f::new(0.0, -1.0)), None);
-        assert_eq!(maze.wall_texture(Vec2f::new(1.0, 0.0)), None);
-        assert_eq!(maze.wall_texture(Vec2f::new(0.0, 1.0)), None);
+        assert_eq!(maze.wall_index(Vec2f::new(-1.0, 0.0)), None);
+        assert_eq!(maze.wall_index(Vec2f::new(0.0, -1.0)), None);
+        assert_eq!(maze.wall_index(Vec2f::new(1.0, 0.0)), None);
+        assert_eq!(maze.wall_index(Vec2f::new(0.0, 1.0)), None);
     }
 }
