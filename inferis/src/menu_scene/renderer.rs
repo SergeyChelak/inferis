@@ -1,3 +1,4 @@
+use log::info;
 use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc};
 
 use engine::{
@@ -170,7 +171,7 @@ impl GameRendererSystem for MenuRendererSystem {
         asset_manager.cache_textures_info(&mut self.texture_size)?;
         self.window_size = window_size;
         self.update_storage_cache(storage)?;
-        println!("[v2.menu.renderer] setup ok");
+        info!("setup ok");
         Ok(())
     }
 

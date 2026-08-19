@@ -1,5 +1,8 @@
 use std::path::Path;
 
+use env_logger::Env;
+use log::error;
+
 use engine::{
     assets::AssetSource, world::GameWorld, AudioSettings, EngineError, EngineResult,
     EngineSettings, SizeU32, WindowSettings,
@@ -11,7 +14,17 @@ mod resource;
 
 const WINDOW_TITLE: &str = "INFERIS";
 
-fn main() -> EngineResult<()> {
+fn main() {
+    // RUST_LOG overrides it: `RUST_LOG=warn`, `RUST_LOG=inferis::game_scene=debug`
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    if let Err(err) = run() {
+        // Display, not the Debug form a `main` returning Result would print
+        error!("{err}");
+        std::process::exit(1);
+    }
+}
+
+fn run() -> EngineResult<()> {
     let settings = engine_settings()?;
     let menu_scene = menu_scene::compose_scene()?;
     let game_scene = game_scene::compose_scene()?;

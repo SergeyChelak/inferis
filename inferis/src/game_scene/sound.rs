@@ -1,4 +1,5 @@
 use engine::{cleanup_component, systems::GameSoundSystem, Query};
+use log::{debug, info};
 
 use super::components;
 
@@ -18,7 +19,7 @@ impl GameSoundSystem for SoundSystem {
         _storage: &engine::ComponentStorage,
         _asset_manager: &engine::AssetManager,
     ) -> engine::EngineResult<()> {
-        println!("[v2.sound] setup ok");
+        info!("setup ok");
         Ok(())
     }
 
@@ -38,7 +39,7 @@ impl GameSoundSystem for SoundSystem {
                 asset_id: sound.asset_id.clone(),
                 loops: sound.loops,
             });
-            // println!("[v2.sound] sound fx processed");
+            debug!("queued sound {}", sound.asset_id);
         }
         cleanup_component::<components::SoundFx>(storage)?;
         Ok(effects)

@@ -4,6 +4,7 @@ use engine::{
     systems::{GameSystem, GameSystemCommand},
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityID, Float,
 };
+use log::{info, warn};
 
 use crate::{
     game_scene::{components::Sprite, subsystems::update_weapon_state},
@@ -131,7 +132,7 @@ impl PlayerSystem {
     ) -> EngineResult<InputResult> {
         let mut result = InputResult::default();
         let Some(controller) = storage.get::<components::ControllerState>(self.player_id) else {
-            println!("[v2.player] warn: controller component isn't associated with player");
+            warn!("controller component isn't associated with player");
             return Ok(result);
         };
         if controller.pause_pressed {
@@ -200,7 +201,7 @@ impl GameSystem for PlayerSystem {
         _asset_manager: &AssetManager,
     ) -> EngineResult<()> {
         self.update_storage_cache(storage)?;
-        println!("[v2.player] setup ok");
+        info!("setup ok");
         Ok(())
     }
 

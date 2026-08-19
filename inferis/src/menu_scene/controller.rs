@@ -4,6 +4,7 @@ use engine::{
     systems::{GameControlSystem, InputEvent},
     EngineResult, EntityID,
 };
+use log::{info, warn};
 
 use super::components::{self, CursorTag};
 
@@ -30,7 +31,7 @@ impl MenuControlSystem {
 impl GameControlSystem for MenuControlSystem {
     fn setup(&mut self, storage: &engine::ComponentStorage) -> engine::EngineResult<()> {
         self.update_storage_cache(storage)?;
-        println!("[v2.menu.controller] setup ok");
+        info!("setup ok");
         Ok(())
     }
 
@@ -41,9 +42,7 @@ impl GameControlSystem for MenuControlSystem {
     ) -> engine::EngineResult<()> {
         self.update_storage_cache(storage)?;
         let Some(mut comp) = storage.get_mut::<components::ControllerState>(self.cursor_id) else {
-            println!(
-                "[v2.menu.controller] warn: controller component isn't associated with player"
-            );
+            warn!("controller component isn't associated with cursor");
             return Ok(());
         };
         let state = &mut *comp;

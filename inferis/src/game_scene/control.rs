@@ -4,6 +4,7 @@ use engine::{
     systems::{GameControlSystem, InputEvent},
     ComponentStorage, EngineResult, EntityID,
 };
+use log::{info, trace, warn};
 
 use super::components;
 
@@ -29,7 +30,7 @@ impl ControlSystem {
 impl GameControlSystem for ControlSystem {
     fn setup(&mut self, storage: &engine::ComponentStorage) -> EngineResult<()> {
         self.update_storage_cache(storage)?;
-        println!("[v2.controller] setup ok");
+        info!("setup ok");
         Ok(())
     }
 
@@ -40,7 +41,7 @@ impl GameControlSystem for ControlSystem {
     ) -> EngineResult<()> {
         self.update_storage_cache(storage)?;
         let Some(mut comp) = storage.get_mut::<components::ControllerState>(self.player_id) else {
-            println!("[v2.controller] warn: controller component isn't associated with player");
+            warn!("controller component isn't associated with player");
             return Ok(());
         };
         let state = &mut *comp;
@@ -48,21 +49,17 @@ impl GameControlSystem for ControlSystem {
         state.mouse_y_relative = 0;
         for event in events {
             match event {
-                InputEvent::Keyboard { code, pressed } => {
-                    match *code {
-                        Keycode::UP | Keycode::W => state.forward_pressed = *pressed,
-                        Keycode::DOWN | Keycode::S => state.backward_pressed = *pressed,
-                        Keycode::A => state.left_pressed = *pressed,
-                        Keycode::D => state.right_pressed = *pressed,
-                        Keycode::LEFT => state.rotate_left_pressed = *pressed,
-                        Keycode::RIGHT => state.rotate_right_pressed = *pressed,
-                        Keycode::X => state.shot_pressed = *pressed,
-                        Keycode::ESCAPE => state.pause_pressed = *pressed,
-                        _ => {
-                            // println!("Key {code} pressed {pressed}")
-                        }
-                    }
-                }
+                InputEvent::Keyboard { code, pressed } => match *code {
+                    Keycode::UP | Keycode::W => state.forward_pressed = *pressed,
+                    Keycode::DOWN | Keycode::S => state.backward_pressed = *pressed,
+                    Keycode::A => state.left_pressed = *pressed,
+                    Keycode::D => state.right_pressed = *pressed,
+                    Keycode::LEFT => state.rotate_left_pressed = *pressed,
+                    Keycode::RIGHT => state.rotate_right_pressed = *pressed,
+                    Keycode::X => state.shot_pressed = *pressed,
+                    Keycode::ESCAPE => state.pause_pressed = *pressed,
+                    _ => trace!("unmapped key {code} pressed {pressed}"),
+                },
                 InputEvent::Mouse { x_rel, y_rel, .. } => {
                     state.mouse_x_relative = *x_rel;
                     state.mouse_y_relative = *y_rel;

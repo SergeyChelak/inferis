@@ -3,6 +3,7 @@ use engine::{
     game_scene::SceneParameters, refresh_cached_entity, systems::GameSystem, ComponentStorage,
     EngineError, EngineResult, EntityID, Query, Vec2f,
 };
+use log::info;
 
 use crate::{
     game_scene::subsystems::{can_shoot, get_actor_state, update_weapon_state},
@@ -218,7 +219,7 @@ impl GameSystem for NpcSystem {
         _asset_manager: &engine::AssetManager,
     ) -> engine::EngineResult<()> {
         self.update_storage_cache(storage)?;
-        println!("[v2.npc] setup ok");
+        info!("setup ok");
         Ok(())
     }
 

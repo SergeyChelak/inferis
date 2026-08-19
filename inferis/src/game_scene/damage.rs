@@ -3,6 +3,7 @@ use engine::{
     systems::{GameSystem, GameSystemCommand},
     AssetManager, ComponentStorage, EngineResult, EntityID, Float, Query,
 };
+use log::{debug, info};
 
 use super::{components, subsystems::ray_cast_from_entity};
 
@@ -57,7 +58,7 @@ impl DamageSystem {
         if target_id == self.maze_id {
             return Ok(());
         }
-        // println!("[v2.damage] targeted {}", target_id.index());
+        debug!("shot hit entity {}", target_id.index());
         // accumulate damages
         let total_damage = weapon_damage
             + storage
@@ -76,7 +77,7 @@ impl GameSystem for DamageSystem {
         _asset_manager: &AssetManager,
     ) -> EngineResult<()> {
         self.update_storage_cache(storage)?;
-        println!("[v2.damage] setup ok");
+        info!("setup ok");
         Ok(())
     }
 

@@ -1,3 +1,4 @@
+use log::info;
 use std::{borrow::Cow, cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use engine::{
@@ -500,7 +501,7 @@ impl GameRendererSystem for RendererSystem {
         self.ray_angle_step = FIELD_OF_VIEW / self.rays_count as Float;
         self.scale = window_size.width as Float / self.rays_count as Float;
         self.screen_distance = (window_size.width >> 1) as Float / HALF_FIELD_OF_VIEW.tan();
-        println!("[v2.renderer] setup ok");
+        info!("setup ok");
         Ok(())
     }
 

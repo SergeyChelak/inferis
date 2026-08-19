@@ -5,6 +5,7 @@ use engine::{
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityBundle, EntityID, Float,
     SizeFloat, Vec2f,
 };
+use log::info;
 use rand::seq::SliceRandom;
 
 use crate::resource::{SCENE_PARAM_INVALIDATE, WORLD_TORCH_GREEN_ANIM, WORLD_TORCH_RED_ANIM};
@@ -156,7 +157,7 @@ impl GameSystem for GeneratorSystem {
         _asset_manager: &engine::AssetManager,
     ) -> engine::EngineResult<()> {
         self.generate_level(0, storage)?;
-        println!("[v2.generator] setup ok");
+        info!("setup ok");
         Ok(())
     }
 

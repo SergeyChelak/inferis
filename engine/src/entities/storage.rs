@@ -1,3 +1,4 @@
+use log::warn;
 use std::{
     any::{Any, TypeId},
     cell::{Ref, RefCell, RefMut},
@@ -147,11 +148,11 @@ impl ComponentStorage {
         let id = self.add_entity();
         for (key, value) in bundle.raw.iter() {
             let Some(row) = self.raw.get_mut(key) else {
-                println!("[ComponentStorage] failed to get component's row");
+                warn!("failed to get component's row");
                 continue;
             };
             let Some(&position) = self.type_position_map.get(key) else {
-                println!("[ComponentStorage] failed to get component's position");
+                warn!("failed to get component's position");
                 continue;
             };
             row[id.index()] = Some(value.clone());
@@ -283,7 +284,7 @@ impl ComponentStorage {
 
     pub fn fetch_first_entity(&self, query: &Query) -> Option<EntityID> {
         let Some(query_footprint) = self.footprint(&query.types) else {
-            println!("[ComponentStorage] fetch: query contains unregistered component type");
+            warn!("fetch_first: query contains unregistered component type");
             return None;
         };
         for entity_id in &self.indices {
@@ -300,12 +301,12 @@ impl ComponentStorage {
     pub fn fetch_entities(&self, query: &Query) -> Vec<EntityID> {
         let mut entities = Vec::new();
         let Some(query_footprint) = self.footprint(&query.types) else {
-            println!("[ComponentStorage] fetch: query contains unregistered component type");
+            warn!("fetch: query contains unregistered component type");
             return entities;
         };
         for entity_id in &self.indices {
             let Some(entity_footprint) = self.entity_footprint.get(entity_id) else {
-                println!("[ComponentStorage] fetch: footprint isn't registered for entity");
+                warn!("fetch: footprint isn't registered for entity");
                 continue;
             };
             if query_footprint.is_matches(entity_footprint) {

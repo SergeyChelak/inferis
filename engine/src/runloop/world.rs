@@ -6,6 +6,7 @@ use crate::{
     game_scene::SceneEvent, systems::InputEvent, AssetManager, AudioSettings, EngineError,
     EngineResult, EngineSettings, SceneID, WindowSettings,
 };
+use log::warn;
 use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, EventPump, Sdl};
 use std::{
     cmp::Ordering,
@@ -250,7 +251,7 @@ fn play_sound_effects(effects: &[SoundEffect], asset_manager: &AssetManager) -> 
                 // every mixing channel being busy is ordinary saturation in a
                 // loud scene, not a reason to end the run: drop the sound
                 if let Err(err) = sdl2::mixer::Channel::all().play(chunk, *loops) {
-                    println!("[run_loop] warn: failed to play {}: {}", asset_id, err);
+                    warn!("failed to play {}: {}", asset_id, err);
                 }
             }
         }

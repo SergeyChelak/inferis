@@ -9,4 +9,8 @@ default-run = "inferis"
 
 [dependencies]
 engine = { path = "../engine" }
+# default features pull regex (message-body patterns) and jiff (timestamps)
+# in for a game log that needs neither; module filtering still works
+env_logger = { version = "0.11.11", default-features = false, features = ["auto-color"] }
+log = "0.4.33"
 rand = "0.10"

@@ -1,3 +1,4 @@
+use log::info;
 use std::f32::consts::PI;
 
 use engine::{
@@ -97,7 +98,7 @@ impl GameSystem for MovementSystem {
         _asset_manager: &engine::AssetManager,
     ) -> EngineResult<()> {
         self.update_storage_cache(storage)?;
-        println!("[v2.movement] setup ok");
+        info!("setup ok");
         Ok(())
     }
 
