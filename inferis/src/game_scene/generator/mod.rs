@@ -3,7 +3,7 @@ pub mod matrix;
 use engine::{
     systems::{GameSystem, GameSystemCommand},
     AssetManager, ComponentStorage, EngineError, EngineResult, EntityBundle, EntityID, Float,
-    SizeFloat, Vec2f, RAY_CASTER_MAX_DEPTH,
+    SizeFloat, Vec2f,
 };
 use rand::seq::SliceRandom;
 
@@ -18,6 +18,11 @@ pub const PLAYER_SHOTGUN_RECHARGE_FRAMES: usize = 45;
 
 pub const NPC_SOLDIER_SHOTGUN_DAMAGE: HealthType = 4;
 pub const NPC_SOLDIER_SHOTGUN_RECHARGE_FRAMES: usize = 30;
+
+// the maze may be resized freely: ray casts are bounded by the maze's own
+// dimensions (see Maze::ray_cast_steps), not by a shared constant
+const MAZE_ROWS: usize = 50;
+const MAZE_COLS: usize = 50;
 
 const TILE_WALL: MatrixElement = 1;
 const TILE_FLOOR: MatrixElement = 0;
@@ -41,8 +46,8 @@ impl GeneratorSystem {
     ) -> EngineResult<()> {
         storage.remove_all_entities();
         let mut matrix = generate_matrix(
-            RAY_CASTER_MAX_DEPTH,
-            RAY_CASTER_MAX_DEPTH,
+            MAZE_ROWS,
+            MAZE_COLS,
             TILE_WALL,
             TILE_FLOOR,
             REGION_THRESHOLD,

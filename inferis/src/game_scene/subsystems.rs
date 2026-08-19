@@ -125,7 +125,12 @@ pub fn ray_cast_from_entity(
         }
     };
 
-    let ray_result = ray_cast(position, angle, &check_wall);
+    // no maze means no walls to hit, so there is nothing to step through
+    let max_steps = maze
+        .as_ref()
+        .map(|maze| maze.ray_cast_steps())
+        .unwrap_or_default();
+    let ray_result = ray_cast(position, angle, max_steps, &check_wall);
     let mut min_dist = if ray_result.value.is_some() {
         ray_result.depth
     } else {

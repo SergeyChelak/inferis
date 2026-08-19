@@ -11,8 +11,7 @@ pub use entities::utils::{
     cleanup_component, fetch_first, refresh_cached_entity, EntityBundle, Query,
 };
 pub use geometry::{
-    ray_cast, Float, RayCastResult, Rectangle, Size, SizeFloat, SizeU32, Vec2f,
-    RAY_CASTER_MAX_DEPTH, RAY_CASTER_TOL,
+    ray_cast, Float, RayCastResult, Rectangle, Size, SizeFloat, SizeU32, Vec2f, RAY_CASTER_TOL,
 };
 pub use runloop::{game_scene, systems, world, SceneID};
 pub use settings::{AudioSettings, EngineSettings, WindowSettings};

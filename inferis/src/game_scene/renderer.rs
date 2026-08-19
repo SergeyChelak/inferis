@@ -260,9 +260,10 @@ impl RendererSystem {
         let mut ray_angle = self.angle - HALF_FIELD_OF_VIEW;
         let image_width = self.scale as u32;
         let check = |point: Vec2f| component_maze.wall_texture(point);
+        let max_steps = component_maze.ray_cast_steps();
         let mut layers = self.layers.borrow_mut();
         for ray in 0..self.rays_count {
-            let result = ray_cast(self.player_pos, ray_angle, &check);
+            let result = ray_cast(self.player_pos, ray_angle, max_steps, &check);
             let Some(texture_id) = result.value else {
                 continue;
             };

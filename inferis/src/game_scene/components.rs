@@ -142,6 +142,18 @@ impl Maze {
         self.matrix.get(row).and_then(|x| x.get(col))
     }
 
+    /// Ray steps needed to cross the maze from any tile in any direction.
+    ///
+    /// A ray advances one row or one column per step, so the larger of the
+    /// two dimensions always reaches the far side. Passing this to
+    /// `ray_cast` is what keeps the caster in step with the maze size: a
+    /// bigger maze automatically gets a longer reach.
+    pub fn ray_cast_steps(&self) -> usize {
+        let rows = self.matrix.len();
+        let cols = self.matrix.first().map(|row| row.len()).unwrap_or_default();
+        rows.max(cols)
+    }
+
     pub fn is_wall(&self, point: Vec2f) -> bool {
         let Some(val) = self.value_at(point) else {
             return true;
@@ -200,6 +212,15 @@ mod test {
             let point = Vec2f::new(col as Float + 1.0, 0.0);
             assert_eq!(maze.wall_texture(point), Some(*expected));
         }
+    }
+
+    #[test]
+    fn ray_cast_steps_covers_the_longer_side() {
+        // a ray advances one row or one column per step, so the bound has to
+        // be the larger dimension for the short axis not to cut it short
+        assert_eq!(maze(vec![vec![0; 30]; 12]).ray_cast_steps(), 30);
+        assert_eq!(maze(vec![vec![0; 12]; 30]).ray_cast_steps(), 30);
+        assert_eq!(maze(vec![]).ray_cast_steps(), 0);
     }
 
     #[test]
