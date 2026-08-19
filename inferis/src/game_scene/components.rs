@@ -167,6 +167,48 @@ impl Maze {
     }
 }
 
+/// Why a soldier is walking somewhere, when it is not simply chasing.
+#[derive(Default, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum NpcIntent {
+    /// Drifting around the level with nothing better to do.
+    #[default]
+    Wander,
+    /// Heading for the spot the player was last seen.
+    Investigate,
+    /// Stepping aside after being hit, so as not to stand in the same place.
+    Reposition,
+    /// Wounded and breaking off to somewhere the player cannot see.
+    Hide,
+}
+
+/// A soldier's current intention: where it is walking and what it remembers.
+///
+/// This is deliberately separate from [`ActorState`], which selects the
+/// sprite animation. A soldier walking a patrol route and one closing on the
+/// player look identical; they are not doing the same thing.
+#[derive(Default)]
+pub struct NpcPlan {
+    pub intent: NpcIntent,
+    /// Remaining waypoints, in order, as tile centres.
+    pub route: std::collections::VecDeque<Vec2f>,
+    /// Frame until which the soldier stays put.
+    pub hold_until: usize,
+    /// How long to stand once the current route runs out. Applied on
+    /// arrival rather than at planning time, so a long walk still ends in a
+    /// pause instead of the pause quietly elapsing on the way.
+    pub pause_after_route: usize,
+    /// Where the soldier was on the previous step, and when it last covered
+    /// any ground. Soldiers collide with each other as well as with walls,
+    /// so a route can become impassable after it was planned.
+    pub last_position: Vec2f,
+    pub progress_frame: usize,
+    /// Where the player was when last seen, if ever.
+    pub last_seen: Option<Vec2f>,
+    /// Whether the last line-of-sight check found the player. The check is
+    /// throttled, so this is the standing verdict between checks.
+    pub player_visible: bool,
+}
+
 pub struct SoundFx {
     pub asset_id: String,
     pub loops: i32,

@@ -4,6 +4,7 @@ mod control;
 mod damage;
 mod generator;
 mod movement;
+mod navigation;
 mod npc;
 mod player;
 mod renderer;
@@ -41,6 +42,7 @@ fn compose_component_storage() -> EngineResult<ComponentStorage> {
     storage.register_component::<components::Shot>()?;
     storage.register_component::<components::Damage>()?;
     storage.register_component::<components::ActorState>()?;
+    storage.register_component::<components::NpcPlan>()?;
     Ok(storage)
 }
 

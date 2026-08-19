@@ -17,6 +17,7 @@ use super::components::*;
 pub const PLAYER_SHOTGUN_DAMAGE: HealthType = 27;
 pub const PLAYER_SHOTGUN_RECHARGE_FRAMES: usize = 45;
 
+pub const NPC_SOLDIER_HEALTH: HealthType = 100;
 pub const NPC_SOLDIER_SHOTGUN_DAMAGE: HealthType = 4;
 pub const NPC_SOLDIER_SHOTGUN_RECHARGE_FRAMES: usize = 30;
 
@@ -214,7 +215,8 @@ fn bundle_npc_soldier(position: Vec2f) -> EntityBundle {
         .put(Position(position))
         .put(NpcTag)
         .put(ActorState::Undefined)
-        .put(Health(100))
+        .put(NpcPlan::default())
+        .put(Health(NPC_SOLDIER_HEALTH))
         .put(ScaleRatio(0.7))
         .put(HeightShift(0.27))
         .put(BoundingBox(SizeFloat::new(0.7, 0.7)))

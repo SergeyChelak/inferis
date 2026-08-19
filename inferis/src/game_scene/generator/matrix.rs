@@ -5,7 +5,7 @@ pub type MatrixElement = i32;
 
 pub type Matrix = Vec<Vec<MatrixElement>>;
 
-#[derive(Default, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(Default, Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Position {
     pub row: usize,
     pub col: usize,

@@ -4,6 +4,7 @@ use engine::{
     EngineError, EngineResult, EntityID, Float, Query, Vec2f,
 };
 use log::info;
+use rand::RngExt;
 
 use crate::{
     game_scene::subsystems::{can_shoot, get_actor_state, update_weapon_state},
@@ -15,7 +16,9 @@ use crate::{
 };
 
 use super::{
-    components::{self, ActorState, Sprite},
+    components::{self, ActorState, HealthType, NpcIntent, Sprite},
+    generator::{matrix::Position as MatrixPosition, NPC_SOLDIER_HEALTH},
+    navigation::{cell_at, cell_center, has_line_of_sight, Flood},
     subsystems::{is_actor_dead, ray_cast_from_entity, replace_actor_state, updated_state},
 };
 
@@ -23,6 +26,42 @@ pub const NPC_SOLDIER_SHOT_DEADLINE: usize = 10;
 pub const NPC_SOLDIER_DAMAGE_RECOVER: usize = 20;
 /// Distance at which a soldier stops closing in and starts shooting.
 const NPC_SOLDIER_ATTACK_DISTANCE: Float = 5.0;
+
+/// Health at or below which a soldier breaks off and looks for cover.
+const NPC_SOLDIER_CRITICAL_HEALTH: HealthType = NPC_SOLDIER_HEALTH / 4;
+/// How long a wounded soldier stays out of sight before coming back.
+/// Steps are a fixed 1/60s, so these counts are honest durations.
+const NPC_SOLDIER_HIDE_FRAMES: usize = 4 * 60;
+/// How long a soldier looks around on reaching the player's last known spot.
+const NPC_SOLDIER_LOOK_AROUND_FRAMES: usize = 45;
+/// Range of pauses between wander legs, so a group does not move in lockstep.
+const NPC_SOLDIER_WANDER_PAUSE: std::ops::Range<usize> = 30..150;
+/// How far a soldier steps aside after being hit.
+const NPC_SOLDIER_REPOSITION_CELLS: usize = 4;
+/// Cap on the tiles one re-plan considers. A soldier only ever wanders
+/// locally, and the cap keeps the flood off the whole maze.
+const NPC_NAV_FLOOD_CELLS: usize = 400;
+/// How close to a waypoint counts as having reached it.
+const NPC_WAYPOINT_TOLERANCE: Float = 0.15;
+/// Ground covered in a step below which a soldier counts as not moving.
+const NPC_MIN_PROGRESS: Float = 0.01;
+/// How long a soldier shoves at a blockage before giving up on its route.
+/// Soldiers are obstacles to each other, so a route planned around the walls
+/// can still be blocked by a comrade standing in it.
+const NPC_SOLDIER_STUCK_FRAMES: usize = 45;
+
+/// What a soldier is doing on this step.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum NpcAction {
+    /// Player in sight and in range.
+    Attack,
+    /// Player in sight, closing the distance.
+    Chase,
+    /// Walking the current route.
+    Follow,
+    /// Standing still: pausing between legs, or lying low.
+    Hold,
+}
 
 /// How many simulation steps a soldier may reuse its last line-of-sight
 /// verdict for, chosen by its distance to the player: `(distance below,
@@ -76,116 +115,141 @@ impl NpcSystem {
         storage: &mut engine::ComponentStorage,
         entity_id: EntityID,
     ) -> EngineResult<()> {
-        let mut state = updated_state(self.frames, storage, entity_id, NPC_SOLDIER_DAMAGE_RECOVER)?;
-        if state.is_none() {
-            state = self.updated_npc_action_state(storage, entity_id)?;
-        }
-        if let Some(new_state) = state {
-            if matches!(new_state, ActorState::Dead(_)) {
+        // being hit, dying, or recovering from a hit overrides whatever the
+        // soldier had in mind
+        if let Some(state) =
+            updated_state(self.frames, storage, entity_id, NPC_SOLDIER_DAMAGE_RECOVER)?
+        {
+            if matches!(state, ActorState::Dead(_)) {
                 storage.set::<components::NpcTag>(entity_id, None)?;
                 storage.set::<components::BoundingBox>(entity_id, None)?;
                 storage.set::<components::Angle>(entity_id, None)?;
+            } else if matches!(state, ActorState::Damaged(_)) {
+                self.react_to_damage(storage, entity_id)?;
             }
-            storage.set(entity_id, Some(new_state))?;
-            self.update_npc_view(storage, entity_id, &new_state)?;
-            self.update_npc_sound(storage, entity_id, &new_state)?;
-        }
-
-        _ = update_weapon_state(self.frames, storage, entity_id);
-        let state = get_actor_state(storage, entity_id);
-        let Some(angle) = storage.get::<components::Angle>(entity_id).map(|x| x.0) else {
+            self.apply_state(storage, entity_id, state)?;
+            _ = update_weapon_state(self.frames, storage, entity_id);
             return Ok(());
-        };
-        use components::ActorState::*;
-        match state {
-            Walk(_) => {
-                let Some(velocity) = storage.get::<components::Velocity>(entity_id).map(|x| x.0)
-                else {
-                    return Ok(());
-                };
-                let sin_a = angle.sin();
-                let cos_a = angle.cos();
-                let dist = velocity * self.delta_time;
-                let movement = components::Movement {
-                    x: dist * cos_a,
-                    y: dist * sin_a,
-                    angle: 0.0,
-                };
-                storage.set(entity_id, Some(movement))?;
-            }
-            Attack(_) => {
-                if !can_shoot(storage, entity_id) {
-                    return Ok(());
-                }
-                let Some(position) = storage.get::<components::Position>(entity_id).map(|x| x.0)
-                else {
-                    return Ok(());
-                };
-                let shot = components::Shot {
-                    position,
-                    angle,
-                    deadline: self.frames + NPC_SOLDIER_SHOT_DEADLINE,
-                };
-                storage.set(entity_id, Some(shot))?;
-                storage.set(entity_id, Some(SoundFx::once(SOUND_NPC_ATTACK)))?;
-            }
-            Idle(_) => {
-                // TODO: path finding...
-            }
-            _ => {
-                // no op
-            }
         }
+        // still flinching from the last hit, or already dead
+        if matches!(
+            get_actor_state(storage, entity_id),
+            ActorState::Damaged(_) | ActorState::Dead(_)
+        ) {
+            return Ok(());
+        }
+        _ = update_weapon_state(self.frames, storage, entity_id);
+
+        let action = self.decide(storage, entity_id)?;
+        let state = self.perform(storage, entity_id, action)?;
+        self.apply_state(storage, entity_id, state)?;
         Ok(())
     }
 
-    fn updated_npc_action_state(
+    /// Records a state change and brings the sprite and sound with it.
+    fn apply_state(
         &mut self,
         storage: &mut engine::ComponentStorage,
         entity_id: EntityID,
-    ) -> EngineResult<Option<components::ActorState>> {
-        let cur_state = get_actor_state(storage, entity_id);
-        match cur_state {
-            ActorState::Idle(_) | ActorState::Attack(_) | ActorState::Walk(_) => {
-                self.ncp_find_target(storage, entity_id)
-            }
-            _ => Ok(None),
-        }
+        state: ActorState,
+    ) -> EngineResult<()> {
+        let Some(new_state) = replace_actor_state(state, storage, entity_id)? else {
+            return Ok(());
+        };
+        self.update_npc_view(storage, entity_id, &new_state)?;
+        self.update_npc_sound(storage, entity_id, &new_state)
     }
 
-    fn ncp_find_target(
+    /// Chooses what the soldier does this step.
+    ///
+    /// The ladder is: an override already under way (stepping aside after a
+    /// hit, or lying low wounded), then the player if visible, then whatever
+    /// the soldier was walking towards.
+    fn decide(
         &mut self,
         storage: &mut engine::ComponentStorage,
         entity_id: EntityID,
-    ) -> EngineResult<Option<components::ActorState>> {
+    ) -> EngineResult<NpcAction> {
+        if let Some(action) = self.continue_override(storage, entity_id) {
+            return Ok(action);
+        }
+        if self.player_in_sight(storage, entity_id)? {
+            let Some(position) = storage.get::<components::Position>(entity_id).map(|x| x.0) else {
+                return Ok(NpcAction::Hold);
+            };
+            {
+                let Some(mut plan) = storage.get_mut::<components::NpcPlan>(entity_id) else {
+                    return Ok(NpcAction::Hold);
+                };
+                // remember where they were, and drop wherever we were headed
+                plan.last_seen = Some(self.player_position);
+                plan.route.clear();
+                plan.intent = NpcIntent::Investigate;
+                plan.hold_until = 0;
+            }
+            let distance = (self.player_position - position).length();
+            return Ok(if distance < NPC_SOLDIER_ATTACK_DISTANCE {
+                NpcAction::Attack
+            } else {
+                NpcAction::Chase
+            });
+        }
+        // out of sight: chase down the memory, or drift
+        self.replan_if_idle(storage, entity_id)?;
+        Ok(self.route_action(storage, entity_id))
+    }
+
+    /// Keeps a reposition or a hide running to completion, so a soldier that
+    /// has broken off does not turn and fight again on the next step.
+    fn continue_override(
+        &self,
+        storage: &ComponentStorage,
+        entity_id: EntityID,
+    ) -> Option<NpcAction> {
+        let plan = storage.get::<components::NpcPlan>(entity_id)?;
+        if !matches!(plan.intent, NpcIntent::Reposition | NpcIntent::Hide) {
+            return None;
+        }
+        if !plan.route.is_empty() {
+            return Some(NpcAction::Follow);
+        }
+        if self.frames < plan.hold_until {
+            return Some(NpcAction::Hold);
+        }
+        None
+    }
+
+    /// Runs the throttled line-of-sight check and keeps its verdict.
+    fn player_in_sight(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+    ) -> EngineResult<bool> {
         let Some(npc_position) = storage.get::<components::Position>(entity_id).map(|x| x.0) else {
-            return Ok(None);
+            return Ok(false);
         };
         let vector = self.player_position - npc_position;
         let distance = vector.length();
-        // turning to face the player is cheap and keeps the chase smooth,
-        // so it stays on every step even when the cast below does not
-        let angle = vector.y.atan2(vector.x);
-        storage.set(entity_id, Some(components::Angle(angle)))?;
-
+        let standing_verdict = storage
+            .get::<components::NpcPlan>(entity_id)
+            .map(|plan| plan.player_visible)
+            .unwrap_or_default();
         if !self.is_target_check_due(entity_id, distance) {
-            // no verdict this step: the soldier keeps acting on the last one
-            return Ok(None);
+            return Ok(standing_verdict);
         }
-
+        let angle = vector.y.atan2(vector.x);
         let target_id =
             ray_cast_from_entity(entity_id, storage, self.maze_id, npc_position, angle)?;
-        let new_state = match target_id {
-            Some(id) if self.player_id == id => {
-                if distance < NPC_SOLDIER_ATTACK_DISTANCE {
-                    components::ActorState::Attack(usize::MAX)
-                } else {
-                    components::ActorState::Walk(usize::MAX)
-                }
-            }
-            _ => ActorState::Idle(usize::MAX),
-        };
-        replace_actor_state(new_state, storage, entity_id)
+        let visible = target_id == Some(self.player_id);
+        if let Some(mut plan) = storage.get_mut::<components::NpcPlan>(entity_id) {
+            plan.player_visible = visible;
+        }
+        if visible {
+            // turn towards the player only once the ray confirms they can
+            // actually be seen: turning first tracks them through walls
+            storage.set(entity_id, Some(components::Angle(angle)))?;
+        }
+        Ok(visible)
     }
 
     /// Whether this soldier should re-cast toward the player on this step.
@@ -196,6 +260,320 @@ impl NpcSystem {
     fn is_target_check_due(&self, entity_id: EntityID, distance: Float) -> bool {
         let interval = target_check_interval(distance);
         interval <= 1 || (self.frames + entity_id.index()).is_multiple_of(interval)
+    }
+
+    /// Picks somewhere to go when the soldier has run out of route.
+    fn replan_if_idle(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+    ) -> EngineResult<()> {
+        let (intent, idle, last_seen) = {
+            let Some(plan) = storage.get::<components::NpcPlan>(entity_id) else {
+                return Ok(());
+            };
+            let idle = plan.route.is_empty() && self.frames >= plan.hold_until;
+            (plan.intent, idle, plan.last_seen)
+        };
+        if !idle {
+            return Ok(());
+        }
+        // the leg is done: stand for a moment before choosing the next one
+        let pause = storage
+            .get::<components::NpcPlan>(entity_id)
+            .map(|plan| plan.pause_after_route)
+            .unwrap_or_default();
+        if pause > 0 {
+            if let Some(mut plan) = storage.get_mut::<components::NpcPlan>(entity_id) {
+                plan.hold_until = self.frames + pause;
+                plan.pause_after_route = 0;
+            }
+            return Ok(());
+        }
+        // a soldier that has just lost sight goes to look where they were
+        if intent == NpcIntent::Investigate {
+            if let Some(spot) = last_seen {
+                if self.route_to_point(storage, entity_id, spot)? {
+                    return Ok(());
+                }
+            }
+            // arrived, or nowhere to go: look around, then drift off
+            self.set_wander_plan(storage, entity_id, NPC_SOLDIER_LOOK_AROUND_FRAMES)?;
+            return Ok(());
+        }
+        self.set_wander_plan(storage, entity_id, 0)
+    }
+
+    /// Routes to a random reachable tile, then stands for a moment.
+    fn set_wander_plan(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+        extra_hold: usize,
+    ) -> EngineResult<()> {
+        let position = storage
+            .get::<components::Position>(entity_id)
+            .map(|x| x.0)
+            .unwrap_or_default();
+        let route = self.plan_route(storage, entity_id, |flood, _, _| {
+            let reached = flood.reached();
+            if reached.len() < 2 {
+                return None;
+            }
+            Some(reached[rand::rng().random_range(1..reached.len())])
+        });
+        let pause = rand::rng().random_range(NPC_SOLDIER_WANDER_PAUSE) + extra_hold;
+        if let Some(mut plan) = storage.get_mut::<components::NpcPlan>(entity_id) {
+            plan.intent = NpcIntent::Wander;
+            plan.route = route.unwrap_or_default().into();
+            plan.hold_until = 0;
+            plan.pause_after_route = pause;
+            plan.last_seen = None;
+            plan.progress_frame = self.frames;
+            plan.last_position = position;
+        }
+        Ok(())
+    }
+
+    /// Routes to the tile holding `point`. False if it cannot be reached.
+    fn route_to_point(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+        point: Vec2f,
+    ) -> EngineResult<bool> {
+        let Some(target) = cell_at(point) else {
+            return Ok(false);
+        };
+        let route = self.plan_route(storage, entity_id, |flood, _, _| {
+            flood.reached().contains(&target).then_some(target)
+        });
+        let Some(route) = route.filter(|route| !route.is_empty()) else {
+            return Ok(false);
+        };
+        if let Some(mut plan) = storage.get_mut::<components::NpcPlan>(entity_id) {
+            plan.route = route.into();
+            plan.hold_until = 0;
+            plan.progress_frame = self.frames;
+            plan.last_position = point;
+        }
+        Ok(true)
+    }
+
+    /// Floods out from the soldier and routes to whatever `pick` chooses.
+    fn plan_route(
+        &self,
+        storage: &ComponentStorage,
+        entity_id: EntityID,
+        pick: impl Fn(&Flood, &components::Maze, Vec2f) -> Option<MatrixPosition>,
+    ) -> Option<Vec<Vec2f>> {
+        let position = storage
+            .get::<components::Position>(entity_id)
+            .map(|x| x.0)?;
+        let origin = cell_at(position)?;
+        let maze = storage.get::<components::Maze>(self.maze_id)?;
+        let flood = Flood::new(&maze, origin, NPC_NAV_FLOOD_CELLS);
+        let target = pick(&flood, &maze, position)?;
+        flood.route_to(target)
+    }
+
+    /// Whether the soldier is walking a route or standing at the end of one.
+    fn route_action(&self, storage: &ComponentStorage, entity_id: EntityID) -> NpcAction {
+        let Some(plan) = storage.get::<components::NpcPlan>(entity_id) else {
+            return NpcAction::Hold;
+        };
+        if plan.route.is_empty() {
+            NpcAction::Hold
+        } else {
+            NpcAction::Follow
+        }
+    }
+
+    /// Turns a decision into movement, shots, and the animation to show.
+    fn perform(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+        action: NpcAction,
+    ) -> EngineResult<ActorState> {
+        match action {
+            NpcAction::Attack => {
+                self.shoot(storage, entity_id)?;
+                Ok(ActorState::Attack(usize::MAX))
+            }
+            NpcAction::Chase => {
+                let angle = storage
+                    .get::<components::Angle>(entity_id)
+                    .map(|x| x.0)
+                    .unwrap_or_default();
+                self.step_towards(storage, entity_id, angle)?;
+                Ok(ActorState::Walk(usize::MAX))
+            }
+            NpcAction::Follow => {
+                self.step_along_route(storage, entity_id)?;
+                Ok(ActorState::Walk(usize::MAX))
+            }
+            NpcAction::Hold => Ok(ActorState::Idle(usize::MAX)),
+        }
+    }
+
+    fn shoot(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+    ) -> EngineResult<()> {
+        if !can_shoot(storage, entity_id) {
+            return Ok(());
+        }
+        let (Some(position), Some(angle)) = (
+            storage.get::<components::Position>(entity_id).map(|x| x.0),
+            storage.get::<components::Angle>(entity_id).map(|x| x.0),
+        ) else {
+            return Ok(());
+        };
+        let shot = components::Shot {
+            position,
+            angle,
+            deadline: self.frames + NPC_SOLDIER_SHOT_DEADLINE,
+        };
+        storage.set(entity_id, Some(shot))?;
+        storage.set(entity_id, Some(SoundFx::once(SOUND_NPC_ATTACK)))?;
+        Ok(())
+    }
+
+    /// Walks one step towards the next waypoint, dropping it on arrival.
+    fn step_along_route(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+    ) -> EngineResult<()> {
+        let Some(position) = storage.get::<components::Position>(entity_id).map(|x| x.0) else {
+            return Ok(());
+        };
+        let waypoint = {
+            let Some(mut plan) = storage.get_mut::<components::NpcPlan>(entity_id) else {
+                return Ok(());
+            };
+            // a route planned around the walls can still be blocked by
+            // another soldier standing in it; give up rather than shove
+            if (position - plan.last_position).length() >= NPC_MIN_PROGRESS {
+                plan.progress_frame = self.frames;
+            }
+            plan.last_position = position;
+            if self.frames.saturating_sub(plan.progress_frame) > NPC_SOLDIER_STUCK_FRAMES {
+                plan.route.clear();
+                plan.progress_frame = self.frames;
+                if plan.intent == NpcIntent::Reposition {
+                    plan.intent = NpcIntent::Wander;
+                }
+                return Ok(());
+            }
+            while plan
+                .route
+                .front()
+                .is_some_and(|point| (*point - position).length() < NPC_WAYPOINT_TOLERANCE)
+            {
+                plan.route.pop_front();
+            }
+            plan.route.front().copied()
+        };
+        let Some(waypoint) = waypoint else {
+            return Ok(());
+        };
+        let heading = waypoint - position;
+        let angle = heading.y.atan2(heading.x);
+        // face where it is going, not where the player is
+        storage.set(entity_id, Some(components::Angle(angle)))?;
+        self.step_towards(storage, entity_id, angle)
+    }
+
+    fn step_towards(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+        angle: Float,
+    ) -> EngineResult<()> {
+        let Some(velocity) = storage.get::<components::Velocity>(entity_id).map(|x| x.0) else {
+            return Ok(());
+        };
+        let distance = velocity * self.delta_time;
+        let movement = components::Movement {
+            x: distance * angle.cos(),
+            y: distance * angle.sin(),
+            angle: 0.0,
+        };
+        storage.set(entity_id, Some(movement))?;
+        Ok(())
+    }
+
+    /// A hit either sends a soldier for cover or makes it step aside.
+    fn react_to_damage(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+    ) -> EngineResult<()> {
+        let health = storage
+            .get::<components::Health>(entity_id)
+            .map(|x| x.0)
+            .unwrap_or_default();
+        if health <= NPC_SOLDIER_CRITICAL_HEALTH {
+            self.set_hide_plan(storage, entity_id)
+        } else {
+            self.set_reposition_plan(storage, entity_id)
+        }
+    }
+
+    /// Heads for the nearest tile out of the player's sight, and stays there
+    /// long enough for the trip to have been worth making.
+    fn set_hide_plan(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+    ) -> EngineResult<()> {
+        let player_position = self.player_position;
+        let route = self.plan_route(storage, entity_id, |flood, maze, _| {
+            flood.nearest(|cell| !has_line_of_sight(maze, player_position, cell_center(cell)))
+        });
+        if let Some(mut plan) = storage.get_mut::<components::NpcPlan>(entity_id) {
+            plan.intent = NpcIntent::Hide;
+            plan.route = route.unwrap_or_default().into();
+            plan.hold_until = self.frames + NPC_SOLDIER_HIDE_FRAMES;
+            plan.pause_after_route = 0;
+            plan.progress_frame = self.frames;
+            plan.last_position = Vec2f::default();
+        }
+        Ok(())
+    }
+
+    /// Steps a few tiles off, so as not to stand where the last shot landed.
+    fn set_reposition_plan(
+        &mut self,
+        storage: &mut engine::ComponentStorage,
+        entity_id: EntityID,
+    ) -> EngineResult<()> {
+        let route = self.plan_route(storage, entity_id, |flood, _, origin| {
+            let candidates = flood
+                .reached()
+                .iter()
+                .skip(1)
+                .filter(|cell| (cell_center(**cell) - origin).length() >= 1.5)
+                .take(NPC_SOLDIER_REPOSITION_CELLS * 4)
+                .copied()
+                .collect::<Vec<_>>();
+            if candidates.is_empty() {
+                return None;
+            }
+            Some(candidates[rand::rng().random_range(0..candidates.len())])
+        });
+        if let Some(mut plan) = storage.get_mut::<components::NpcPlan>(entity_id) {
+            plan.intent = NpcIntent::Reposition;
+            plan.route = route.unwrap_or_default().into();
+            plan.hold_until = 0;
+            plan.pause_after_route = 0;
+            plan.progress_frame = self.frames;
+            plan.last_position = Vec2f::default();
+        }
+        Ok(())
     }
 
     fn update_npc_view(
