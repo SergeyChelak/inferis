@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
+use log::warn;
 use sdl2::{
-    image::LoadTexture,
+    image::ImageRWops,
     mixer::*,
     pixels::{Color, PixelFormatEnum},
     render::{Texture, TextureCreator},
     rwops::RWops,
+    surface::Surface,
     video::WindowContext,
 };
 
@@ -55,11 +57,12 @@ impl<'a> AssetManager<'a> {
         &mut self,
         source: &AssetSource,
         texture_creator: &'a TextureCreator<WindowContext>,
+        max_texture: SizeU32,
     ) -> EngineResult<()> {
         let raw_assets = load_assets(source)?;
         for asset in &raw_assets {
             match asset.asset_type {
-                Type::Texture => self.add_texture(asset, texture_creator)?,
+                Type::Texture => self.add_texture(asset, texture_creator, max_texture)?,
                 Type::Animation => self.add_animation(asset)?,
                 Type::Binary => self.add_binary(asset)?,
                 Type::Color => self.add_color(asset)?,
@@ -74,6 +77,7 @@ impl<'a> AssetManager<'a> {
         &mut self,
         raw_asset: &RawAsset,
         texture_creator: &'a TextureCreator<WindowContext>,
+        max_texture: SizeU32,
     ) -> EngineResult<()> {
         let Representation::Binary { value } = &raw_asset.representation else {
             return Err(EngineError::UnexpectedState(format!(
@@ -81,12 +85,25 @@ impl<'a> AssetManager<'a> {
                 raw_asset.id
             )));
         };
-        let Ok(texture) = texture_creator.load_texture_bytes(value) else {
-            return Err(EngineError::ResourceParseError(format!(
-                "Failed to load texture for asset with id '{}'",
-                raw_asset.id
-            )));
-        };
+        // decode to a surface first, so an image the renderer cannot hold
+        // can be shrunk rather than simply refused
+        let image = RWops::from_bytes(value)
+            .and_then(|rwops| rwops.load())
+            .map_err(|err| {
+                EngineError::ResourceParseError(format!(
+                    "Failed to decode image for asset with id '{}': {err}",
+                    raw_asset.id
+                ))
+            })?;
+        let image = fit_within(image, max_texture, &raw_asset.id)?;
+        let texture = texture_creator
+            .create_texture_from_surface(&image)
+            .map_err(|err| {
+                EngineError::ResourceParseError(format!(
+                    "Failed to load texture for asset with id '{}': {err}",
+                    raw_asset.id
+                ))
+            })?;
         self.put_texture(&raw_asset.id, texture);
         Ok(())
     }
@@ -294,6 +311,55 @@ fn parse_gradient(value: &str) -> EngineResult<(Color, Color)> {
         )));
     };
     Ok((from, to))
+}
+
+/// Shrinks an image that the renderer could not hold, keeping its aspect
+/// ratio so that sprite sheets keep dividing evenly into frames.
+///
+/// GPUs cap texture dimensions -- 4096 on a Raspberry Pi's V3D, for
+/// instance -- and an oversized sheet would otherwise fail to load at all,
+/// taking the whole game down at startup over one asset.
+fn fit_within(
+    mut image: Surface<'static>,
+    max: SizeU32,
+    asset_id: &str,
+) -> EngineResult<Surface<'static>> {
+    // some renderers report no limit at all
+    let limit_w = if max.width == 0 { u32::MAX } else { max.width };
+    let limit_h = if max.height == 0 {
+        u32::MAX
+    } else {
+        max.height
+    };
+    let (width, height) = (image.width(), image.height());
+    if width <= limit_w && height <= limit_h {
+        return Ok(image);
+    }
+    let scale = (limit_w as Float / width as Float).min(limit_h as Float / height as Float);
+    let target = SizeU32 {
+        width: ((width as Float * scale) as u32).max(1),
+        height: ((height as Float * scale) as u32).max(1),
+    };
+    warn!(
+        "texture '{asset_id}' is {width}x{height}, larger than the renderer's {limit_w}x{limit_h}; \
+         scaling it to {}x{}. Re-export it smaller to keep full detail.",
+        target.width, target.height
+    );
+    let mut scaled =
+        Surface::new(target.width, target.height, image.pixel_format_enum()).map_err(|err| {
+            EngineError::ResourceParseError(format!("Failed to resize '{asset_id}': {err}"))
+        })?;
+    // copy the pixels rather than compositing them: a blend would fold the
+    // sprite's alpha into the fresh surface and lose its transparency
+    image
+        .set_blend_mode(sdl2::render::BlendMode::None)
+        .map_err(|err| {
+            EngineError::ResourceParseError(format!("Failed to resize '{asset_id}': {err}"))
+        })?;
+    image.blit_scaled(None, &mut scaled, None).map_err(|err| {
+        EngineError::ResourceParseError(format!("Failed to resize '{asset_id}': {err}"))
+    })?;
+    Ok(scaled)
 }
 
 fn create_gradient_texture(

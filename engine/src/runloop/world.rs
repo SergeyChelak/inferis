@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     game_scene::SceneEvent, systems::InputEvent, AssetManager, AudioSettings, EngineError,
-    EngineResult, EngineSettings, SceneID, WindowSettings,
+    EngineResult, EngineSettings, SceneID, SizeU32, WindowSettings,
 };
 use log::warn;
 use sdl2::{event::Event, mixer::InitFlag, pixels::Color, render::WindowCanvas, EventPump, Sdl};
@@ -112,9 +112,18 @@ fn run(
 ) -> EngineResult<()> {
     let mut canvas = systems.canvas;
     let mut event_pump = systems.event_pump;
+    // the renderer's ceiling on texture size, so oversized art can be
+    // scaled to fit instead of refusing to load
+    let max_texture = {
+        let info = canvas.info();
+        SizeU32 {
+            width: info.max_texture_width,
+            height: info.max_texture_height,
+        }
+    };
     let texture_creator = canvas.texture_creator();
     let mut asset_manager = AssetManager::default();
-    asset_manager.setup(&settings.asset_source, &texture_creator)?;
+    asset_manager.setup(&settings.asset_source, &texture_creator, max_texture)?;
     // setup all scenes
     for scene in scenes.values_mut() {
         scene.setup_systems(&asset_manager, settings.window.size)?;
