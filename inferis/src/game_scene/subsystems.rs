@@ -141,6 +141,11 @@ pub fn ray_cast_from_entity(
     if !entities.is_empty() {
         let ray_dir = Vec2f::new(angle.cos(), angle.sin());
         for target_id in entities {
+            // Only the shooter is excluded, so a soldier's shot can hit
+            // another soldier standing in the way. That is deliberate: now
+            // that soldiers patrol and reposition they cross each other's
+            // line of fire often, and letting them thin each other out
+            // rewards the player for choosing where to fight from.
             if target_id == entity_id {
                 continue;
             }
