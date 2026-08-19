@@ -204,6 +204,10 @@ pub struct NpcPlan {
     pub progress_frame: usize,
     /// Where the player was when last seen, if ever.
     pub last_seen: Option<Vec2f>,
+    /// Earliest frame at which this soldier may break off to hide again. A
+    /// soldier that could hide on every hit would always escape the shot
+    /// that finishes it.
+    pub hide_ready_at: usize,
     /// Whether the last line-of-sight check found the player. The check is
     /// throttled, so this is the standing verdict between checks.
     pub player_visible: bool,

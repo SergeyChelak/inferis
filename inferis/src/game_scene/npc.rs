@@ -36,8 +36,15 @@ const NPC_SOLDIER_HIDE_FRAMES: usize = 4 * 60;
 const NPC_SOLDIER_LOOK_AROUND_FRAMES: usize = 45;
 /// Range of pauses between wander legs, so a group does not move in lockstep.
 const NPC_SOLDIER_WANDER_PAUSE: std::ops::Range<usize> = 30..150;
-/// How far a soldier steps aside after being hit.
-const NPC_SOLDIER_REPOSITION_CELLS: usize = 4;
+/// How far a soldier steps aside after being hit. A dodge is a sidestep,
+/// not a sprint: far enough not to be a stationary target, near enough to
+/// stay in the fight and in view.
+const NPC_SOLDIER_DODGE_RANGE: std::ops::Range<Float> = 1.0..2.5;
+/// A dodge is hurried but not a flat run.
+const NPC_SOLDIER_DODGE_SPEED: Float = 0.6;
+/// How rarely a soldier may break off to hide. Without this a wounded one
+/// hides on every hit and can never be finished off.
+const NPC_SOLDIER_HIDE_COOLDOWN: usize = 15 * 60;
 /// Cap on the tiles one re-plan considers. A soldier only ever wanders
 /// locally, and the cap keeps the flood off the whole maze.
 const NPC_NAV_FLOOD_CELLS: usize = 400;
@@ -406,7 +413,7 @@ impl NpcSystem {
                     .get::<components::Angle>(entity_id)
                     .map(|x| x.0)
                     .unwrap_or_default();
-                self.step_towards(storage, entity_id, angle)?;
+                self.step_towards(storage, entity_id, angle, 1.0)?;
                 Ok(ActorState::Walk(usize::MAX))
             }
             NpcAction::Follow => {
@@ -477,14 +484,33 @@ impl NpcSystem {
             }
             plan.route.front().copied()
         };
+        let intent = storage
+            .get::<components::NpcPlan>(entity_id)
+            .map(|plan| plan.intent)
+            .unwrap_or_default();
         let Some(waypoint) = waypoint else {
             return Ok(());
         };
         let heading = waypoint - position;
         let angle = heading.y.atan2(heading.x);
-        // face where it is going, not where the player is
-        storage.set(entity_id, Some(components::Angle(angle)))?;
-        self.step_towards(storage, entity_id, angle)
+        // A soldier sidestepping a shot keeps its eyes on the player: it
+        // turns its back only when it has somewhere to be. Movement and
+        // facing are separate, so a dodge reads as a dodge rather than as
+        // a soldier fleeing at a run.
+        let dodging = matches!(intent, NpcIntent::Reposition);
+        let facing = if dodging {
+            let towards_player = self.player_position - position;
+            towards_player.y.atan2(towards_player.x)
+        } else {
+            angle
+        };
+        storage.set(entity_id, Some(components::Angle(facing)))?;
+        let speed = if dodging {
+            NPC_SOLDIER_DODGE_SPEED
+        } else {
+            1.0
+        };
+        self.step_towards(storage, entity_id, angle, speed)
     }
 
     fn step_towards(
@@ -492,11 +518,12 @@ impl NpcSystem {
         storage: &mut engine::ComponentStorage,
         entity_id: EntityID,
         angle: Float,
+        speed: Float,
     ) -> EngineResult<()> {
         let Some(velocity) = storage.get::<components::Velocity>(entity_id).map(|x| x.0) else {
             return Ok(());
         };
-        let distance = velocity * self.delta_time;
+        let distance = velocity * speed * self.delta_time;
         let movement = components::Movement {
             x: distance * angle.cos(),
             y: distance * angle.sin(),
@@ -516,7 +543,11 @@ impl NpcSystem {
             .get::<components::Health>(entity_id)
             .map(|x| x.0)
             .unwrap_or_default();
-        if health <= NPC_SOLDIER_CRITICAL_HEALTH {
+        let may_hide = storage
+            .get::<components::NpcPlan>(entity_id)
+            .map(|plan| self.frames >= plan.hide_ready_at)
+            .unwrap_or(true);
+        if health <= NPC_SOLDIER_CRITICAL_HEALTH && may_hide {
             self.set_hide_plan(storage, entity_id)
         } else {
             self.set_reposition_plan(storage, entity_id)
@@ -538,6 +569,7 @@ impl NpcSystem {
             plan.intent = NpcIntent::Hide;
             plan.route = route.unwrap_or_default().into();
             plan.hold_until = self.frames + NPC_SOLDIER_HIDE_FRAMES;
+            plan.hide_ready_at = self.frames + NPC_SOLDIER_HIDE_COOLDOWN;
             plan.pause_after_route = 0;
             plan.progress_frame = self.frames;
             plan.last_position = Vec2f::default();
@@ -556,8 +588,9 @@ impl NpcSystem {
                 .reached()
                 .iter()
                 .skip(1)
-                .filter(|cell| (cell_center(**cell) - origin).length() >= 1.5)
-                .take(NPC_SOLDIER_REPOSITION_CELLS * 4)
+                .filter(|cell| {
+                    NPC_SOLDIER_DODGE_RANGE.contains(&(cell_center(**cell) - origin).length())
+                })
                 .copied()
                 .collect::<Vec<_>>();
             if candidates.is_empty() {
