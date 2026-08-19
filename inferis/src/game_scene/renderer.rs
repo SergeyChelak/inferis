@@ -59,6 +59,27 @@ const WEAPON_SWAY_REST: Float = 0.002;
 /// when the run loop catches up on several gameplay steps at once.
 const WEAPON_SWAY_TELEPORT: Float = 2.0;
 
+/// How far a sustained turn drags the weapon behind the view, as a fraction
+/// of the weapon's drawn width. It trails the turn -- the world sweeps one
+/// way, the gun hangs back the other -- and centres again once the turn
+/// ends.
+const WEAPON_TURN_LAG_RATIO: Float = 0.05;
+/// Share of the gap to a full drag closed each frame while turning. Slower
+/// than the walk takes up its swing, because the point here is the lag: the
+/// gun has to be visibly behind the view rather than pinned to it.
+const WEAPON_TURN_LAG_RISE: Float = 0.10;
+/// Share of the drag given back each frame once the turn ends, or once the
+/// player starts walking. Slower again, so the gun drifts back to centre
+/// instead of snapping to it -- and so a rendered frame that falls between
+/// two gameplay steps, and sees no turn at all, barely dents it.
+const WEAPON_TURN_LAG_FALL: Float = 0.06;
+/// Drag below which the weapon is put back on centre outright, for the same
+/// reason as [`WEAPON_SWAY_REST`].
+const WEAPON_TURN_LAG_REST: Float = 0.002;
+/// Turn within one frame below which the player is standing still and the
+/// angle is only jittering. A gameplay step turns some twenty times this.
+const WEAPON_TURN_LAG_TOLERANCE: Float = 0.002;
+
 struct SpriteViewData {
     size: SizeU32,
     source: Rect,
@@ -100,6 +121,12 @@ pub struct RendererSystem {
     /// The player's position last frame, which is what the distance walked
     /// this frame is measured against. `None` until there is one.
     weapon_sway_last_pos: Option<Vec2f>,
+    /// How far the weapon is dragged behind a turn, from -1 fully left to
+    /// 1 fully right, and 0 on centre.
+    weapon_turn_lag: Float,
+    /// The player's view angle last frame, which is what the turn made this
+    /// frame is measured against. `None` until there is one.
+    weapon_turn_last_angle: Option<Float>,
 }
 
 impl Default for RendererSystem {
@@ -127,6 +154,8 @@ impl Default for RendererSystem {
             weapon_sway_phase: Default::default(),
             weapon_sway_amount: Default::default(),
             weapon_sway_last_pos: Default::default(),
+            weapon_turn_lag: Default::default(),
+            weapon_turn_last_angle: Default::default(),
         }
     }
 }
@@ -249,8 +278,9 @@ impl RendererSystem {
         let h = (w as Float * ratio) as u32;
 
         let (sway_x, sway_y) = self.weapon_sway_offset(w, h);
+        let turn_x = self.weapon_turn_offset(w);
         let destination = Rect::new(
-            (((window_width - w) >> 1) as Float + sway_x) as i32,
+            (((window_width - w) >> 1) as Float + sway_x + turn_x) as i32,
             ((window_height - h) as Float + sway_y) as i32,
             w,
             h,
@@ -266,6 +296,31 @@ impl RendererSystem {
         Ok(())
     }
 
+    /// Advances everything the weapon does in response to the player moving:
+    /// the walking sway, and the drag behind a turn.
+    fn update_weapon_motion(&mut self, position: Vec2f, angle: Float) {
+        let walked = self.walked_since_last_frame(position);
+        self.update_weapon_sway(walked);
+        self.update_weapon_turn_lag(angle, walked > 0.0);
+    }
+
+    /// Distance the player covered since the previous frame.
+    ///
+    /// A jump larger than any walk could cover in one frame means they were
+    /// moved rather than walked -- a new level, a scene switch -- and counts
+    /// as nothing, so neither the sway nor the drag lurches on a teleport.
+    fn walked_since_last_frame(&mut self, position: Vec2f) -> Float {
+        let Some(previous) = self.weapon_sway_last_pos.replace(position) else {
+            return 0.0;
+        };
+        let distance = (position - previous).length();
+        if distance > WEAPON_SWAY_TELEPORT {
+            0.0
+        } else {
+            distance
+        }
+    }
+
     /// Advances the weapon's walking sway by the distance the player covered
     /// since the previous frame.
     ///
@@ -276,18 +331,7 @@ impl RendererSystem {
     /// one for one. Turning on the spot moves nobody anywhere, and so leaves
     /// the gun still, which is the point -- a swing driven by a timer would
     /// keep going through both.
-    fn update_weapon_sway(&mut self, position: Vec2f) {
-        let walked = match self.weapon_sway_last_pos.replace(position) {
-            Some(previous) => {
-                let distance = (position - previous).length();
-                if distance > WEAPON_SWAY_TELEPORT {
-                    0.0
-                } else {
-                    distance
-                }
-            }
-            None => 0.0,
-        };
+    fn update_weapon_sway(&mut self, walked: Float) {
         self.weapon_sway_phase = (self.weapon_sway_phase + walked * TAU / WEAPON_SWAY_STRIDE) % TAU;
         if walked > 0.0 {
             self.weapon_sway_amount += (1.0 - self.weapon_sway_amount) * WEAPON_SWAY_RISE;
@@ -296,6 +340,44 @@ impl RendererSystem {
             if self.weapon_sway_amount < WEAPON_SWAY_REST {
                 self.weapon_sway_amount = 0.0;
             }
+        }
+    }
+
+    /// Drags the weapon behind the view while the player turns on the spot,
+    /// and lets it drift back to centre once they stop.
+    ///
+    /// What it follows is the *direction* of the turn, not how far the view
+    /// swung: the drag eases towards one side or the other while the turn
+    /// lasts and back to centre when it ends. Reading the angle a frame
+    /// covered would tie the gun to how many gameplay steps that frame
+    /// happened to contain -- nought, one or two -- and the drag would
+    /// flicker at exactly the rate the two clocks beat against each other.
+    ///
+    /// It gives way to the walk entirely. Both want the same few pixels of
+    /// the weapon's travel, and a gun that swings and drags at once reads as
+    /// neither; the sway is the stronger cue, so walking eases the drag out
+    /// rather than adding to it.
+    fn update_weapon_turn_lag(&mut self, angle: Float, walking: bool) {
+        let turned = match self.weapon_turn_last_angle.replace(angle) {
+            // the angle is kept wrapped into a turn, so the short way round
+            // is what was actually turned -- the long way is the wrap itself
+            Some(previous) => (angle - previous + PI).rem_euclid(TAU) - PI,
+            None => 0.0,
+        };
+        // turning right sweeps the world left, so the gun hangs back left
+        let target = if walking || turned.abs() < WEAPON_TURN_LAG_TOLERANCE {
+            0.0
+        } else {
+            -turned.signum()
+        };
+        let rate = if target == 0.0 {
+            WEAPON_TURN_LAG_FALL
+        } else {
+            WEAPON_TURN_LAG_RISE
+        };
+        self.weapon_turn_lag += (target - self.weapon_turn_lag) * rate;
+        if self.weapon_turn_lag.abs() < WEAPON_TURN_LAG_REST {
+            self.weapon_turn_lag = 0.0;
         }
     }
 
@@ -327,6 +409,12 @@ impl RendererSystem {
             self.weapon_sway_amount * swing * width as Float * WEAPON_SWAY_WIDTH_RATIO,
             self.weapon_sway_amount * dip * height as Float * WEAPON_SWAY_HEIGHT_RATIO,
         )
+    }
+
+    /// How far the weapon trails the view after the turn so far, in pixels,
+    /// scaled to the weapon's own width.
+    fn weapon_turn_offset(&self, width: u32) -> Float {
+        self.weapon_turn_lag * width as Float * WEAPON_TURN_LAG_RATIO
     }
     // ------------------------------------------------------------------------------------------------------------
     fn sprite_view_data(
@@ -666,7 +754,7 @@ impl GameRendererSystem for RendererSystem {
             .map(|x| x.0)
             .ok_or(EngineError::component_not_found("[v2.renderer] position"))?;
         self.frames = frames;
-        self.update_weapon_sway(self.player_pos);
+        self.update_weapon_motion(self.player_pos, self.angle);
 
         self.layers.borrow_mut().clear();
         // background layer
@@ -686,20 +774,40 @@ impl GameRendererSystem for RendererSystem {
 mod test {
     use super::*;
 
-    /// Walks the player in a straight line, one frame per step.
-    fn walk(renderer: &mut RendererSystem, step: Float, frames: usize) {
+    /// What the player's rotation speed turns them by in one gameplay step.
+    const TURN_STEP: Float = 2.5 / 60.0;
+
+    /// Advances the player by `step` cells and `turn` radians per frame.
+    fn advance(renderer: &mut RendererSystem, step: Float, turn: Float, frames: usize) {
         let mut position = renderer.weapon_sway_last_pos.unwrap_or_default();
+        let mut angle = renderer.weapon_turn_last_angle.unwrap_or_default();
         for _ in 0..frames {
             position = Vec2f::new(position.x + step, position.y);
-            renderer.update_weapon_sway(position);
+            angle = (angle + turn).rem_euclid(TAU);
+            renderer.update_weapon_motion(position, angle);
         }
+    }
+
+    /// Walks the player in a straight line, facing the same way throughout.
+    fn walk(renderer: &mut RendererSystem, step: Float, frames: usize) {
+        advance(renderer, step, 0.0, frames);
+    }
+
+    /// Turns the player on the spot.
+    fn turn(renderer: &mut RendererSystem, step: Float, frames: usize) {
+        advance(renderer, 0.0, step, frames);
+    }
+
+    /// Holds the player where and as they are.
+    fn stand(renderer: &mut RendererSystem, frames: usize) {
+        advance(renderer, 0.0, 0.0, frames);
     }
 
     #[test]
     fn half_a_stride_carries_the_swing_half_way_round_the_cycle() {
         let mut renderer = RendererSystem::new();
         // the first frame only records a position to measure the next against
-        renderer.update_weapon_sway(Vec2f::new(1.0, 1.0));
+        renderer.update_weapon_motion(Vec2f::new(1.0, 1.0), 0.0);
         assert_eq!(renderer.weapon_sway_phase, 0.0);
         let step = WEAPON_SWAY_STRIDE / 20.0;
         walk(&mut renderer, step, 10);
@@ -713,15 +821,12 @@ mod test {
     #[test]
     fn standing_still_holds_the_swing_and_lets_it_settle() {
         let mut renderer = RendererSystem::new();
-        renderer.update_weapon_sway(Vec2f::new(4.0, 4.0));
+        renderer.update_weapon_motion(Vec2f::new(4.0, 4.0), 0.0);
         walk(&mut renderer, 0.05, 120);
         let phase = renderer.weapon_sway_phase;
         assert!(renderer.weapon_sway_amount > 0.9);
 
-        let standing = renderer.weapon_sway_last_pos.unwrap();
-        for _ in 0..300 {
-            renderer.update_weapon_sway(standing);
-        }
+        stand(&mut renderer, 300);
         // turning on the spot moves nobody anywhere, so the cycle is left
         // where it was and only the amount fades out
         assert_eq!(renderer.weapon_sway_phase, phase);
@@ -732,17 +837,17 @@ mod test {
     #[test]
     fn being_moved_across_the_map_doesnt_jolt_the_swing() {
         let mut renderer = RendererSystem::new();
-        renderer.update_weapon_sway(Vec2f::new(2.0, 2.0));
+        renderer.update_weapon_motion(Vec2f::new(2.0, 2.0), 0.0);
         walk(&mut renderer, 0.1, 10);
         let phase = renderer.weapon_sway_phase;
-        renderer.update_weapon_sway(Vec2f::new(40.0, 40.0));
+        renderer.update_weapon_motion(Vec2f::new(40.0, 40.0), 0.0);
         assert_eq!(renderer.weapon_sway_phase, phase);
     }
 
     #[test]
     fn the_weapon_stays_within_its_declared_travel() {
         let mut renderer = RendererSystem::new();
-        renderer.update_weapon_sway(Vec2f::default());
+        renderer.update_weapon_motion(Vec2f::default(), 0.0);
         walk(&mut renderer, 0.05, 200);
         let (width, height) = (400u32, 300u32);
         let mut widest: Float = 0.0;
@@ -758,5 +863,53 @@ mod test {
         // the harmonic's crest is normalised away, so the swing really does
         // reach the half-width it advertises
         assert!(widest > width as Float * WEAPON_SWAY_WIDTH_RATIO - 1e-2);
+    }
+
+    #[test]
+    fn a_turn_drags_the_weapon_the_other_way() {
+        let mut renderer = RendererSystem::new();
+        renderer.update_weapon_motion(Vec2f::new(3.0, 3.0), 0.0);
+        // turning right sweeps the world left, so the gun hangs back left
+        turn(&mut renderer, TURN_STEP, 60);
+        assert!(renderer.weapon_turn_lag < -0.9);
+        assert!(renderer.weapon_turn_offset(400) < 0.0);
+        // and the other way round, from one extreme to the other
+        turn(&mut renderer, -TURN_STEP, 120);
+        assert!(renderer.weapon_turn_lag > 0.9);
+        assert!(renderer.weapon_turn_offset(400) > 0.0);
+    }
+
+    #[test]
+    fn the_drag_comes_back_to_centre_once_the_turn_ends() {
+        let mut renderer = RendererSystem::new();
+        renderer.update_weapon_motion(Vec2f::new(3.0, 3.0), 0.0);
+        turn(&mut renderer, TURN_STEP, 60);
+        assert!(renderer.weapon_turn_lag.abs() > 0.9);
+        stand(&mut renderer, 200);
+        assert_eq!(renderer.weapon_turn_lag, 0.0);
+        assert_eq!(renderer.weapon_turn_offset(400), 0.0);
+    }
+
+    #[test]
+    fn walking_takes_the_drag_out_of_a_turn() {
+        let mut renderer = RendererSystem::new();
+        renderer.update_weapon_motion(Vec2f::new(3.0, 3.0), 0.0);
+        turn(&mut renderer, TURN_STEP, 60);
+        assert!(renderer.weapon_turn_lag.abs() > 0.9);
+        // still turning, but walking now: the sway has the weapon and the
+        // drag gives way rather than fighting it for the same few pixels
+        advance(&mut renderer, 0.05, TURN_STEP, 200);
+        assert_eq!(renderer.weapon_turn_lag, 0.0);
+        assert!(renderer.weapon_sway_amount > 0.9);
+    }
+
+    #[test]
+    fn turning_across_the_wrap_point_doesnt_reverse_the_drag() {
+        let mut renderer = RendererSystem::new();
+        renderer.update_weapon_motion(Vec2f::new(3.0, 3.0), TAU - 0.01);
+        // one step right takes the angle past zero, and the short way round
+        // is still a small turn right -- not a near-whole turn left
+        turn(&mut renderer, TURN_STEP, 1);
+        assert!(renderer.weapon_turn_lag < 0.0);
     }
 }

@@ -170,6 +170,31 @@ never lifting it to open a gap along the bottom of the screen.
 the other two are the swing's half-width and the dip's depth, both fractions
 of the weapon's own drawn size so they hold at any window size.
 
+### Turning
+
+Turning on the spot drags the weapon the other way — the world sweeps left,
+the gun hangs back right — and lets it drift to centre once the turn ends.
+
+What the drag follows is the **direction** of the turn, not how far the view
+swung:
+
+```rust
+let target = if walking || turned.abs() < TOLERANCE { 0.0 } else { -turned.signum() };
+```
+
+Reading the angle a frame covered would tie the gun to how many gameplay
+steps that frame happened to contain — nought, one or two — and the drag
+would flicker at exactly the rate the two clocks beat against each other.
+Easing towards a side instead is immune to that, and constant-rate turning
+is all the controls offer anyway. The angle is compared the short way round,
+so crossing zero is a small turn rather than a near-whole one.
+
+The drag gives way to the walk entirely: both want the same few pixels of
+the weapon's travel, and a gun that swings and drags at once reads as
+neither, so walking eases the drag out rather than adding to it. It is taken
+up more slowly than the walk takes up its swing — the point of it is to be
+visibly behind the view — and given back more slowly still.
+
 ## Where the time goes
 
 Measured on a Raspberry Pi 5, per frame, with 20 soldiers:
